@@ -1,0 +1,49 @@
+/* MILKBOX Google Drive Iframe Player Styles */
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'liga';
+}
+.milkbox-cp-badge {
+    background: #e50914;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+    white-space: nowrap;
+}
+.milkbox-cp-back-btn {
+    background: rgba(255,255,255,0.12);
+    border: none;
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+.milkbox-cp-back-btn:hover {
+    background: rgba(229,9,20,0.8);
+}
+.milkbox-drive-frame {
+    width: 100%;
+    flex: 1;
+    border: none;
+    background: #000;
+}

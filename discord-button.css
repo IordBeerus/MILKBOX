@@ -1,0 +1,55 @@
+/* Discord Navbar Button */
+.btn-discord {
+    background: #5865F2;
+    color: #ffffff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 50px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    box-shadow: 0 4px 14px rgba(88, 101, 242, 0.35);
+}
+
+.btn-discord:hover {
+    background: #4752C4;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(88, 101, 242, 0.55);
+    color: #ffffff;
+}
+
+.btn-discord svg {
+    width: 20px;
+    height: 15px;
+    fill: currentColor;
+}
+
+@media (max-width: 768px) {
+    .btn-discord {
+        padding: 6px 12px;
+        font-size: 11px;
+        gap: 6px;
+    }
+    .btn-discord svg {
+        width: 16px;
+        height: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn-discord {
+        padding: 5px 10px;
+        font-size: 10px;
+    }
+    #loadPopularBtn, #bypassFilterBtn, .btn-about-blank {
+        display: none;
+    }
+}
