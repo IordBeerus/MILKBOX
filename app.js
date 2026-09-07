@@ -3212,7 +3212,6 @@ async function renderTmdbEpisodes(tvItem, server) {
                 card.className = 'cineby-ep-card';
                 card.setAttribute('role', 'button');
                 card.setAttribute('tabindex', '0');
-                card.setAttribute('aria-label', `Play episode ${ep.episode_number}: ${epTitle}`);
                 card.dataset.season = found.sn;
                 card.dataset.episode = ep.episode_number;
 
@@ -3221,6 +3220,7 @@ async function renderTmdbEpisodes(tvItem, server) {
                 const runtime = ep.runtime ? `${ep.runtime} min` : '';
                 const overview = ep.overview ? ep.overview : 'No description available for this episode.';
                 const meta = [ep.air_date, runtime].filter(Boolean).join('  •  ');
+                card.setAttribute('aria-label', `Play episode ${ep.episode_number}: ${epTitle}`);
 
                 card.innerHTML = `
                     <div class="cineby-ep-thumb-wrapper">
