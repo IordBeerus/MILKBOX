@@ -1145,7 +1145,7 @@ function baseComplete(m) {
 // Full library completeness: baseComplete plus a brand logo. Items missing any
 // of these (rating / logo / backdrop / poster) aren't shown anywhere.
 function completeItem(m) {
-    return !!m && baseComplete(m) && !!((m.logo || '').trim());
+    return baseComplete(m);
 }
 
 function renderCatalogGrid(section, source) {
