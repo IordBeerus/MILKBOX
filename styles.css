@@ -354,6 +354,8 @@ body.light-mode .player-container .player-placeholder p { color: #999 !important
     box-shadow: 0 18px 50px rgba(0,0,0,0.55);
     list-style: none;
     padding: 8px;
+    max-height: min(78vh, 560px);
+    overflow-y: auto;
     z-index: 1200;
     outline: none;
     opacity: 0;
