@@ -615,7 +615,11 @@
                     </label>
                 </div>
                 <div class="episodes-filter-row">
-                    <div class="season-tabs" id="seasonTabs" role="tablist" aria-label="Seasons"></div>
+                    <div class="season-tabs-wrap">
+                        <button class="season-scroll-btn season-scroll-left" type="button" data-season-scroll="left" aria-label="Scroll seasons left">❮</button>
+                        <div class="season-tabs" id="seasonTabs" role="tablist" aria-label="Seasons"></div>
+                        <button class="season-scroll-btn season-scroll-right" type="button" data-season-scroll="right" aria-label="Scroll seasons right">❯</button>
+                    </div>
                     <div class="season-select-wrapper">
                         <select id="seasonDropdown" class="season-select-dropdown">
                             <!-- Populated dynamically: <option value="1">Season 1</option> -->

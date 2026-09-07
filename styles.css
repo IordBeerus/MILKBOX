@@ -4085,12 +4085,36 @@ body.light-mode .hero-fade { background: linear-gradient(180deg, rgba(245,245,24
 .season-tabs {
     display: flex;
     gap: 8px;
-    flex: 1 1 100%;
+    width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
     padding: 2px 0 4px;
 }
 .season-tabs::-webkit-scrollbar { display: none; }
+.season-tabs-wrap {
+    position: relative;
+    flex: 1 1 100%;
+    min-width: 0;
+    padding: 0 34px;
+}
+.season-scroll-btn {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    background: rgba(24,24,28,0.94);
+    color: #fff;
+    font-size: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.season-scroll-btn:hover { background: var(--cb-pink-strong, #ff6b9d); border-color: transparent; }
+.season-scroll-left { left: 0; }
+.season-scroll-right { right: 0; }
 .season-tab {
     display: inline-flex;
     align-items: baseline;

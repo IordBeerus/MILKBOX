@@ -3317,6 +3317,7 @@ async function renderTmdbEpisodes(tvItem, server) {
                     if (searchInput) searchInput.value = '';
                     syncSeasonControls();
                     renderCurrentSeasonEpisodes();
+                    tab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 };
             });
         }
@@ -7336,6 +7337,12 @@ initAll();
 
 // provider click delegation
 document.addEventListener('click', (e) => {
+    const seasonScrollButton = e.target.closest('[data-season-scroll]');
+    if (seasonScrollButton) {
+        const tabs = document.getElementById('seasonTabs');
+        if (tabs) tabs.scrollBy({ left: seasonScrollButton.dataset.seasonScroll === 'right' ? 360 : -360, behavior: 'smooth' });
+        return;
+    }
     const scrollButton = e.target.closest('[data-provider-scroll]');
     if (scrollButton) {
         const slider = document.getElementById('providerSlider');
