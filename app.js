@@ -1402,17 +1402,25 @@ async function browseProvider(providerId) {
         const pager = document.getElementById('streamingPager');
         if (grid) grid.innerHTML = '<div class="live-loading">Loading ' + prov.label + '…</div>';
         if (pager) pager.style.display = 'none';
-        const paths = [
+        const moviePaths = [
             `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=1`,
             `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=2`,
             `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=3`,
-            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=4`,
+            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=4`
+        ];
+        const tvPaths = [
             `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=1`,
             `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=2`,
             `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=3`,
         ];
-        const pages = await fetchBatched(paths, 5);
-        const providerItems = liveItemsFromPages(pages, 'mixed');
+        const [moviePages, tvPages] = await Promise.all([
+            fetchBatched(moviePaths, 5),
+            fetchBatched(tvPaths, 5)
+        ]);
+        const providerItems = mergeLiveInterleaved([
+            liveItemsFromPages(moviePages, 'movie'),
+            liveItemsFromPages(tvPages, 'tv')
+        ]);
         const activeSearch = String(searchQuery || document.getElementById('searchInput')?.value || '').trim();
         const needle = activeSearch.toLowerCase();
         const items = needle
