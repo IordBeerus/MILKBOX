@@ -688,6 +688,17 @@
                     <div class="manga-reader-genres" id="mangaReadGenres"></div>
                 </div>
                 <div class="manga-reader-controls">
+                    <label class="manga-language-control" for="mangaLanguageSelect">Language
+                        <select id="mangaLanguageSelect" class="manga-language-select" aria-label="Chapter language">
+                            <option value="en">English</option>
+                            <option value="es">Spanish</option>
+                            <option value="ja">Japanese</option>
+                            <option value="fr">French</option>
+                            <option value="de">German</option>
+                            <option value="pt-br">Portuguese (Brazil)</option>
+                            <option value="all">All languages</option>
+                        </select>
+                    </label>
                     <button class="manga-reader-btn" id="mangaReadPrev" disabled>&#10094;</button>
                     <span class="manga-reader-chapter" id="mangaReadChapterLabel"></span>
                     <button class="manga-reader-btn" id="mangaReadNext" disabled>&#10095;</button>
@@ -878,6 +889,6 @@
     </footer>
 
     <script src="milkbox-player.js"></script>
-    <script src="app.js?v=20ce5dd"></script>
+    <script src="app.js?v=manga-language"></script>
 </body>
 </html>

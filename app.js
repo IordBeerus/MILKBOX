@@ -5844,12 +5844,23 @@ function renderMangaGrid(page) {
 }
 
 // ==================== MANGA READER ====================
-let mangaReader = { mangaId: '', info: null, chapters: [], currentId: null, images: [] };
+let mangaReader = {
+    mangaId: '', info: null, chapters: [], currentId: null, images: [], item: null,
+    language: localStorage.getItem('milkbox_manga_language') || 'en'
+};
 
 function mrEl(id) { return document.getElementById(id); }
 
+mrEl('mangaLanguageSelect')?.addEventListener('change', (event) => {
+    const language = event.target.value || 'en';
+    mangaReader.language = language;
+    localStorage.setItem('milkbox_manga_language', language);
+    if (mangaReader.item) showMangaReader(mangaReader.item);
+});
+
 function showMangaReader(m) {
     mangaReader.mangaId = m.id || '';
+    mangaReader.item = m;
     mangaReader.info = null;
     mangaReader.chapters = [];
     mangaReader.currentId = null;
@@ -5861,6 +5872,8 @@ function showMangaReader(m) {
     mrEl('mangaReadPages').innerHTML = '<div class="live-loading">Loading manga details…</div>';
     mrEl('mangaReadPrev').disabled = true;
     mrEl('mangaReadNext').disabled = true;
+    const languageSelect = mrEl('mangaLanguageSelect');
+    if (languageSelect) languageSelect.value = mangaReader.language;
     mrEl('mangaModal').classList.add('active');
     (async () => {
         try {
@@ -5874,7 +5887,8 @@ function showMangaReader(m) {
             try {
                 const mdId = await resolveMangadexMangaId(detail?.title || m.title || '');
                 if (mdId) {
-                    const r = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50&translatedLanguage[]=en&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
+                    const languageFilter = mangaReader.language === 'all' ? '' : `&translatedLanguage[]=${encodeURIComponent(mangaReader.language)}`;
+                    const r = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50${languageFilter}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
                     if (r.ok) {
                         const j = await r.json();
                         if (Array.isArray(j.data) && j.data.length) {
