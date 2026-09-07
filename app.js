@@ -1364,15 +1364,24 @@ async function browseProvider(providerId) {
             `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=3`,
         ];
         const pages = await fetchBatched(paths, 5);
-        const items = liveItemsFromPages(pages, 'mixed');
+        const providerItems = liveItemsFromPages(pages, 'mixed');
+        const activeSearch = String(searchQuery || document.getElementById('searchInput')?.value || '').trim();
+        const needle = activeSearch.toLowerCase();
+        const items = needle
+            ? providerItems.filter(item => [item.title, item.originalTitle, item.description].join(' ').toLowerCase().includes(needle))
+            : providerItems;
         liveState.streaming.items = items;
         liveState.streaming.page = 1;
         const hint = document.querySelector('#streamingSection .live-hint');
-        if (hint) hint.textContent = `Live from TMDB · ${prov.label} · ${items.length} titles`;
+        if (hint) hint.textContent = activeSearch
+            ? `Live from TMDB · ${prov.label} · ${items.length} results for "${activeSearch}"`
+            : `Live from TMDB · ${prov.label} · ${items.length} titles`;
         liveFed['streaming']=0; delete liveFed['streaming'];
         if (!items.length) {
             const grid2 = document.getElementById('streamingGrid');
-            if (grid2) grid2.innerHTML = '<div class="live-error">No titles found for ' + prov.label + ' in this region.</div>';
+            if (grid2) grid2.innerHTML = activeSearch
+                ? '<div class="live-error">No titles found for ' + prov.label + ' matching "' + escapeHtml(activeSearch) + '".</div>'
+                : '<div class="live-error">No titles found for ' + prov.label + ' in this region.</div>';
         } else {
             renderLiveGrid('streaming');
             enrichLiveLogos('streaming');
@@ -5261,6 +5270,7 @@ function liveItemToItem(r, type) {
     return {
         id: generateId(),
         title: r.title || r.name || 'Untitled',
+        originalTitle: r.original_title || r.original_name || '',
         description: r.overview || '',
         genre,
         year: (r.release_date || r.first_air_date || '').slice(0, 4),
