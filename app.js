@@ -259,8 +259,16 @@ function hardenCloudIframe(iframe){
         // allow dragging inside player for controls, but block elsewhere
         if (!e.target.closest || !e.target.closest('#playerFrame')) e.preventDefault();
     }, true);
-    // DevTools detection — when opened, blank the page and warn (deters casual theft)
+    // DevTools detection — reload once when opened to deter casual inspection
     let dtOpen = false;
+    const reloadKey = 'milkbox_devtools_reload';
+    const reloadForDevTools = () => {
+        try {
+            if (sessionStorage.getItem(reloadKey) === '1') return;
+            sessionStorage.setItem(reloadKey, '1');
+        } catch {}
+        window.location.reload();
+    };
     const detect = () => {
         try {
             const w = window.outerWidth - window.innerWidth;
@@ -271,7 +279,9 @@ function hardenCloudIframe(iframe){
                 console.clear();
                 console.log('%c' + BLOCK_MSG, 'font-size:32px;color:#e50914;font-weight:900;');
                 console.log('%cCurious? This site is protected. Please contact the owner instead of copying.', 'font-size:13px;color:#888;');
+                reloadForDevTools();
             } else if (!isOpen) dtOpen = false;
+            if (!isOpen) sessionStorage.removeItem(reloadKey);
         } catch {}
     };
     setInterval(detect, 1200);
