@@ -5912,11 +5912,12 @@ function showMangaReader(m) {
                 const mdId = await resolveMangadexMangaId(detail?.title || m.title || '');
                 if (mdId) {
                     const languageFilter = mangaReader.language === 'all' ? '' : `&translatedLanguage[]=${encodeURIComponent(mangaReader.language)}`;
-                    const r = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50${languageFilter}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
+                    const r = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=500${languageFilter}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
                     if (r.ok) {
                         const j = await r.json();
-                        if (Array.isArray(j.data) && j.data.length) {
-                            chapterData = { data: j.data.map(c => ({ mal_id: c.id, chapter: c.attributes.chapter || c.attributes.chapter, title: c.attributes.title ? `${c.attributes.chapter ? 'Ch. '+c.attributes.chapter+' — ' : ''}${c.attributes.title}` : `Chapter ${c.attributes.chapter || ''}`.trim() })) };
+                        const readable = (j.data || []).filter(c => !c.attributes?.isUnavailable && Number(c.attributes?.pages || 0) > 0);
+                        if (readable.length) {
+                            chapterData = { data: readable.map(c => ({ mal_id: c.id, chapter: c.attributes.chapter || c.attributes.chapter, title: c.attributes.title ? `${c.attributes.chapter ? 'Ch. '+c.attributes.chapter+' — ' : ''}${c.attributes.title}` : `Chapter ${c.attributes.chapter || ''}`.trim() })) };
                         } else if (mangaReader.language !== 'all') {
                             // Discover one available language without downloading every language.
                             const probe = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=1&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
@@ -5937,10 +5938,11 @@ function showMangaReader(m) {
                                         }
                                         select.value = available;
                                     }
-                                    const retry = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50&translatedLanguage[]=${encodeURIComponent(available)}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
+                                    const retry = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=500&translatedLanguage[]=${encodeURIComponent(available)}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
                                     if (retry.ok) {
                                         const retryData = await retry.json();
-                                        if (Array.isArray(retryData.data) && retryData.data.length) chapterData = { data: retryData.data.map(c => ({ mal_id: c.id, chapter: c.attributes.chapter || c.attributes.chapter, title: c.attributes.title ? `${c.attributes.chapter ? 'Ch. '+c.attributes.chapter+' — ' : ''}${c.attributes.title}` : `Chapter ${c.attributes.chapter || ''}`.trim() })) };
+                                        const readableRetry = (retryData.data || []).filter(c => !c.attributes?.isUnavailable && Number(c.attributes?.pages || 0) > 0);
+                                        if (readableRetry.length) chapterData = { data: readableRetry.map(c => ({ mal_id: c.id, chapter: c.attributes.chapter || c.attributes.chapter, title: c.attributes.title ? `${c.attributes.chapter ? 'Ch. '+c.attributes.chapter+' — ' : ''}${c.attributes.title}` : `Chapter ${c.attributes.chapter || ''}`.trim() })) };
                                     }
                                 }
                             }
@@ -6020,14 +6022,35 @@ function renderReaderDetail(info) {
 
 async function openChapter(chId) {
     if (!chId || !mangaReader.mangaId) return;
-    const ch = mangaReader.chapters.find(c => String(c.id) === String(chId));
+    let ch = mangaReader.chapters.find(c => String(c.id) === String(chId));
+    let resolvedChapterId = String(chId);
+    // Some fallback APIs return chapter numbers instead of MangaDex UUIDs.
+    // Resolve those numbers back to the selected MangaDex feed before loading pages.
+    if (!resolvedChapterId.includes('-') || resolvedChapterId.length < 32) {
+        try {
+            const mdId = await resolveMangadexMangaId(mangaReader.info?.title || mangaReader.item?.title || '');
+            if (mdId) {
+                const languageFilter = mangaReader.language === 'all' ? '' : `&translatedLanguage[]=${encodeURIComponent(mangaReader.language)}`;
+                const feed = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=500${languageFilter}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
+                if (feed.ok) {
+                    const data = await feed.json();
+                    const wantedChapter = String(ch?.name || chId).match(/(?:ch(?:apter)?\.?\s*)?([0-9]+(?:\.[0-9]+)?)/i)?.[1];
+                    const match = (data.data || []).find(entry => String(entry.attributes?.chapter || '') === wantedChapter) || data.data?.[0];
+                    if (match?.id) {
+                        resolvedChapterId = match.id;
+                        ch = { ...ch, id: match.id, name: ch?.name || `Chapter ${match.attributes?.chapter || ''}`.trim() };
+                    }
+                }
+            }
+        } catch {}
+    }
     mangaReader.currentId = String(chId);
     const pagesEl = mrEl('mangaReadPages');
     pagesEl.innerHTML = '<div class="live-loading">Loading manga pages…</div>';
     // If this is a MangaDex chapter (UUID), try the authorized at-home server first so real pages load
-    if (String(chId).includes('-') && String(chId).length >= 32) {
+    if (resolvedChapterId.includes('-') && resolvedChapterId.length >= 32) {
         try {
-            const r = await fetchMangadex(`https://api.mangadex.org/at-home/server/${encodeURIComponent(chId)}`, { cache: 'no-store' });
+            const r = await fetchMangadex(`https://api.mangadex.org/at-home/server/${encodeURIComponent(resolvedChapterId)}`, { cache: 'no-store' });
             if (r.ok) {
                 const j = await r.json();
                 const base = j.baseUrl || j.base_url;
@@ -6056,8 +6079,7 @@ async function openChapter(chId) {
             title: ch?.name || 'Manga page'
         })).filter(p => p.image) : [];
         if (!mangaReader.images.length) {
-            const cover = mangaReader.info?.images?.jpg?.large_image_url || mangaReader.info?.images?.jpg?.image_url || '';
-            if (cover) mangaReader.images = [{ image: cover, title: ch?.name || 'Cover' }];
+            pagesEl.innerHTML = '<div class="live-error">No chapter pages were returned for this manga.</div>';
         }
         mrEl('mangaReadChapterLabel').textContent = ch?.name || chId;
         renderChapterPages();
@@ -6066,13 +6088,7 @@ async function openChapter(chId) {
         const body = mrEl('mangaReadBody');
         if (body) body.scrollTop = 0;
     } catch (e) {
-        const cover = mangaReader.info?.images?.jpg?.large_image_url || mangaReader.info?.images?.jpg?.image_url || '';
-        if (cover) {
-            mangaReader.images = [{ image: cover, title: ch?.name || 'Cover' }];
-            renderChapterPages();
-        } else {
-            pagesEl.innerHTML = '<div class="live-error">No manga pages were returned by Jikan for this entry.</div>';
-        }
+        pagesEl.innerHTML = '<div class="live-error">No chapter pages were returned for this manga.</div>';
     }
 }
 
