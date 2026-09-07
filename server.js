@@ -46,14 +46,16 @@ async function proxyMangaDex(req, res, requestPath, query) {
 }
 
 async function proxyTmdb(req, res, requestPath, query) {
-    if (!requestPath.startsWith('/api/tmdb/')) return false;
+    const marker = '/api/tmdb/';
+    const markerIndex = requestPath.indexOf(marker);
+    if (markerIndex === -1) return false;
     const tmdbCredential = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN;
     if (!tmdbCredential) {
         res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB_API_KEY or TMDB_ACCESS_TOKEN is not configured' }));
         return true;
     }
-    const targetPath = requestPath.slice('/api/tmdb'.length);
+    const targetPath = requestPath.slice(markerIndex + marker.length - 1);
     const target = new URL(`https://api.themoviedb.org/3${targetPath}`);
     for (const [key, value] of query) target.searchParams.append(key, value);
     if (!target.searchParams.has('language')) target.searchParams.set('language', 'en-US');
@@ -70,6 +72,14 @@ async function proxyTmdb(req, res, requestPath, query) {
         res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB proxy failed', message: error.message }));
     }
+    return true;
+}
+
+function proxyHealth(requestPath, res) {
+    if (!requestPath.endsWith('/api/health')) return false;
+    const configured = Boolean(process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN);
+    res.writeHead(configured ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: configured, tmdb: configured ? 'configured' : 'missing' }));
     return true;
 }
 
@@ -100,6 +110,7 @@ async function proxyKissKh(req, res, requestPath, query) {
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
+    if (proxyHealth(requestPath, res)) return;
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
