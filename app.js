@@ -5030,10 +5030,24 @@ async function resolveMangadexMangaId(title) {
     if (!key) return null;
     if (mangadexMangaCache.has(key)) return mangadexMangaCache.get(key);
     try {
-        const res = await fetchMangadex(`https://api.mangadex.org/manga?title=${encodeURIComponent(title)}&limit=5&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=cover_art`);
+        const res = await fetchMangadex(`https://api.mangadex.org/manga?title=${encodeURIComponent(title)}&limit=10&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=cover_art`);
         if (!res.ok) throw new Error('search failed');
         const j = await res.json();
-        const id = j.data && j.data[0] && j.data[0].id;
+        const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+        const wanted = normalize(title);
+        const candidates = (j.data || []).map((entry, index) => {
+            const attrs = entry.attributes || {};
+            const names = [
+                ...Object.values(attrs.title || {}),
+                ...(attrs.altTitles || []).flatMap(alias => Object.values(alias || {}))
+            ].map(normalize).filter(Boolean);
+            let score = index === 0 ? 1 : 0;
+            if (names.includes(wanted)) score += 100;
+            if (names.some(name => name.startsWith(wanted) || wanted.startsWith(name))) score += 25;
+            if (names.some(name => name.includes(wanted) || wanted.includes(name))) score += 10;
+            return { id: entry.id, score };
+        }).sort((a, b) => b.score - a.score);
+        const id = candidates[0]?.id;
         if (id) mangadexMangaCache.set(key, id);
         return id || null;
     } catch { return null; }
