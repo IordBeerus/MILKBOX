@@ -1321,12 +1321,13 @@ async function renderProviders() {
     }
     slider.innerHTML = PROVIDERS.map(p => {
         const logo = providerLogoMap[p.id];
-        const img = logo ? `<img src="https://image.tmdb.org/t/p/w92${logo}" alt="${p.label}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
-        const fallback = `<span class="provider-fallback" style="${logo?'display:none':''};font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${p.short.charAt(0).toUpperCase()}</span>`;
+        const logoUrl = logo ? (String(logo).startsWith('http') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`) : '';
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" loading="lazy" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
+        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
         return `
-        <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${p.id}" title="${p.label}" aria-label="${p.label}">
+        <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}">
             <div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div>
-            <span class="provider-label">${p.label}</span>
+            <span class="provider-label">${escapeHtml(p.label)}</span>
         </div>`;
     }).join('');
     const labels = { prime: 'Amazon Prime<br>Video', peacock: 'Peacock<br>Premium', ytpremium: 'YouTube<br>Premium' };
