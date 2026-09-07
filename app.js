@@ -3747,7 +3747,7 @@ async function tmdbJson(path) {
         } catch {}
         if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
-        if ([401, 403, 404, 503].includes(res.status)) tmdbUnavailableUntil = Date.now() + 60000;
+        if ([401, 403, 503].includes(res.status)) tmdbUnavailableUntil = Date.now() + 60000;
         throw new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
     }
     return res.json();
