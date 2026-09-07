@@ -693,6 +693,7 @@ body.light-mode .about-blank-menu button:hover { background: rgba(102,126,234,0.
 .provider-item {
     flex: 0 0 auto;
     width: 76px;
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -701,6 +702,32 @@ body.light-mode .about-blank-menu button:hover { background: rgba(102,126,234,0.
     transition: transform 0.2s;
 }
 .provider-item:hover { transform: translateY(-2px); }
+.provider-item::after {
+    content: attr(aria-label);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 2px);
+    transform: translate(-50%, 4px);
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    white-space: nowrap;
+    padding: 6px 9px;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 6px;
+    background: #18181b;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.provider-item:hover::after,
+.provider-item:focus-visible::after {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+.provider-item:focus-visible { outline: 2px solid #ffb6d8; outline-offset: 3px; }
 .provider-item.active .provider-icon { outline: 2px solid #e50914; outline-offset: 2px; }
 .provider-icon {
     width: 68px;

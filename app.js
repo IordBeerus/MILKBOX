@@ -1295,7 +1295,7 @@ async function renderProviders() {
         const img = logo ? `<img src="https://image.tmdb.org/t/p/w92${logo}" alt="${p.label}" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">` : '';
         const fallback = `<span class="provider-fallback" style="${logo?'display:none':''};font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${p.short.charAt(0).toUpperCase()}</span>`;
         return `
-        <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${p.id}" title="${p.label}">
+        <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${p.id}" title="${p.label}" aria-label="${p.label}">
             <div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div>
             <span class="provider-label">${p.label}</span>
         </div>`;
