@@ -1243,9 +1243,17 @@ const PROVIDERS = [
     { id: '192', key: 'youtube', label: 'YouTube', short: 'YT', bg: '#fff', color: '#FF0000' },
     { id: '300', key: 'pluto', label: 'Pluto TV', short: 'pluto', bg: '#000', color: '#FFE600' },
     { id: '73', key: 'tubi', label: 'Tubi TV', short: 'tubi', bg: '#6A00F5', color: '#FFE600' },
+    { id: '11', key: 'mubi', label: 'MUBI', short: 'MUBI', bg: '#111', color: '#fff' },
+    { id: '7', key: 'fandango', label: 'Fandango at Home', short: 'F', bg: '#0877C9', color: '#fff' },
+    { id: '10', key: 'amazonvideo', label: 'Amazon Video', short: 'AV', bg: '#00A8E1', color: '#fff' },
+    { id: '3', key: 'googleplay', label: 'Google Play Movies', short: 'GP', bg: '#fff', color: '#4285F4' },
+    { id: '68', key: 'microsoft', label: 'Microsoft Store', short: 'MS', bg: '#737373', color: '#fff' },
+    { id: '247', key: 'britbox', label: 'BritBox', short: 'BB', bg: '#1A1A5E', color: '#fff' },
+    { id: '151', key: 'bfi', label: 'BFI Player', short: 'BFI', bg: '#111', color: '#fff' },
 ];
 
 let activeProvider = null;
+let providerLogosFetched = false;
 let providerLogoMap = {
     '8': '/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg',
     '9': '/pvske1MyAoymrs5bguRfVqYiM9a.jpg',
@@ -1271,6 +1279,7 @@ async function fetchProviderLogos() {
         await tmdbEnsureConfig();
         const data = await tmdbJson('/watch/providers/movie?watch_region=US');
         const results = data.results || [];
+        const allProviders = [...results];
         results.forEach(r => {
             providerLogoMap[String(r.provider_id)] = r.logo_path;
         });
@@ -1279,15 +1288,35 @@ async function fetchProviderLogos() {
             const tvData = await tmdbJson('/watch/providers/tv?watch_region=US');
             (tvData.results||[]).forEach(r=>{
                 if (!providerLogoMap[String(r.provider_id)]) providerLogoMap[String(r.provider_id)] = r.logo_path;
+                if (!allProviders.some(provider => String(provider.provider_id) === String(r.provider_id))) allProviders.push(r);
             });
         } catch {}
+
+        const knownIds = new Set(PROVIDERS.map(provider => String(provider.id)));
+        allProviders
+            .sort((a, b) => (a.display_priority || 999) - (b.display_priority || 999))
+            .forEach(provider => {
+                const id = String(provider.provider_id);
+                if (!id || knownIds.has(id) || !provider.provider_name) return;
+                const short = provider.provider_name.replace(/[^a-z0-9]/gi, '').slice(0, 3).toUpperCase() || 'TV';
+                PROVIDERS.push({
+                    id,
+                    key: `tmdb-${id}`,
+                    label: provider.provider_name,
+                    short,
+                    bg: '#1a1a1f',
+                    color: '#fff'
+                });
+                knownIds.add(id);
+            });
     } catch(e) { /* use fallback */ }
+    providerLogosFetched = true;
 }
 
 async function renderProviders() {
     const slider = document.getElementById('providerSlider');
     if (!slider) return;
-    if (!Object.keys(providerLogoMap).length) {
+    if (!providerLogosFetched) {
         try { await fetchProviderLogos(); } catch {}
     }
     slider.innerHTML = PROVIDERS.map(p => {
@@ -3233,12 +3262,22 @@ async function renderTmdbEpisodes(tvItem, server) {
                         <div class="cineby-ep-title-row"><span class="cineby-ep-number">E${ep.episode_number}</span><h4 class="cineby-ep-title">${escapeHtml(epTitle)}</h4></div>
                         <span class="cineby-ep-meta">${escapeHtml(meta)}</span>
                         <p class="cineby-ep-desc">${escapeHtml(overview)}</p>
-                        <span class="cineby-show-more">Show more</span>
+                        <button type="button" class="cineby-show-more" aria-expanded="false">Show more</button>
                     </div>
                 `;
 
                 if (playContext && String(playContext.season) === String(found.sn) && String(playContext.episode) === String(ep.episode_number)) {
                     card.classList.add('active');
+                }
+
+                const showMore = card.querySelector('.cineby-show-more');
+                if (showMore) {
+                    showMore.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const expanded = card.classList.toggle('description-expanded');
+                        showMore.textContent = expanded ? 'Show less' : 'Show more';
+                        showMore.setAttribute('aria-expanded', String(expanded));
+                    });
                 }
 
                 card.onclick = () => {
@@ -7296,6 +7335,12 @@ initAll();
 
 // provider click delegation
 document.addEventListener('click', (e) => {
+    const scrollButton = e.target.closest('[data-provider-scroll]');
+    if (scrollButton) {
+        const slider = document.getElementById('providerSlider');
+        if (slider) slider.scrollBy({ left: scrollButton.dataset.providerScroll === 'right' ? 420 : -420, behavior: 'smooth' });
+        return;
+    }
     const item = e.target.closest('.provider-item');
     if (!item) return;
     browseProvider(item.dataset.provider);

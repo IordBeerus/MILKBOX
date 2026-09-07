@@ -677,10 +677,26 @@ body.light-mode .about-blank-menu button:hover { background: rgba(102,126,234,0.
 .provider-section .section-title {
     font-size: 16px;
     font-weight: 700;
-    margin-bottom: 12px;
+    margin-bottom: 0;
     color: #e8e0d8;
 }
-.provider-slider-wrap { position: relative; }
+.provider-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-right: 40px;
+    margin-bottom: 12px;
+}
+.provider-settings-link {
+    color: var(--cb-pink, #ffb6d8);
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+}
+.provider-settings-link:hover { color: #fff; text-decoration: underline; }
+.provider-slider-wrap { position: relative; padding: 0 34px; }
 .provider-slider {
     display: flex;
     gap: 14px;
@@ -690,6 +706,24 @@ body.light-mode .about-blank-menu button:hover { background: rgba(102,126,234,0.
     scrollbar-width: none;
 }
 .provider-slider::-webkit-scrollbar { display: none; }
+.provider-scroll-btn {
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 30px;
+    height: 30px;
+    transform: translateY(-50%);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 50%;
+    background: rgba(24,24,28,0.94);
+    color: #fff;
+    font-size: 13px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.provider-scroll-btn:hover { background: var(--cb-pink-strong, #ff6b9d); border-color: transparent; }
+.provider-scroll-left { left: 0; }
+.provider-scroll-right { right: 40px; }
 .provider-item {
     flex: 0 0 auto;
     width: 76px;
@@ -774,6 +808,7 @@ body.light-mode .about-blank-menu button:hover { background: rgba(102,126,234,0.
 body.light-mode .provider-section { background: #f5f5f5; }
 body.light-mode .provider-section .section-title { color: #3a2a1a; }
 body.light-mode .provider-label { color: #5a4430; }
+body.light-mode .provider-settings-link { color: #b03f70; }
 
 /* Home Filter Pills */
 .home-filter-pills {
@@ -4253,14 +4288,25 @@ body.light-mode .hero-fade { background: linear-gradient(180deg, rgba(245,245,24
     line-height: 1.45;
     min-height: 34px;
 }
+.cineby-ep-card.description-expanded .cineby-ep-desc {
+    display: block;
+    -webkit-line-clamp: unset;
+    min-height: 0;
+}
 .cineby-ep-desc + a,
 .cineby-show-more {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: transparent;
     font-size: 12px;
     color: #6b7280;
     margin-top: 4px;
     cursor: pointer;
+    font-family: inherit;
 }
-.cineby-ep-desc + a:hover { color: #b0b8c0; }
+.cineby-show-more:hover,
+.cineby-ep-desc + a:hover { color: var(--cb-pink, #ffb6d8); }
 
 @media (max-width: 768px) {
     .episode-cards-list { grid-template-columns: 1fr; gap: 12px; }
