@@ -3694,7 +3694,8 @@ function saveEdit(e) {
 }
 
 // ==================== TMDB AUTO-FILL ====================
-const TMDB_BASE = '/api/tmdb';
+// Keep the proxy working when the app is hosted at the domain root or below a subpath.
+const TMDB_BASE = new URL('api/tmdb', document.baseURI).pathname.replace(/\/$/, '');
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 
 let tmdbImageBase = TMDB_IMG;
