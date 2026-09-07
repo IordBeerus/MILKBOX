@@ -3120,6 +3120,8 @@ async function renderTmdbEpisodes(tvItem, server) {
     const loading = document.getElementById('episodeLoading');
     const errEl = document.getElementById('episodeError');
     const dropdown = document.getElementById('seasonDropdown');
+    const seasonTabs = document.getElementById('seasonTabs');
+    const summary = document.getElementById('episodesSummary');
     const searchInput = document.getElementById('episodeSearchInput');
 
     if (loading) loading.style.display = '';
@@ -3156,11 +3158,33 @@ async function renderTmdbEpisodes(tvItem, server) {
             }).join('');
         }
 
+        const seasonLabel = (sn) => sn === 0 ? 'Specials' : `Season ${sn}`;
+        if (summary) {
+            const totalEpisodes = seasonInfos.reduce((total, season) => total + season.eps.length, 0);
+            summary.textContent = `${seasonInfos.length} seasons · ${totalEpisodes} episodes`;
+        }
+        if (seasonTabs) {
+            seasonTabs.innerHTML = seasonInfos.map(({ sn, eps }) => `
+                <button type="button" class="season-tab" role="tab" aria-selected="false" data-season="${sn}">
+                    <span>${seasonLabel(sn)}</span><small>${eps.length}</small>
+                </button>
+            `).join('');
+        }
+
         let currentSelectedSeason = seasons[0];
         if (playContext && playContext.season !== undefined) {
             currentSelectedSeason = playContext.season;
             if (dropdown) dropdown.value = currentSelectedSeason;
         }
+
+        const syncSeasonControls = () => {
+            if (dropdown) dropdown.value = String(currentSelectedSeason);
+            if (seasonTabs) seasonTabs.querySelectorAll('.season-tab').forEach(tab => {
+                const active = String(tab.dataset.season) === String(currentSelectedSeason);
+                tab.classList.toggle('active', active);
+                tab.setAttribute('aria-selected', String(active));
+            });
+        };
 
         const renderCurrentSeasonEpisodes = (filterText = '') => {
             if (!list) return;
@@ -3186,6 +3210,9 @@ async function renderTmdbEpisodes(tvItem, server) {
             filteredEps.forEach(ep => {
                 const card = document.createElement('div');
                 card.className = 'cineby-ep-card';
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', `Play episode ${ep.episode_number}: ${epTitle}`);
                 card.dataset.season = found.sn;
                 card.dataset.episode = ep.episode_number;
 
@@ -3193,17 +3220,18 @@ async function renderTmdbEpisodes(tvItem, server) {
                 const epTitle = ep.name || `Episode ${ep.episode_number}`;
                 const runtime = ep.runtime ? `${ep.runtime} min` : '';
                 const overview = ep.overview ? ep.overview : 'No description available for this episode.';
+                const meta = [ep.air_date, runtime].filter(Boolean).join('  •  ');
 
                 card.innerHTML = `
                     <div class="cineby-ep-thumb-wrapper">
                         <img class="cineby-ep-img" src="${escapeHtml(stillPath)}" alt="${escapeHtml(epTitle)}" loading="lazy">
-                        <span class="cineby-ep-number">E${ep.episode_number}</span>
                         <div class="cineby-ep-play-overlay">
                             <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="white"><path d="M480-320q75 0 127.5-52.5T660-500t-52.5-127.5T480-680t-127.5 52.5T300-500t52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500t31.5-76.5T480-608t76.5 31.5T588-500t-31.5 76.5T480-392Zm0-80Z"/></svg>
                         </div>
                     </div>
                     <div class="cineby-ep-info">
-                        <h4 class="cineby-ep-title">${escapeHtml(epTitle)}</h4>
+                        <div class="cineby-ep-title-row"><span class="cineby-ep-number">E${ep.episode_number}</span><h4 class="cineby-ep-title">${escapeHtml(epTitle)}</h4></div>
+                        <span class="cineby-ep-meta">${escapeHtml(meta)}</span>
                         <p class="cineby-ep-desc">${escapeHtml(overview)}</p>
                         <span class="cineby-show-more">Show more</span>
                     </div>
@@ -3218,20 +3246,39 @@ async function renderTmdbEpisodes(tvItem, server) {
                     card.classList.add('active');
                     playTmdbEpisode(tvItem, found.sn, ep.episode_number, server);
                 };
+                card.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        card.click();
+                    }
+                };
 
                 fragment.appendChild(card);
             });
             list.appendChild(fragment);
         };
 
+        syncSeasonControls();
         renderCurrentSeasonEpisodes();
 
         if (dropdown) {
             dropdown.onchange = (e) => {
                 currentSelectedSeason = e.target.value;
                 if (searchInput) searchInput.value = '';
+                syncSeasonControls();
                 renderCurrentSeasonEpisodes();
             };
+        }
+
+        if (seasonTabs) {
+            seasonTabs.querySelectorAll('.season-tab').forEach(tab => {
+                tab.onclick = () => {
+                    currentSelectedSeason = tab.dataset.season;
+                    if (searchInput) searchInput.value = '';
+                    syncSeasonControls();
+                    renderCurrentSeasonEpisodes();
+                };
+            });
         }
 
         if (searchInput) {

@@ -604,12 +604,14 @@
             <div class="episode-selector cineby-ep-section" id="episodeSelector" style="display:none;">
                 <div class="episodes-top-bar" style="display:flex; align-items:center; gap:12px;">
                     <h3 class="episodes-main-title" style="flex:1;"><span class="episodes-red-accent"></span>Episodes</h3>
+                    <span class="episodes-summary" id="episodesSummary"></span>
                     <label style="display:flex; align-items:center; gap:6px; font-size:12px; color:#e5e5e5; cursor:pointer; user-select:none; white-space:nowrap;">
                         <input type="checkbox" id="autoPlayNextToggle" checked style="accent-color:#e50914; width:14px; height:14px; cursor:pointer;">
                         Auto-play next
                     </label>
                 </div>
                 <div class="episodes-filter-row">
+                    <div class="season-tabs" id="seasonTabs" role="tablist" aria-label="Seasons"></div>
                     <div class="season-select-wrapper">
                         <select id="seasonDropdown" class="season-select-dropdown">
                             <!-- Populated dynamically: <option value="1">Season 1</option> -->
