@@ -3700,6 +3700,7 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 
 let tmdbImageBase = TMDB_IMG;
 let tmdbConfigLoaded = false;
+let tmdbUnavailableUntil = 0;
 
 async function tmdbEnsureConfig() {
     if (tmdbConfigLoaded) return;
@@ -3733,6 +3734,9 @@ const TMDB_GENRE_MAP = {
 };
 
 async function tmdbJson(path) {
+    if (Date.now() < tmdbUnavailableUntil) {
+        throw new Error('TMDB proxy unavailable. Check the server TMDB configuration.');
+    }
     const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
     const res = await fetch(url, { headers: { 'accept': 'application/json' } });
     if (!res.ok) {
@@ -3743,6 +3747,7 @@ async function tmdbJson(path) {
         } catch {}
         if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
+        if ([401, 403, 404, 503].includes(res.status)) tmdbUnavailableUntil = Date.now() + 60000;
         throw new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
     }
     return res.json();
@@ -3982,7 +3987,9 @@ async function fetchBatched(paths, batchSize = 15) {
     for (let i = 0; i < paths.length; i += batchSize) {
         const chunk = paths.slice(i, i + batchSize);
         const results = await Promise.allSettled(chunk.map(p => tmdbJson(p)));
-        jsons.push(...results.filter(result => result.status === 'fulfilled').map(result => result.value));
+        const successful = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+        jsons.push(...successful);
+        if (!successful.length) break;
     }
     if (!jsons.length) throw new Error('TMDB did not return any pages. Check the server TMDB configuration.');
     return jsons;
