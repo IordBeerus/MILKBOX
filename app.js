@@ -3734,7 +3734,16 @@ const TMDB_GENRE_MAP = {
 async function tmdbJson(path) {
     const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
     const res = await fetch(url, { headers: { 'accept': 'application/json' } });
-    if (!res.ok) throw new Error(res.status === 404 ? '404 - Not found (check the ID, or type a title to search)' : `HTTP ${res.status}`);
+    if (!res.ok) {
+        let detail = '';
+        try {
+            const body = await res.json();
+            detail = body.status_message || body.error || '';
+        } catch {}
+        if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
+        if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
+        throw new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
+    }
     return res.json();
 }
 
@@ -3971,8 +3980,10 @@ async function fetchBatched(paths, batchSize = 15) {
     const jsons = [];
     for (let i = 0; i < paths.length; i += batchSize) {
         const chunk = paths.slice(i, i + batchSize);
-        jsons.push(...(await Promise.all(chunk.map(p => tmdbJson(p)))));
+        const results = await Promise.allSettled(chunk.map(p => tmdbJson(p)));
+        jsons.push(...results.filter(result => result.status === 'fulfilled').map(result => result.value));
     }
+    if (!jsons.length) throw new Error('TMDB did not return any pages. Check the server TMDB configuration.');
     return jsons;
 }
 
@@ -4462,34 +4473,53 @@ function hideSearchResults() {
 }
 
 async function fetchSearchResults(query, page) {
-    await tmdbEnsureConfig();
-    const d = await tmdbJson(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`);
-    const items = [];
-    (d.results || []).forEach(r => {
-        if (r.media_type === 'person') return;
-        const type = r.media_type === 'tv' ? 'tv' : 'movie';
-        const genreIds = r.genre_ids || [];
-        const genre = tmdbGenreKeysFromIds(genreIds);
-        const animeFlag = isTmdbAnime(genreIds, r.origin_country, r.original_language);
-        if (animeFlag && !genre.includes('anime')) genre.unshift('anime');
-        if (!genre.length) genre.push(type === 'movie' ? 'action' : 'drama');
-        items.push({
-            id: 'tmdb_' + r.id,
-            title: r.title || r.name || 'Untitled',
-            description: r.overview || '',
-            genre,
-            year: (r.release_date || r.first_air_date || '').slice(0, 4),
-            rating: r.vote_average ? (+r.vote_average).toFixed(1) : '',
-            poster: r.poster_path ? `${tmdbImageBase}w500${r.poster_path}` : '',
-            backdrop: r.backdrop_path ? `${tmdbImageBase}w1920${r.backdrop_path}` : '',
-            logo: '',
-            tmdbId: String(r.id),
-            driveLink: '',
-            certification: '',
-            type
+    const needle = query.toLowerCase();
+    const localItems = [...movies, ...tvShows].filter(item => {
+        const haystack = [item.title, item.description, item.genre, item.year].join(' ').toLowerCase();
+        return haystack.includes(needle);
+    }).map(item => ({ ...item, type: item.type || (tvShows.includes(item) ? 'tv' : 'movie') }));
+    let remoteItems = [];
+    let remoteError = null;
+    try {
+        await tmdbEnsureConfig();
+        const d = await tmdbJson(`/search/multi?query=${encodeURIComponent(query)}&page=${page}`);
+        (d.results || []).forEach(r => {
+            if (r.media_type === 'person') return;
+            const type = r.media_type === 'tv' ? 'tv' : 'movie';
+            const genreIds = r.genre_ids || [];
+            const genre = tmdbGenreKeysFromIds(genreIds);
+            const animeFlag = isTmdbAnime(genreIds, r.origin_country, r.original_language);
+            if (animeFlag && !genre.includes('anime')) genre.unshift('anime');
+            if (!genre.length) genre.push(type === 'movie' ? 'action' : 'drama');
+            remoteItems.push({
+                id: 'tmdb_' + r.id,
+                title: r.title || r.name || 'Untitled',
+                description: r.overview || '',
+                genre,
+                year: (r.release_date || r.first_air_date || '').slice(0, 4),
+                rating: r.vote_average ? (+r.vote_average).toFixed(1) : '',
+                poster: r.poster_path ? `${tmdbImageBase}w500${r.poster_path}` : '',
+                backdrop: r.backdrop_path ? `${tmdbImageBase}w1920${r.backdrop_path}` : '',
+                logo: '',
+                tmdbId: String(r.id),
+                driveLink: '',
+                certification: '',
+                type
+            });
         });
+        searchTotalPages = d.total_pages || 1;
+    } catch (error) {
+        remoteError = error;
+        searchTotalPages = 1;
+    }
+    const seen = new Set();
+    const items = [...localItems, ...remoteItems].filter(item => {
+        const key = `${item.type}:${item.tmdbId || item.title.toLowerCase()}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
     });
-    searchTotalPages = d.total_pages || 1;
+    if (!items.length && remoteError) throw remoteError;
     return items;
 }
 
