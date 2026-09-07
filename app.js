@@ -4393,6 +4393,7 @@ let searchTimer = null;
 let searchQuery = '';
 let searchPage = 1;
 let searchTotalPages = 1;
+let searchRequestId = 0;
 
 function showSearchResults() {
     ['moviesSection','tvShowsSection','myListSection','homeGenres','trendingSection','streamingSection','theatersSection','popularSection','mangaSection','musicSection','heroSection'].forEach(id => {
@@ -4454,7 +4455,7 @@ function hideSearchResults() {
     } else {
         // home
         show('moviesSection', true); show('tvShowsSection', true); show('myListSection', true); show('homeGenres', true);
-        show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('popularSection', false); show('mangaSection', false); show('musicSection', false);
+        show('trendingSection', true); show('streamingSection', false); show('theatersSection', false); show('popularSection', true); show('mangaSection', false); show('musicSection', false);
         show('heroSection', true); show('providerSection', true); show('collectionsSection', true);
     }
     refreshCurrent();
@@ -4522,25 +4523,58 @@ function renderSearchResults(items) {
     enrichSearchLogos(items).catch(() => {});
 }
 
-document.getElementById('searchInput').addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    clearTimeout(searchTimer);
-    if (!query) {
+async function runSearch(query, page = 1) {
+    const normalizedQuery = String(query || '').trim();
+    if (!normalizedQuery) {
         searchQuery = '';
         hideSearchResults();
         return;
     }
-    searchQuery = query;
-    searchPage = 1;
-    searchTimer = setTimeout(async () => {
-        showSearchResults();
-        document.getElementById('searchResultsTitle').textContent = `Results for "${searchQuery}"`;
-        const items = await fetchSearchResults(searchQuery, searchPage);
+    const requestId = ++searchRequestId;
+    searchQuery = normalizedQuery;
+    searchPage = page;
+    showSearchResults();
+    const title = document.getElementById('searchResultsTitle');
+    const grid = document.getElementById('searchResultsGrid');
+    if (title) title.textContent = `Results for "${normalizedQuery}"`;
+    if (grid) grid.innerHTML = '<div class="live-loading">Searching TMDB...</div>';
+    try {
+        const items = await fetchSearchResults(normalizedQuery, page);
+        if (requestId !== searchRequestId || normalizedQuery !== searchQuery) return;
         renderSearchResults(items);
         renderSearchPager();
-    }, 350);
+    } catch (error) {
+        if (requestId !== searchRequestId) return;
+        if (grid) grid.innerHTML = `<p class="live-error">Search failed: ${escapeHtml(error.message || 'Check your connection and try again.')}</p>`;
+        const pager = document.getElementById('searchResultsPager');
+        if (pager) pager.style.display = 'none';
+    }
+}
+
+const searchInput = document.getElementById('searchInput');
+const searchButton = document.getElementById('searchBtn');
+searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.trim();
+    clearTimeout(searchTimer);
+    if (!query) {
+        searchRequestId++;
+        searchQuery = '';
+        hideSearchResults();
+        return;
+    }
+    searchTimer = setTimeout(() => runSearch(query, 1), 350);
 });
-document.getElementById('searchBtn').addEventListener('click', () => document.getElementById('searchInput').focus());
+searchInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    clearTimeout(searchTimer);
+    runSearch(searchInput.value, 1);
+});
+searchButton.addEventListener('click', () => {
+    clearTimeout(searchTimer);
+    if (searchInput.value.trim()) runSearch(searchInput.value, 1);
+    else searchInput.focus();
+});
 
 // Search results pager clicks.
 document.addEventListener('click', (e) => {
@@ -4551,9 +4585,7 @@ document.addEventListener('click', (e) => {
     searchPage = page;
     (async () => {
         showSearchResults();
-        const items = await fetchSearchResults(searchQuery, searchPage);
-        renderSearchResults(items);
-        renderSearchPager();
+        await runSearch(searchQuery, searchPage);
     })();
 });
 
@@ -5167,8 +5199,8 @@ document.getElementById('cloakLogoImage')?.addEventListener('input', (e) => {
 });
 
 // ==================== LIVE FEEDS (Trending / Streaming / In Theaters) ====================
-const LIVE_PAGES = 10;         // TMDB pages fetched per feed
-const LIVE_PER_PAGE = 14;     // titles shown per grid page
+const LIVE_PAGES = 20;         // TMDB pages fetched per feed
+const LIVE_PER_PAGE = 20;     // titles shown per grid page
 const liveState = {
     trending: { items: [], page: 1 },
     streaming: { items: [], page: 1 },
@@ -6296,10 +6328,12 @@ function handleNavClick(link, e) {
                 applyHomeFilter();
                 document.getElementById('heroSection').style.display = '';
                 show('myListSection', false);
-                show('trendingSection', false);
+                show('trendingSection', true);
                 show('streamingSection', false);
                 show('theatersSection', false);
-                show('popularSection', false);
+                show('popularSection', true);
+                renderLiveTab('trending');
+                renderLiveTab('popular');
                 try { renderCollections(); } catch {}
             } else {
                 show('moviesSection', section === 'movies');
