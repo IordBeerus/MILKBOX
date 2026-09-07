@@ -1337,6 +1337,14 @@ async function renderProviders() {
     });
 }
 
+async function renderProviderGrid() {
+    const grid = document.getElementById('providerGrid');
+    const slider = document.getElementById('providerSlider');
+    if (!grid) return;
+    await renderProviders();
+    if (slider) grid.innerHTML = slider.innerHTML;
+}
+
 async function browseProvider(providerId) {
     const prov = PROVIDERS.find(p=>p.id===providerId);
     if (!prov) return;
@@ -6336,12 +6344,13 @@ function handleNavClick(link, e) {
         const section = link.dataset.section;
         updateNavDropdownLabel(section);
         currentSection = section;
-        document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
-        if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
+        document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
+        if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
             document.body.classList.add(section + '-active');
         }
         const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
         show('providerSection', section==='home' || section==='streaming');
+        show('providersSection', section==='providers');
         show('collectionsSection', section==='home');
         show('musicSection', section==='music');
         if (section === 'anime') {
@@ -6389,6 +6398,19 @@ function handleNavClick(link, e) {
             show('popularSection', false);
             renderLiveTab('streaming');
             showLiveHero('streaming');
+        } else if (section === 'providers') {
+            show('moviesSection', false);
+            show('tvShowsSection', false);
+            show('myListSection', false);
+            show('homeGenres', false);
+            show('trendingSection', false);
+            show('streamingSection', false);
+            show('theatersSection', false);
+            show('popularSection', false);
+            show('mangaSection', false);
+            show('collectionsSection', false);
+            document.getElementById('heroSection').style.display = 'none';
+            renderProviderGrid();
         } else if (section === 'theaters') {
             show('moviesSection', false);
             show('tvShowsSection', false);
@@ -6577,7 +6599,7 @@ if (mobileMenuBtn) {
 // ==================== NAV DROPDOWN ====================
 const SECTION_LABELS = {
     home: 'Home', movies: 'Movies', tvshows: 'TV Shows', anime: 'Anime',
-    manga: 'Manga', trending: 'Trending', streaming: 'Streaming',
+    manga: 'Manga', trending: 'Trending', streaming: 'Streaming', providers: 'Providers',
     theaters: 'In Theaters', popular: 'Most Popular', music: 'Music', mylist: 'My List'
 };
 function updateNavDropdownLabel(section) {

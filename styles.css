@@ -810,6 +810,30 @@ body.light-mode .provider-section .section-title { color: #3a2a1a; }
 body.light-mode .provider-label { color: #5a4430; }
 body.light-mode .provider-settings-link { color: #b03f70; }
 
+/* Full provider directory */
+.providers-page-section { padding-top: 34px; }
+.providers-page-heading { margin-bottom: 22px; }
+.providers-page-heading .section-title { margin-bottom: 6px; }
+.provider-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+    gap: 14px;
+}
+.provider-grid .provider-item {
+    width: auto;
+    min-height: 132px;
+    justify-content: center;
+    padding: 14px 8px 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.025);
+}
+.provider-grid .provider-item:hover { background: rgba(255,255,255,0.06); }
+.provider-grid .provider-icon { width: 70px; height: 70px; }
+.provider-grid .provider-label { max-width: 112px; }
+body.light-mode .provider-grid .provider-item { background: #fff; border-color: rgba(0,0,0,0.08); }
+body.light-mode .provider-grid .provider-item:hover { background: #f3f3f3; }
+
 /* Home Filter Pills */
 .home-filter-pills {
     display: none;
