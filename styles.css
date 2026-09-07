@@ -422,7 +422,7 @@ body.has-nav-dropdown-open .nav-dropdown-backdrop { display: block; }
     align-items: center;
     justify-content: center;
     gap: 12px;
-    margin: 0 auto;
+    margin: 0 0 0 auto;
 }
 
 /* Buttons */
@@ -3220,7 +3220,7 @@ body.light-mode .nav-link.active { color: var(--mb-accent); }
     background: rgba(255, 255, 255, 0.09);
 }
 .search-box input {
-    width: 200px;
+    width: min(420px, 34vw);
     color: var(--mb-text);
     background: transparent;
     font-size: 13.5px;
@@ -4443,8 +4443,6 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     .card-img, .card-placeholder { height: 156px; }
     .hero-title { font-size: 24px !important; }
     .hero { min-height: 68vh; }
-    .btn-add#addContentBtn { padding: 9px 10px; }
-    .btn-add#addContentBtn svg { height: 16px; width: 16px; }
     .modal-content { padding: 16px; }
     .player-modal { padding: 10px; }
     .episode-main-title { font-size: 20px; }
@@ -4596,7 +4594,7 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     .btn-about-blank svg, .btn-add svg { width: 14px !important; height: 14px !important; }
     .btn-icon { width: 30px !important; height: 30px !important; border-radius: 8px !important; }
     .btn-icon svg { width: 14px !important; height: 14px !important; }
-    .search-box input { width: 130px !important; font-size: 12px !important; padding: 6px 10px !important; }
+    .search-box input { width: min(360px, 28vw) !important; font-size: 12px !important; padding: 6px 10px !important; }
     .content-wrapper { padding: 12px 0 24px !important; max-width: 100vw; overflow-x: hidden; }
     .content-section { padding: 12px 12px 8px 12px !important; }
     .hero { min-height: 56vh !important; padding-bottom: 20px !important; }

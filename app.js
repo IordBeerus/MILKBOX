@@ -8,7 +8,6 @@ let settings = JSON.parse(localStorage.getItem('sf_settings')) || {
     cloakFavicon: '',
     cloakLogoText: 'MILKBOX',
     cloakLogoImage: 'https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png',
-    tmdbAuth: '',
     playerServer: 'auto',
     autoPlayNext: true,
     bgColor: '#141414',
@@ -399,7 +398,12 @@ async function autoLoadHostedLibrary() {
     try { compactLibraryDescriptions(); } catch (e) { /* non-fatal */ }
     // Always auto-load popular TMDB library on open — no button press needed (adds only missing titles, skips dupes)
     const before = movies.length + tvShows.length;
-    try { await loadPopularContent(true); } catch (e) { /* no auto-load if TMDB fails */ }
+    try {
+        await loadPopularContent(true);
+    } catch (e) {
+        console.error('[MILKBOX] TMDB auto-load failed:', e);
+        if (typeof toast === 'function') toast('TMDB no acepta el token configurado.', 'error');
+    }
     if (movies.length + tvShows.length > before && typeof toast === 'function') toast('Library loaded!');
 }
 
@@ -3690,17 +3694,8 @@ function saveEdit(e) {
 }
 
 // ==================== TMDB AUTO-FILL ====================
-const TMDB_AUTH = 'Bearer eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiI5NDc2MWZmMmViNWRiYTM4MDJlZDJlNGJkOTE0ZGZlOCIsIm5iZiI6MTc3NzU2MDc0My45NzMsInN1YiI6IjY5ZjM2Y2E3ZDZhZjA3Yjg2Zjg0MzA3MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ.pNYedccUMayuOtMmH_vMWVVYjfAal3r2V1WWv433u4g';
-const TMDB_BASE = 'https://api.themoviedb.org/3';
+const TMDB_BASE = '/api/tmdb';
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
-
-// Uses the user-saved TMDB key if set, otherwise the built-in default. Handles
-// both raw api_key tokens and full "Bearer ..." strings.
-function effectiveTmdbAuth() {
-    const saved = (settings && settings.tmdbAuth || '').trim();
-    if (!saved) return TMDB_AUTH;
-    return /^Bearer\s/i.test(saved) ? saved : `Bearer ${saved}`;
-}
 
 let tmdbImageBase = TMDB_IMG;
 let tmdbConfigLoaded = false;
@@ -3738,12 +3733,7 @@ const TMDB_GENRE_MAP = {
 
 async function tmdbJson(path) {
     const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
-    const res = await fetch(url, {
-        headers: {
-            'accept': 'application/json',
-            'Authorization': effectiveTmdbAuth()
-        }
-    });
+    const res = await fetch(url, { headers: { 'accept': 'application/json' } });
     if (!res.ok) throw new Error(res.status === 404 ? '404 - Not found (check the ID, or type a title to search)' : `HTTP ${res.status}`);
     return res.json();
 }
@@ -4131,14 +4121,11 @@ function tmdbListItemToItem(r, type, anime) {
 }
 
 async function loadPopularContent(auto) {
-    const btn = document.getElementById('loadPopularBtn');
-    if (btn && btn.dataset.busy) return;
     // Auto-load on page open: if the library already fills storage there's nothing
     // more that can be kept — skip the fetch so reloading stays fast.
     if (auto && libraryBytes() > STORAGE_BUDGET) return;
     const existing = movies.length + tvShows.length;
     if (!auto && existing > 0 && !confirm(`Load a big TMDB library — the most popular movies, shows & anime of every genre plus the IMDb-style top-rated titles? Your existing ${existing} item(s) are kept and duplicates are skipped.`)) return;
-    if (btn) { btn.dataset.busy = '1'; btn.disabled = true; btn.textContent = 'Loading library...'; }
     try {
         await tmdbEnsureConfig();
         const seenMovie = new Set(movies.map(m => m.tmdbId));
@@ -4183,19 +4170,15 @@ async function loadPopularContent(auto) {
             saveData();
             refreshCurrent();
             if (!auto) toast(`${addedMovies} movies and ${addedTv} shows added from TMDB!`, 'success');
-            await enrichTmdbDetails(newMovieItems.concat(newTvItems), auto ? null : btn);
+            await enrichTmdbDetails(newMovieItems.concat(newTvItems), null);
         } else {
             if (!auto) toast('Nothing new to add — your library already has these.', 'error');
         }
     } catch (err) {
-        if (!auto) toast(`TMDB error: ${err.message || err}`, 'error');
-    } finally {
-        if (btn) { btn.disabled = false; btn.textContent = 'Load Library'; delete btn.dataset.busy; }
+        console.error('[MILKBOX] TMDB library load failed:', err);
+        if (typeof toast === 'function') toast(`TMDB error: ${err.message || err}`, 'error');
     }
 }
-
-const loadPopularBtn = document.getElementById('loadPopularBtn');
-if (loadPopularBtn) loadPopularBtn.onclick = loadPopularContent;
 
 // ==================== ADD MOVIE ====================
 document.getElementById('movieForm').addEventListener('submit', (e) => {
@@ -4776,64 +4759,9 @@ function openAboutBlankSite() {
     }
 }
 
-const aboutBlankMenu = document.getElementById('aboutBlankMenu');
-const closeAboutBlankMenu = () => aboutBlankMenu.classList.remove('show');
-document.getElementById('aboutBlankBtn').addEventListener('click', (e) => {
-    e.stopPropagation();
-    aboutBlankMenu.classList.toggle('show');
-});
-aboutBlankMenu.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const target = e.target.closest('button[data-about]');
-    if (!target) return;
-    closeAboutBlankMenu();
-    if (target.dataset.about === 'site') openAboutBlankSite();
-    else openAboutBlankPlayer();
-});
-document.addEventListener('click', closeAboutBlankMenu);
-// LightSpeed / Chrome block bypass — opens site in about:blank with fetch proxy (Google) so TMDB/video APIs aren't categorized
-function openLightSpeedBypass(){
-    try {
-        const cloakTitle = settings.cloakTitle || 'MILKBOX';
-        const cloakFavicon = settings.cloakFavicon || '';
-        let html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-        const dirUrl = window.location.href.replace(/[^/\\]*$/, '');
-        html = html.replace(/<head[^>]*>/, (m) => m + `<base href="${dirUrl}">`);
-        html = html.replace(/<title[^>]*>[\s\S]*?<\/title>/, `<title>${cloakTitle} — Bypass</title>`);
-        const faviconTag = cloakFavicon ? `<link rel="icon" type="image/x-icon" href="${cloakFavicon}">` : '<link rel="icon" type="image/x-icon" href="data:,">';
-        html = html.replace(/<link rel="icon" type="image\/x-icon"[^>]*>/, () => faviconTag);
-        // Inject LightSpeed fetch proxy immediately in the new page's <head> so it runs before app.js
-        const bypassScript = `<script>(function(){const o=window.fetch.bind(window);const p=(u)=>'https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&url='+encodeURIComponent(u);const a=(u)=>'https://api.allorigins.win/raw?url='+encodeURIComponent(u);const isP=(u)=>/api\\.themoviedb\\.org|raw\\.githubusercontent\\.com|api\\.mangadex\\.org/i.test(String(u));window.fetch=async function(i,opt){const u=typeof i==='string'?i:i?.url||String(i);if(!isP(u)) return o(i,opt);try{const r=await o(i,opt);if(r.ok){const ct=r.headers.get('content-type')||'';if(ct.includes('application/json')) return r;const t=await r.clone().text();if(/LightSpeed|blocked by|filter|access denied/i.test(t)&&t.length<8000) throw new Error('LightSpeed');return r;}throw new Error('blocked '+r.status);}catch(e){try{const r2=await o(p(u),opt);if(r2.ok) return r2;}catch{}try{const r3=await o(a(u),opt);if(r3.ok) return r3;}catch{}throw e;}};})();<\/script>`;
-        html = html.replace('</head>', bypassScript + '</head>');
-        // Open synchronously (inside the click) so Chrome allows the popup. If the
-        // window object comes back null, the popup was blocked — retry via an
-        // anchor with target=_blank (bypasses more popup blockers) and warn the user.
-        let w = null;
-        try { w = window.open('about:blank', '_blank'); } catch (e) { w = null; }
-        if (!w) {
-            try {
-                const a = document.createElement('a');
-                a.setAttribute('href', 'about:blank');
-                a.setAttribute('target', '_blank');
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                toast('Popup blocked by Chrome — please allow popups for this site, then click again.', 'error');
-                return;
-            } catch (e2) { w = null; }
-        }
-        if (!w) { toast('Popup blocked. Allow popups for this site.', 'error'); return; }
-        w.document.open(); w.document.write(html); w.document.close();
-        toast('Opened bypass — LightSpeed not applied in about:blank', 'success');
-    } catch (e) { console.error(e); toast('Bypass failed: ' + (e.message||e), 'error'); }
-}
-document.getElementById('bypassFilterBtn')?.addEventListener('click', openLightSpeedBypass);
-
 
 // ==================== SETTINGS ====================
 document.getElementById('settingsBtn').addEventListener('click', () => {
-    const tmdbInput = document.getElementById('tmdbApiKey');
-    if (tmdbInput) tmdbInput.value = settings.tmdbAuth || '';
     document.getElementById('settingsModal').classList.add('active');
     document.querySelectorAll('.theme-card').forEach(c => {
         c.classList.toggle('active', c.dataset.theme === settings.activeTheme);
@@ -4843,10 +4771,10 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
     });
     renderCustomThemes();
 });
+document.getElementById('settingsAboutPlayerBtn')?.addEventListener('click', openAboutBlankPlayer);
+document.getElementById('settingsAboutSiteBtn')?.addEventListener('click', openAboutBlankSite);
 
 document.getElementById('applyCloakBtn').addEventListener('click', () => {
-    const tmdbInput = document.getElementById('tmdbApiKey');
-    settings.tmdbAuth = tmdbInput ? tmdbInput.value.trim() : settings.tmdbAuth;
     settings.cloakTitle = document.getElementById('cloakTitle').value.trim();
     settings.cloakFavicon = document.getElementById('cloakFavicon').value.trim();
     settings.cloakLogoText = document.getElementById('cloakLogoText').value.trim();
@@ -4951,7 +4879,7 @@ document.getElementById('cloakLogoUpload')?.addEventListener('change', (e) => {
 });
 
 // MangaDex auth — paste the access_token/refresh_token from your Python POST so the book reader can load chapters
-const MANGADEX_DEFAULT_TOKEN = 'VyuZgHPXrLsRMfLLuCo8MMVhPbyhle3s';
+const MANGADEX_DEFAULT_TOKEN = '';
 (function initMangadexSecret(){
     try {
         const cur = JSON.parse(localStorage.getItem('mangadex_token')||'{}');
@@ -5009,15 +4937,13 @@ document.getElementById('clearMangadexTokenBtn')?.addEventListener('click', () =
     updateMangadexAuthUI(); toast('MangaDex token cleared');
 });
 try { updateMangadexAuthUI(); } catch {}
-// Resilient MangaDex fetch: uses your VyuZgHPX... token when present, auto-falls back to public if the token is rejected (so books still load)
+// Resilient MangaDex fetch through the server-side proxy.
 async function fetchMangadex(url, opts={}) {
-    const hAuth = mangadexHeaders();
-    let res = await fetch(url, { ...opts, headers: { ...(opts.headers||{}), ...hAuth } });
-    if (res.status === 401 || res.status === 403) {
-        const { Authorization, authorization, ...noAuth } = hAuth;
-        res = await fetch(url, { ...opts, headers: { ...(opts.headers||{}), ...noAuth, Accept: 'application/json' } });
-    }
-    return res;
+    const parsed = new URL(url);
+    const proxyUrl = parsed.hostname === 'api.mangadex.org'
+        ? `/api/mangadex${parsed.pathname}${parsed.search}`
+        : url;
+    return fetch(proxyUrl, { ...opts, headers: { ...(opts.headers||{}), Accept: 'application/json' } });
 }
 const mangadexMangaCache = new Map();
 async function resolveMangadexMangaId(title) {
@@ -6486,7 +6412,6 @@ function closeNavDropdown() {
 })();
 
 // ==================== MODALS ====================
-document.getElementById('addContentBtn').addEventListener('click', () => document.getElementById('addContentModal').classList.add('active'));
 document.getElementById('closeModal').addEventListener('click', () => document.getElementById('addContentModal').classList.remove('active'));
 // ================= ANIME THEATER (anime only) =================
 let _animePlayerParent = null;
@@ -6614,7 +6539,7 @@ function wireAnimeMoviePanelOnce(item){
   const fb = document.getElementById('animeMovieFallback');
   if (fb && !fb._mw){ fb._mw=1; fb.addEventListener('click', async ()=>{
     if (!playContext) return;
-    try{ await openLightSpeedBypass(playContext.item); }catch{ try{ toast('Could not open bypass'); }catch{} }
+        try{ openAboutBlankPlayer(); }catch{ try{ toast('Could not open about:blank player'); }catch{} }
   });}
 }
 function renderAnimeTheaterLeft(item){

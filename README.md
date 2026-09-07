@@ -36,6 +36,14 @@ Personal media library for movies, TV shows, anime, and manga.
 pnpm i
 ```
 
+Create a `.env` file from `.env.example` and add one TMDB credential: `TMDB_API_KEY` (the shorter v3 API key) or `TMDB_ACCESS_TOKEN` (the v4 Read Access Token). MangaDex uses `MANGADEX_ACCESS_TOKEN`.
+
+```bash
+cp .env.example .env
+```
+
+The `.env` file is ignored by Git. Keep it local and never commit it.
+
 Start the App
 ```
 pnpm start

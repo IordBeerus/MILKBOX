@@ -2,6 +2,17 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 
+function loadEnvFile() {
+    const envPath = path.join(__dirname, '.env');
+    if (!fs.existsSync(envPath)) return;
+    for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+        const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+        if (!match || match[1] in process.env) continue;
+        process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+    }
+}
+
+loadEnvFile();
 const port = Number(process.env.PORT) || 3000;
 const root = __dirname;
 const mimeTypes = {
@@ -17,26 +28,47 @@ const mimeTypes = {
 };
 
 async function proxyMangaDex(req, res, requestPath, query) {
-    let target;
-    if (requestPath === '/api/manga/search') {
-        target = `https://api.mangadex.org/manga?title=${encodeURIComponent(query.get('title') || '')}&limit=100&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=cover_art`;
-    } else if (requestPath.startsWith('/api/manga/') && requestPath.endsWith('/feed')) {
-        const id = requestPath.slice('/api/manga/'.length, -'/feed'.length);
-        target = `https://api.mangadex.org/manga/${encodeURIComponent(id)}/feed?limit=20&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`;
-    } else if (requestPath.startsWith('/api/chapter/')) {
-        const id = requestPath.slice('/api/chapter/'.length);
-        target = `https://api.mangadex.org/at-home/server/${encodeURIComponent(id)}`;
-    } else {
-        return false;
-    }
+    if (!requestPath.startsWith('/api/mangadex/')) return false;
+    const target = new URL(`https://api.mangadex.org${requestPath.slice('/api/mangadex'.length)}`);
+    for (const [key, value] of query) target.searchParams.append(key, value);
     try {
-        const response = await fetch(target, { headers: { Accept: 'application/json' } });
+        const headers = { Accept: 'application/json' };
+        if (process.env.MANGADEX_ACCESS_TOKEN) headers.Authorization = `Bearer ${process.env.MANGADEX_ACCESS_TOKEN}`;
+        const response = await fetch(target, { headers });
         const body = await response.text();
         res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
     } catch (error) {
         res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'MangaDex proxy failed', message: error.message }));
+    }
+    return true;
+}
+
+async function proxyTmdb(req, res, requestPath, query) {
+    if (!requestPath.startsWith('/api/tmdb/')) return false;
+    const tmdbCredential = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN;
+    if (!tmdbCredential) {
+        res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'TMDB_API_KEY or TMDB_ACCESS_TOKEN is not configured' }));
+        return true;
+    }
+    const targetPath = requestPath.slice('/api/tmdb'.length);
+    const target = new URL(`https://api.themoviedb.org/3${targetPath}`);
+    for (const [key, value] of query) target.searchParams.append(key, value);
+    if (!target.searchParams.has('language')) target.searchParams.set('language', 'en-US');
+    const isReadAccessToken = /^Bearer\s+/i.test(tmdbCredential) || tmdbCredential.startsWith('eyJ');
+    const headers = { Accept: 'application/json' };
+    if (isReadAccessToken) headers.Authorization = `Bearer ${tmdbCredential.replace(/^Bearer\s+/i, '')}`;
+    else target.searchParams.set('api_key', tmdbCredential);
+    try {
+        const response = await fetch(target, { headers });
+        const body = await response.text();
+        res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(body);
+    } catch (error) {
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'TMDB proxy failed', message: error.message }));
     }
     return true;
 }
@@ -68,6 +100,7 @@ async function proxyKissKh(req, res, requestPath, query) {
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
+    if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     const requestedFile = requestPath === '/' ? '/index.html' : requestPath;
