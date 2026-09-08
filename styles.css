@@ -838,6 +838,8 @@ body.light-mode .provider-grid .provider-item:hover { background: #f3f3f3; }
 
 /* Home Filter Pills */
 .home-filter-pills {
+    position: relative;
+    z-index: 6;
     display: flex;
     gap: 10px;
     padding: 14px 0 8px 40px;
