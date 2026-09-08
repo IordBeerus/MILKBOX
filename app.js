@@ -1449,6 +1449,9 @@ async function browseProvider(providerId) {
     if (!prov) return;
     if (activeProvider===providerId) {
         activeProvider=null;
+        liveState.streaming.items = [];
+        liveState.streaming.page = 1;
+        delete liveFed['streaming'];
         renderProviders();
         toast(`Cleared ${prov.label} filter`);
         const hint = document.querySelector('#streamingSection .live-hint');
@@ -1465,9 +1468,7 @@ async function browseProvider(providerId) {
             renderCatalogGrid('tvshows');
             return;
         } else if (currentSection==='streaming') {
-            liveState.streaming.items = [];
-            liveState.streaming.page = 1;
-            delete liveFed['streaming'];
+            renderLiveTab('streaming');
         }
         const homeLink = document.querySelector('.nav-link[data-section="home"]');
         if (homeLink) handleNavClick(homeLink);
