@@ -54,6 +54,13 @@ http://localhost:3000
 ```
 The app should be opened through the local server instead of opening index.html directly. The local server is required for the MangaDex proxy and manga chapter reader.
 
+## Render Deployment
+
+Use the included `render.yaml` to create the web service. In the Render
+dashboard, set `TMDB_API_KEY` or `TMDB_ACCESS_TOKEN` under Environment before
+opening the site. Without one of these variables, no live catalog titles can
+be loaded.
+
 APIs
 MILKBOX uses external services for live content:
 

@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: milkbox
+    runtime: node
+    plan: free
+    buildCommand: pnpm install --frozen-lockfile && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: TMDB_API_KEY
+        sync: false
+      - key: TMDB_ACCESS_TOKEN
+        sync: false
+      - key: MANGADEX_ACCESS_TOKEN
+        sync: false
