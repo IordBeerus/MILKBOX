@@ -1450,10 +1450,21 @@ async function browseProvider(providerId) {
     if (activeProvider===providerId) {
         activeProvider=null;
         renderProviders();
-        toast(`Cleared ${prov.label} filter — back to Home`);
+        toast(`Cleared ${prov.label} filter`);
         const hint = document.querySelector('#streamingSection .live-hint');
         if (hint) hint.textContent = 'Live from TMDB · movies & shows on streaming services';
-        if (currentSection==='streaming') {
+        if (currentSection==='providers') {
+            const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
+            show('streamingSection', false);
+            show('moviesSection', true);
+            show('tvShowsSection', true);
+            show('streamingSection', false);
+            document.getElementById('moviesSection').classList.add('catalog-grid');
+            document.getElementById('tvShowsSection').classList.add('catalog-grid');
+            renderCatalogGrid('movies');
+            renderCatalogGrid('tvshows');
+            return;
+        } else if (currentSection==='streaming') {
             liveState.streaming.items = [];
             liveState.streaming.page = 1;
             delete liveFed['streaming'];
@@ -1469,8 +1480,21 @@ async function browseProvider(providerId) {
     activeProvider=providerId;
     renderProviders();
     toast(`Browsing ${prov.label}...`);
-    // switch to streaming tab WITHOUT triggering the default fetch race
+    const providerGridClick = !!document.querySelector(`#providerGrid .provider-item[data-provider="${CSS.escape(String(providerId))}"]`);
+    // Provider-page clicks keep the filtered results above the provider grid.
     (() => {
+        if (providerGridClick) {
+            document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
+            document.querySelectorAll('.mobile-nav-link').forEach(l=>l.classList.remove('active'));
+            const link = document.querySelector('.nav-link[data-section="providers"]');
+            if (link) link.classList.add('active');
+            currentSection='providers';
+            document.body.classList.remove('movies-active','tvshows-active','anime-active','mylist-active','trending-active','streaming-active','providers-active','theaters-active','popular-active','manga-active','home-active');
+            document.body.classList.add('providers-active');
+            const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
+            show('moviesSection',false); show('tvShowsSection',false); show('streamingSection',true); show('myListSection',false); show('homeGenres',false); show('trendingSection',false); show('theatersSection',false); show('popularSection',false); show('mangaSection',false); show('providerSection',false); show('providersSection',true);
+            const hero=document.getElementById('heroSection'); if(hero) hero.style.display='none';
+        } else {
         document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
         document.querySelectorAll('.mobile-nav-link').forEach(l=>l.classList.remove('active'));
         const link = document.querySelector('.nav-link[data-section="streaming"]');
@@ -1481,6 +1505,7 @@ async function browseProvider(providerId) {
         const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
         show('moviesSection',false); show('tvShowsSection',false); show('myListSection',false); show('homeGenres',false); show('trendingSection',false); show('streamingSection',true); show('theatersSection',false); show('popularSection',false); show('mangaSection',false); show('providerSection',true);
         const hero=document.getElementById('heroSection'); if(hero) hero.style.display='';
+        }
         // block the default streaming fetch that handleNavClick would have done
         liveFed['streaming']=1;
     })();
