@@ -1413,7 +1413,6 @@ async function renderProviders() {
 async function renderProviderGrid() {
     const grid = document.getElementById('providerGrid');
     if (!grid) return;
-    await renderProviders();
     grid.innerHTML = '';
     const renderGridBatch = (start, end) => {
         grid.insertAdjacentHTML('beforeend', PROVIDERS.slice(start, end).map(p => {
@@ -1442,6 +1441,12 @@ async function renderProviderGrid() {
     if (next < PROVIDERS.length) {
         if (window.requestIdleCallback) window.requestIdleCallback(appendGridBatch, { timeout: 500 });
         else window.setTimeout(appendGridBatch, 100);
+    }
+    await loadLocalProviderIcons();
+    if (!providerLogosFetched) {
+        try { await fetchProviderLogos(); } catch {}
+        grid.innerHTML = '';
+        renderGridBatch(0, Math.min(60, PROVIDERS.length));
     }
 }
 
