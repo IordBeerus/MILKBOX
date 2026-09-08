@@ -1285,8 +1285,7 @@ const LOCAL_PROVIDER_ICONS = {
     '7': 'assets/provider-icons/7.png',
     '10': 'assets/provider-icons/10.png',
     '3': 'assets/provider-icons/3.png',
-    '151': 'assets/provider-icons/151.png',
-    '68': 'assets/provider-icons/microsoft.svg'
+    '151': 'assets/provider-icons/151.png'
 };
 let providerLogoMap = {
     '8': 'assets/provider-icons/8.png',
