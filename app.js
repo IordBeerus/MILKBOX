@@ -6551,6 +6551,7 @@ function handleNavClick(link, e) {
             show('mangaSection', false);
             show('collectionsSection', false);
             const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
+            const streamingHint = document.querySelector('#streamingSection .live-hint'); if (streamingHint) streamingHint.style.display = '';
             document.getElementById('heroSection').style.display = 'none';
             renderLiveTab('streaming');
             renderProviderGrid();
