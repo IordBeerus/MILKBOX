@@ -1598,6 +1598,7 @@ const COLLECTION_DEFS = [
     { label: 'Frozen', keys: ['frozen'] },
     { label: 'The Lion King', keys: ['lion king'] },
     { label: 'Pokémon', keys: ['pokemon', 'pikachu', 'pokémon'] },
+    { label: 'Dragon Ball', keys: ['dragon ball'] },
 ];
 let customCollections = (()=>{ try { return JSON.parse(localStorage.getItem('milkbox_custom_collections')||'[]'); } catch { return []; } })();
 function saveCustomCollections(){ try { localStorage.setItem('milkbox_custom_collections', JSON.stringify(customCollections)); } catch {} }
