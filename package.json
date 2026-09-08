@@ -4,6 +4,7 @@
   "private": true,
   "description": "MILKBOX static media library",
   "scripts": {
+    "build": "node --check app.js && node --check server.js && node --check sync-provider-icons.js",
     "start": "node server.js",
     "sync:provider-icons": "node sync-provider-icons.js"
   },
