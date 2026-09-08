@@ -910,12 +910,14 @@ body.movies-active #moviesSection {
 }
 
 /* ---- Live tabs (Trending / Streaming / In Theaters / Most Popular) ---- */
-#trendingSection, #streamingSection, #theatersSection, #popularSection, #mangaSection { display: none; }
+#trendingSection, #streamingSection, #freeSection, #theatersSection, #popularSection, #mangaSection { display: none; }
 
 body.trending-active #trendingSection,
 body.trending-active #trendingSection .section-title,
 body.streaming-active #streamingSection,
 body.streaming-active #streamingSection .section-title,
+body.free-active #freeSection,
+body.free-active #freeSection .section-title,
 body.providers-active #streamingSection,
 body.providers-active #streamingSection .section-title,
 body.theaters-active #theatersSection,
@@ -965,6 +967,14 @@ body.trending-active #trendingSection {
 }
 
 body.streaming-active #streamingSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 60vh;
+    margin-top: -30px;
+}
+
+body.free-active #freeSection {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;

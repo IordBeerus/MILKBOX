@@ -1492,7 +1492,7 @@ async function browseProvider(providerId) {
             const link = document.querySelector('.nav-link[data-section="providers"]');
             if (link) link.classList.add('active');
             currentSection='providers';
-            document.body.classList.remove('movies-active','tvshows-active','anime-active','mylist-active','trending-active','streaming-active','providers-active','theaters-active','popular-active','manga-active','home-active');
+            document.body.classList.remove('movies-active','tvshows-active','anime-active','mylist-active','trending-active','streaming-active','free-active','providers-active','theaters-active','popular-active','manga-active','home-active');
             document.body.classList.add('providers-active');
             const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
             show('moviesSection',false); show('tvShowsSection',false); show('streamingSection',true); show('myListSection',false); show('homeGenres',false); show('trendingSection',false); show('theatersSection',false); show('popularSection',false); show('mangaSection',false); show('providerSection',false); show('providersSection',true);
@@ -1612,6 +1612,20 @@ function collectionForTitle(title) {
     }
     return null;
 }
+const tmdbCollectionData = new Map();
+async function fetchTmdbCollectionForDefinition(def) {
+    const cached = tmdbCollectionData.get(def.label);
+    if (cached) return cached;
+    const query = def.label || def.keys[0];
+    const search = await tmdbJson(`/search/collection?query=${encodeURIComponent(query)}&page=1`);
+    const match = (search.results || []).find(c => String(c.name || '').toLowerCase() === query.toLowerCase()) || (search.results || [])[0];
+    if (!match?.id) return null;
+    const detail = await tmdbJson(`/collection/${encodeURIComponent(match.id)}`);
+    const items = (detail.parts || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && it.poster && it.backdrop);
+    const data = { id: String(match.id), name: detail.name || match.name || def.label, items };
+    tmdbCollectionData.set(def.label, data);
+    return data;
+}
 async function enrichCollectionsWithTMDB(buckets) {
     try {
         await tmdbEnsureConfig();
@@ -1621,17 +1635,9 @@ async function enrichCollectionsWithTMDB(buckets) {
             await Promise.all(chunk.map(async def => {
                 const label = def.label;
                 if (!buckets.has(label)) buckets.set(label, []);
-                const q = def.keys[0];
                 try {
-                    const pages = await Promise.all([
-                        tmdbJson(`/search/multi?query=${encodeURIComponent(q)}&page=1`),
-                        tmdbJson(`/search/multi?query=${encodeURIComponent(q)}&page=2`)
-                    ]);
-                    const allResults = pages.flatMap(d => d.results || []);
-                    const results = allResults.slice(0, 20).map(r => {
-                        const type = r.media_type === 'tv' ? 'tv' : r.media_type === 'movie' ? 'movie' : (r.first_air_date ? 'tv' : 'movie');
-                        return liveItemToItem(r, type);
-                    }).filter(it => it.title && it.poster && it.backdrop && collectionForTitle(it.title) === label);
+                    const collection = await fetchTmdbCollectionForDefinition(def);
+                    const results = collection ? collection.items : [];
                     const existing = new Set(buckets.get(label).map(i => i.tmdbId || i.id));
                     results.forEach(it => {
                         const key = it.tmdbId || it.id;
@@ -4658,7 +4664,7 @@ let searchTotalPages = 1;
 let searchRequestId = 0;
 
 function showSearchResults() {
-    ['moviesSection','tvShowsSection','myListSection','homeGenres','trendingSection','streamingSection','theatersSection','popularSection','mangaSection','musicSection','heroSection'].forEach(id => {
+    ['moviesSection','tvShowsSection','myListSection','homeGenres','trendingSection','streamingSection','freeSection','theatersSection','popularSection','mangaSection','musicSection','heroSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -4698,6 +4704,10 @@ function hideSearchResults() {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false); show('musicSection', false);
         show('trendingSection', false); show('streamingSection', true); show('theatersSection', false); show('popularSection', false); show('mangaSection', false);
         show('heroSection', true); show('providerSection', true); show('collectionsSection', false);
+    } else if (currentSection === 'free') {
+        show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false); show('musicSection', false);
+        show('trendingSection', false); show('streamingSection', false); show('freeSection', true); show('theatersSection', false); show('popularSection', false); show('mangaSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
     } else if (currentSection === 'theaters') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', true); show('popularSection', false); show('mangaSection', false); show('musicSection', false);
@@ -5499,11 +5509,23 @@ const LIVE_PER_PAGE = 20;     // titles shown per grid page
 const liveState = {
     trending: { items: [], page: 1 },
     streaming: { items: [], page: 1 },
+    free: { items: [], page: 1 },
     theaters: { items: [], page: 1 },
     popular: { items: [], page: 1 },
     manga: { items: [], page: 1, totalPages: 1, type: 'topview', search: '' }
 };
 const liveFed = {};   // prevent multiple concurrent fetches per feed
+
+function liveGridIds(key) {
+    return {
+        trending: ['trendingGrid', 'trendingPager'],
+        streaming: ['streamingGrid', 'streamingPager'],
+        free: ['freeGrid', 'freePager'],
+        theaters: ['theatersGrid', 'theatersPager'],
+        popular: ['popularGrid', 'popularPager'],
+        manga: ['mangaGrid', 'mangaPager']
+    }[key] || [];
+}
 
 function liveItemToItem(r, type) {
     let t = type;
@@ -5569,8 +5591,7 @@ function mergeLiveInterleaved(groups) {
 async function fetchLive(paths, type, key) {
     if (liveFed[key]) return;
     liveFed[key] = 1;
-const gridId = { trending: 'trendingGrid', streaming: 'streamingGrid', theaters: 'theatersGrid', popular: 'popularGrid', manga: 'mangaGrid' }[key];
-const pagerId = { trending: 'trendingPager', streaming: 'streamingPager', theaters: 'theatersPager', popular: 'popularPager', manga: 'mangaPager' }[key];
+const [gridId, pagerId] = liveGridIds(key);
     const grid = gridId && document.getElementById(gridId);
     const pager = pagerId && document.getElementById(pagerId);
     try {
@@ -5592,8 +5613,8 @@ const pagerId = { trending: 'trendingPager', streaming: 'streamingPager', theate
 }
 
 function renderLiveGrid(key, grid, pager) {
-    if (!grid) grid = document.getElementById({ trending: 'trendingGrid', streaming: 'streamingGrid', theaters: 'theatersGrid', popular: 'popularGrid', manga: 'mangaGrid' }[key]);
-    if (!pager) pager = document.getElementById({ trending: 'trendingPager', streaming: 'streamingPager', theaters: 'theatersPager', popular: 'popularPager', manga: 'mangaPager' }[key]);
+    if (!grid) grid = document.getElementById(liveGridIds(key)[0]);
+    if (!pager) pager = document.getElementById(liveGridIds(key)[1]);
     if (!grid) return;
     const st = liveState[key];
     if (!st.items.length) return;
@@ -5653,6 +5674,35 @@ function renderLiveTab(section) {
                     if (!activeProvider && currentSection === 'streaming') {
                         renderLiveGrid('streaming');
                         showLiveHero('streaming');
+                    }
+                }
+            })();
+        }
+    } else if (section === 'free') {
+        const st = liveState.free;
+        if (st.items.length) renderLiveGrid('free');
+        else if (!liveFed.free) {
+            const movieBase = '/discover/movie?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
+            const tvBase = '/discover/tv?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
+            const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `${movieBase}&page=${i + 1}`);
+            const tvPaths = Array.from({ length: LIVE_PAGES }, (_, i) => `${tvBase}&page=${i + 1}`);
+            (async () => {
+                liveFed.free = 1;
+                try {
+                    await tmdbEnsureConfig();
+                    const [mp, tp] = await Promise.all([fetchBatched(moviePaths, 5), fetchBatched(tvPaths, 5)]);
+                    if (currentSection !== 'free') return;
+                    liveState.free.items = [...liveItemsFromPages(mp, 'movie'), ...liveItemsFromPages(tp, 'tv')];
+                    liveState.free.page = 1;
+                    enrichLiveLogos('free');
+                } catch (e) {
+                    const grid = document.getElementById('freeGrid');
+                    if (grid) grid.innerHTML = '<div class="live-error">Couldn\'t load free titles. Check your internet connection and try again.</div>';
+                } finally {
+                    delete liveFed.free;
+                    if (currentSection === 'free') {
+                        renderLiveGrid('free');
+                        showLiveHero('free');
                     }
                 }
             })();
@@ -6383,6 +6433,7 @@ function showLiveHero(section) {
     let items, title, emptyDesc;
     if (section === 'trending') { items = liveState.trending.items; title = 'Trending Now'; emptyDesc = 'Trending titles will appear here. Click "Trending" to load them.'; }
     else if (section === 'streaming') { items = liveState.streaming.items; title = 'Streaming Now'; emptyDesc = 'Live streaming titles will appear here.'; }
+    else if (section === 'free') { items = liveState.free.items; title = 'Free To Watch'; emptyDesc = 'Free movies and shows will appear here.'; }
     else if (section === 'theaters') { items = liveState.theaters.items; title = 'In Theaters'; emptyDesc = 'Now-playing titles will appear here.'; }
     else if (section === 'popular') { items = liveState.popular.items; title = 'Most Popular'; emptyDesc = 'The most popular movies, TV shows & anime of all time will appear here.'; }
     else { items = liveState.manga.items; title = 'Manga'; emptyDesc = 'Popular manga titles will appear here.'; }
@@ -6408,7 +6459,7 @@ document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn');
     if (!btn || !btn.dataset.page) return;
     const type = btn.closest('.live-section')?.id;
-    const key = type === 'trendingSection' ? 'trending' : type === 'streamingSection' ? 'streaming' : type === 'theatersSection' ? 'theaters' : type === 'popularSection' ? 'popular' : type === 'mangaSection' ? 'manga' : null;
+    const key = type === 'trendingSection' ? 'trending' : type === 'streamingSection' ? 'streaming' : type === 'freeSection' ? 'free' : type === 'theatersSection' ? 'theaters' : type === 'popularSection' ? 'popular' : type === 'mangaSection' ? 'manga' : null;
     if (!key) return;
     const page = parseInt(btn.dataset.page, 10);
     if (isNaN(page)) return;
@@ -6485,8 +6536,8 @@ function handleNavClick(link, e) {
         const section = link.dataset.section;
         updateNavDropdownLabel(section);
         currentSection = section;
-        document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
-        if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
+        document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
+        if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
             document.body.classList.add(section + '-active');
         }
         const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
@@ -6494,6 +6545,7 @@ function handleNavClick(link, e) {
         show('providersSection', section==='providers');
         show('collectionsSection', section==='home');
         show('musicSection', section==='music');
+        show('freeSection', false);
         if (section === 'anime') {
             document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
             document.querySelector('#tvShowsSection .section-title').textContent = 'Anime Shows';
@@ -6539,6 +6591,21 @@ function handleNavClick(link, e) {
             show('popularSection', false);
             renderLiveTab('streaming');
             showLiveHero('streaming');
+        } else if (section === 'free') {
+            show('moviesSection', false);
+            show('tvShowsSection', false);
+            show('myListSection', false);
+            show('homeGenres', false);
+            show('trendingSection', false);
+            show('streamingSection', false);
+            show('freeSection', true);
+            show('theatersSection', false);
+            show('popularSection', false);
+            show('mangaSection', false);
+            show('collectionsSection', false);
+            show('providerSection', false);
+            renderLiveTab('free');
+            showLiveHero('free');
         } else if (section === 'providers') {
             show('moviesSection', false);
             show('tvShowsSection', false);
@@ -7474,7 +7541,7 @@ document.getElementById('logoWrap').addEventListener('click', (e) => {
     document.querySelector('#moviesSection .section-title').textContent = 'Movies';
     document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
     ['myListSection', 'heroSection', 'providerSection'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=''; });
-    ['trendingSection', 'theatersSection', 'mangaSection', 'popularSection'].forEach(id => document.getElementById(id).style.display = 'none');
+    ['trendingSection', 'streamingSection', 'freeSection', 'theatersSection', 'mangaSection', 'popularSection'].forEach(id => document.getElementById(id).style.display = 'none');
     applyHomeFilter();
     updateHero();
 });
@@ -7605,25 +7672,10 @@ document.addEventListener('click', async (e) => {
         await tmdbEnsureConfig();
         const def = COLLECTION_DEFS.find(d=>d.label===label);
         if (def) {
-            const q = def.keys[0];
-            const data = await tmdbJson(`/search/multi?query=${encodeURIComponent(q)}&page=1`);
-            const tmdbItems = (data.results || []).map(r => {
-                const type = r.media_type === 'tv' ? 'tv' : r.media_type === 'movie' ? 'movie' : (r.first_air_date ? 'tv' : 'movie');
-                return liveItemToItem(r, type);
-            }).filter(it => it.title && it.poster && it.backdrop && collectionForTitle(it.title) === label);
+            const collection = await fetchTmdbCollectionForDefinition(def);
+            const tmdbItems = collection ? collection.items : [];
             const existing = new Set(items.map(i=>i.tmdbId||i.id));
             tmdbItems.forEach(it=>{ const k=it.tmdbId||it.id; if(!existing.has(k)){ items.push(it); existing.add(k); } });
-            // second page for richer collections like Star Wars/Marvel
-            if (tmdbItems.length >= 8) {
-                try {
-                    const data2 = await tmdbJson(`/search/multi?query=${encodeURIComponent(q)}&page=2`);
-                    const more = (data2.results || []).map(r => {
-                        const type = r.media_type === 'tv' ? 'tv' : 'movie';
-                        return liveItemToItem(r, type);
-                    }).filter(it => collectionForTitle(it.title) === label);
-                    more.forEach(it=>{ const k=it.tmdbId||it.id; if(!existing.has(k)){ items.push(it); existing.add(k); } });
-                } catch {}
-            }
         }
     } catch {}
     if (!items.length) return;
