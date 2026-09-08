@@ -822,6 +822,8 @@ body.light-mode .provider-settings-link { color: #b03f70; }
 .provider-grid .provider-item {
     width: auto;
     min-height: 132px;
+    content-visibility: auto;
+    contain-intrinsic-size: 132px;
     justify-content: center;
     padding: 14px 8px 12px;
     border: 1px solid rgba(255,255,255,0.08);

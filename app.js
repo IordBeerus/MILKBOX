@@ -1362,34 +1362,86 @@ async function renderProviders() {
     if (!providerLogosFetched) {
         try { await fetchProviderLogos(); } catch {}
     }
-    slider.innerHTML = PROVIDERS.map(p => {
+    const renderProviderMarkup = p => {
         const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
         const logoUrl = logo
             ? (String(logo).startsWith('http') || String(logo).startsWith('assets/')
                 ? String(logo)
                 : `https://image.tmdb.org/t/p/w154${logo}`)
             : '';
-        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" loading="lazy" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="68" height="68" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
         const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
         return `
         <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}">
             <div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div>
             <span class="provider-label">${escapeHtml(p.label)}</span>
         </div>`;
-    }).join('');
-    const labels = { prime: 'Amazon Prime<br>Video', peacock: 'Peacock<br>Premium', ytpremium: 'YouTube<br>Premium' };
-    slider.querySelectorAll('.provider-item').forEach(el => {
-        const prov = PROVIDERS.find(x=>x.id===el.dataset.provider);
-        if (prov && labels[prov.key]) el.querySelector('.provider-label').innerHTML = labels[prov.key];
-    });
+    };
+    const renderBatch = (container, start, end) => {
+        container.insertAdjacentHTML('beforeend', PROVIDERS.slice(start, end).map(renderProviderMarkup).join(''));
+    };
+    const renderLabels = container => {
+        const labels = { prime: 'Amazon Prime<br>Video', peacock: 'Peacock<br>Premium', ytpremium: 'YouTube<br>Premium' };
+        container.querySelectorAll('.provider-item').forEach(el => {
+            const prov = PROVIDERS.find(x=>x.id===el.dataset.provider);
+            if (prov && labels[prov.key]) el.querySelector('.provider-label').innerHTML = labels[prov.key];
+        });
+    };
+    const initialCount = Math.min(40, PROVIDERS.length);
+    slider.innerHTML = '';
+    renderBatch(slider, 0, initialCount);
+    renderLabels(slider);
+    let next = initialCount;
+    const appendIdleBatch = () => {
+        if (next >= PROVIDERS.length) return;
+        const end = Math.min(next + 40, PROVIDERS.length);
+        renderBatch(slider, next, end);
+        renderLabels(slider);
+        next = end;
+        if (next < PROVIDERS.length) {
+            if (window.requestIdleCallback) window.requestIdleCallback(appendIdleBatch, { timeout: 500 });
+            else window.setTimeout(appendIdleBatch, 100);
+        }
+    };
+    if (next < PROVIDERS.length) {
+        if (window.requestIdleCallback) window.requestIdleCallback(appendIdleBatch, { timeout: 500 });
+        else window.setTimeout(appendIdleBatch, 100);
+    }
 }
 
 async function renderProviderGrid() {
     const grid = document.getElementById('providerGrid');
-    const slider = document.getElementById('providerSlider');
     if (!grid) return;
     await renderProviders();
-    if (slider) grid.innerHTML = slider.innerHTML;
+    grid.innerHTML = '';
+    const renderGridBatch = (start, end) => {
+        grid.insertAdjacentHTML('beforeend', PROVIDERS.slice(start, end).map(p => {
+            const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
+            const logoUrl = logo
+                ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
+                : '';
+            const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="70" height="70" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
+            const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
+            return `<div class="provider-item" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}"><div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div><span class="provider-label">${escapeHtml(p.label)}</span></div>`;
+        }).join(''));
+    };
+    const initialCount = Math.min(60, PROVIDERS.length);
+    renderGridBatch(0, initialCount);
+    let next = initialCount;
+    const appendGridBatch = () => {
+        if (next >= PROVIDERS.length) return;
+        const end = Math.min(next + 60, PROVIDERS.length);
+        renderGridBatch(next, end);
+        next = end;
+        if (next < PROVIDERS.length) {
+            if (window.requestIdleCallback) window.requestIdleCallback(appendGridBatch, { timeout: 500 });
+            else window.setTimeout(appendGridBatch, 100);
+        }
+    };
+    if (next < PROVIDERS.length) {
+        if (window.requestIdleCallback) window.requestIdleCallback(appendGridBatch, { timeout: 500 });
+        else window.setTimeout(appendGridBatch, 100);
+    }
 }
 
 async function browseProvider(providerId) {
