@@ -1364,7 +1364,11 @@ async function renderProviders() {
     }
     slider.innerHTML = PROVIDERS.map(p => {
         const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
-        const logoUrl = logo ? (String(logo).startsWith('http') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`) : '';
+        const logoUrl = logo
+            ? (String(logo).startsWith('http') || String(logo).startsWith('assets/')
+                ? String(logo)
+                : `https://image.tmdb.org/t/p/w154${logo}`)
+            : '';
         const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" loading="lazy" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
         const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
         return `
