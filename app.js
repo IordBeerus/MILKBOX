@@ -1258,31 +1258,64 @@ const PROVIDERS = [
     { id: '10', key: 'amazonvideo', label: 'Amazon Video', short: 'AV', bg: '#00A8E1', color: '#fff' },
     { id: '3', key: 'googleplay', label: 'Google Play Movies', short: 'GP', bg: '#fff', color: '#4285F4' },
     { id: '68', key: 'microsoft', label: 'Microsoft Store', short: 'MS', bg: '#737373', color: '#fff' },
-    { id: '247', key: 'britbox', label: 'BritBox', short: 'BB', bg: '#1A1A5E', color: '#fff' },
-    { id: '151', key: 'bfi', label: 'BFI Player', short: 'BFI', bg: '#111', color: '#fff' },
+    { id: '151', key: 'britbox', label: 'BritBox', short: 'BB', bg: '#1A1A5E', color: '#fff' },
 ];
 
 let activeProvider = null;
 let providerLogosFetched = false;
-let providerLogoMap = {
-    '8': '/pbpMk2JmcoNnQwx5JGpXngfoWtp.jpg',
-    '9': '/pvske1MyAoymrs5bguRfVqYiM9a.jpg',
-    '337': '/97yvRBw1GzX7fXprcF80er19ot.jpg',
-    '350': '/mcbz1LgtErU9p4UdbZ0rG6RTWHX.jpg',
-    '2': '/SPnB1qiCkYfirS2it3hZORwGVn.jpg',
-    '15': '/bxBlRPEPpMVDc4jMhSrTf2339DW.jpg',
-    '1899': '/jbe4gVSfRlbPTdESXhEKpornsfu.jpg',
-    '2303': '/fts6X10Jn4QT0X6ac3udKEn2tJA.jpg',
-    '386': '/2aGrp1xw3qhwCYvNGAJZPdjfeeX.jpg',
-    '283': '/fzN5Jok5Ig1eJ7gyNGoMhnLSCfh.jpg',
-    '43': '/yIKwylTLP1u8gl84Is7FItpYLGL.jpg',
-    '526': '/ovmu6uot1XVvsemM2dDySXLiX57.jpg',
-    '34': '/ctiRpS16dlaTXQBSsiFncMrgWmh.jpg',
-    '188': '/rMb93u1tBeErSYLv79zSTR07UdO.jpg',
-    '192': '/pTnn5JwWr4p3pG8H6VrpiQo7Vs0.jpg',
-    '300': '/dB8G41Q6tSL5NBisrIeqByfepBc.jpg',
-    '73': '/zLYr7OPvpskMA4S79E3vlCi71iC.jpg'
+let localProviderIconsLoaded = false;
+const LOCAL_PROVIDER_ICONS = {
+    '8': 'assets/provider-icons/8.png',
+    '9': 'assets/provider-icons/9.png',
+    '337': 'assets/provider-icons/337.png',
+    '350': 'assets/provider-icons/350.png',
+    '2': 'assets/provider-icons/2.png',
+    '15': 'assets/provider-icons/15.png',
+    '1899': 'assets/provider-icons/1899.png',
+    '2303': 'assets/provider-icons/2303.png',
+    '386': 'assets/provider-icons/386.png',
+    '283': 'assets/provider-icons/283.png',
+    '43': 'assets/provider-icons/43.png',
+    '526': 'assets/provider-icons/526.png',
+    '34': 'assets/provider-icons/34.png',
+    '188': 'assets/provider-icons/188.png',
+    '192': 'assets/provider-icons/192.png',
+    '300': 'assets/provider-icons/300.png',
+    '73': 'assets/provider-icons/73.png',
+    '7': 'assets/provider-icons/7.png',
+    '10': 'assets/provider-icons/10.png',
+    '3': 'assets/provider-icons/3.png',
+    '151': 'assets/provider-icons/151.png',
+    '68': 'assets/provider-icons/microsoft.svg'
 };
+let providerLogoMap = {
+    '8': 'assets/provider-icons/8.png',
+    '9': 'assets/provider-icons/9.png',
+    '337': 'assets/provider-icons/337.png',
+    '350': 'assets/provider-icons/350.png',
+    '2': 'assets/provider-icons/2.png',
+    '15': 'assets/provider-icons/15.png',
+    '1899': 'assets/provider-icons/1899.png',
+    '2303': 'assets/provider-icons/2303.png',
+    '386': 'assets/provider-icons/386.png',
+    '283': 'assets/provider-icons/283.png',
+    '43': 'assets/provider-icons/43.png',
+    '526': 'assets/provider-icons/526.png',
+    '34': 'assets/provider-icons/34.png',
+    '188': 'assets/provider-icons/188.png',
+    '192': 'assets/provider-icons/192.png',
+    '300': 'assets/provider-icons/300.png',
+    '73': 'assets/provider-icons/73.png'
+};
+
+async function loadLocalProviderIcons() {
+    if (localProviderIconsLoaded) return;
+    localProviderIconsLoaded = true;
+    try {
+        const response = await fetch('assets/provider-icons/manifest.json', { cache: 'no-store' });
+        if (response.ok) Object.assign(LOCAL_PROVIDER_ICONS, await response.json());
+    } catch {}
+}
 
 async function fetchProviderLogos() {
     try {
@@ -1326,11 +1359,12 @@ async function fetchProviderLogos() {
 async function renderProviders() {
     const slider = document.getElementById('providerSlider');
     if (!slider) return;
+    await loadLocalProviderIcons();
     if (!providerLogosFetched) {
         try { await fetchProviderLogos(); } catch {}
     }
     slider.innerHTML = PROVIDERS.map(p => {
-        const logo = providerLogoMap[p.id];
+        const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
         const logoUrl = logo ? (String(logo).startsWith('http') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`) : '';
         const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" loading="lazy" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
         const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;

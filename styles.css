@@ -836,12 +836,12 @@ body.light-mode .provider-grid .provider-item:hover { background: #f3f3f3; }
 
 /* Home Filter Pills */
 .home-filter-pills {
-    display: none;
+    display: flex;
     gap: 10px;
     padding: 14px 0 8px 40px;
     align-items: center;
 }
-body.home-active .home-filter-pills { display: flex; }
+body:not(.home-active) .home-filter-pills { display: none; }
 .home-pill {
     display: inline-flex;
     align-items: center;

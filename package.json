@@ -4,7 +4,8 @@
   "private": true,
   "description": "MILKBOX static media library",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "sync:provider-icons": "node sync-provider-icons.js"
   },
   "engines": {
     "node": ">=18"
