@@ -14,6 +14,7 @@ Personal media library for movies, TV shows, anime, and manga.
 - Anime section powered by TMDB
 - Manga catalog with covers and metadata
 - MangaDex chapter reader with real page images
+- Free To Watch titles
 - Trending titles
 - Streaming titles
 - In-theater movies
