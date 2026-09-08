@@ -1491,6 +1491,7 @@ async function browseProvider(providerId) {
             document.body.classList.add('providers-active');
             const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
             show('moviesSection',false); show('tvShowsSection',false); show('streamingSection',true); show('myListSection',false); show('homeGenres',false); show('trendingSection',false); show('theatersSection',false); show('popularSection',false); show('mangaSection',false); show('providerSection',false); show('providersSection',true);
+            const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
             const hero=document.getElementById('heroSection'); if(hero) hero.style.display='none';
         } else {
         document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -6545,6 +6546,7 @@ function handleNavClick(link, e) {
             show('popularSection', false);
             show('mangaSection', false);
             show('collectionsSection', false);
+            const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
             document.getElementById('heroSection').style.display = 'none';
             renderProviderGrid();
         } else if (section === 'theaters') {
