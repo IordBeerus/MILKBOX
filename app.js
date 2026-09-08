@@ -1262,6 +1262,7 @@ const PROVIDERS = [
 ];
 
 let activeProvider = null;
+let providerRequestId = 0;
 let providerLogosFetched = false;
 let localProviderIconsLoaded = false;
 const LOCAL_PROVIDER_ICONS = {
@@ -1447,6 +1448,7 @@ async function renderProviderGrid() {
 async function browseProvider(providerId) {
     const prov = PROVIDERS.find(p=>p.id===providerId);
     if (!prov) return;
+    const requestId = ++providerRequestId;
     if (activeProvider===providerId) {
         activeProvider=null;
         liveState.streaming.items = [];
@@ -1459,13 +1461,8 @@ async function browseProvider(providerId) {
         if (currentSection==='providers') {
             const show=(id,v)=>{const el=document.getElementById(id); if(el) el.style.display=v?'':'none';};
             show('streamingSection', false);
-            show('moviesSection', true);
-            show('tvShowsSection', true);
-            show('streamingSection', false);
-            document.getElementById('moviesSection').classList.add('catalog-grid');
-            document.getElementById('tvShowsSection').classList.add('catalog-grid');
-            renderCatalogGrid('movies');
-            renderCatalogGrid('tvshows');
+            show('moviesSection', false);
+            show('tvShowsSection', false);
             return;
         } else if (currentSection==='streaming') {
             renderLiveTab('streaming');
@@ -1481,7 +1478,7 @@ async function browseProvider(providerId) {
     activeProvider=providerId;
     renderProviders();
     toast(`Browsing ${prov.label}...`);
-    const providerGridClick = !!document.querySelector(`#providerGrid .provider-item[data-provider="${CSS.escape(String(providerId))}"]`);
+    const providerGridClick = currentSection === 'providers';
     // Provider-page clicks keep the filtered results above the provider grid.
     (() => {
         if (providerGridClick) {
@@ -1518,15 +1515,15 @@ async function browseProvider(providerId) {
         if (grid) grid.innerHTML = '<div class="live-loading">Loading ' + prov.label + '…</div>';
         if (pager) pager.style.display = 'none';
         const moviePaths = [
-            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=1`,
-            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=2`,
-            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=3`,
-            `/discover/movie?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=4`
+            `/discover/movie?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=1`,
+            `/discover/movie?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=2`,
+            `/discover/movie?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=3`,
+            `/discover/movie?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=4`
         ];
         const tvPaths = [
-            `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=1`,
-            `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=2`,
-            `/discover/tv?with_watch_providers=${providerId}&watch_region=US&sort_by=popularity.desc&page=3`,
+            `/discover/tv?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=1`,
+            `/discover/tv?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=2`,
+            `/discover/tv?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=3`,
         ];
         const [moviePages, tvPages] = await Promise.all([
             fetchBatched(moviePaths, 5),
@@ -1541,6 +1538,7 @@ async function browseProvider(providerId) {
         const items = needle
             ? providerItems.filter(item => [item.title, item.originalTitle, item.description].join(' ').toLowerCase().includes(needle))
             : providerItems;
+        if (requestId !== providerRequestId || activeProvider !== providerId) return;
         liveState.streaming.items = items;
         liveState.streaming.page = 1;
         const hint = document.querySelector('#streamingSection .live-hint');
@@ -1559,6 +1557,7 @@ async function browseProvider(providerId) {
             if (currentSection==='streaming') showLiveHero('streaming');
         }
     } catch(e) {
+        if (requestId !== providerRequestId || activeProvider !== providerId) return;
         delete liveFed['streaming'];
         toast('Could not load ' + prov.label);
         const grid2 = document.getElementById('streamingGrid');
@@ -5622,7 +5621,7 @@ function renderLiveTab(section) {
     } else if (section === 'streaming') {
         const st = liveState.streaming;
         if (st.items.length) renderLiveGrid('streaming');
-        else if (!liveFed.streaming) {
+        else if (!liveFed.streaming && !activeProvider) {
             const base = '/discover/movie?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
             const mov = Array.from({ length: LIVE_PAGES }, (_, i) => `${base}&page=${i + 1}`);
             const baseTv = '/discover/tv?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
@@ -5634,6 +5633,7 @@ function renderLiveTab(section) {
                     await tmdbEnsureConfig();
                     const [mp, tp] = await Promise.all([fetchBatched(mov, 5), fetchBatched(tv, 5)]);
                     const items = [...liveItemsFromPages(mp, 'movie'), ...liveItemsFromPages(tp, 'tv')];
+                    if (activeProvider || currentSection !== 'streaming') return;
                     liveState.streaming.items = items;
                     liveState.streaming.page = 1;
                     enrichLiveLogos('streaming');
@@ -5644,8 +5644,10 @@ function renderLiveTab(section) {
                     }
                 } finally {
                     delete liveFed['streaming'];
-                    renderLiveGrid('streaming');
-                    if (currentSection === 'streaming') showLiveHero('streaming');
+                    if (!activeProvider && currentSection === 'streaming') {
+                        renderLiveGrid('streaming');
+                        showLiveHero('streaming');
+                    }
                 }
             })();
         }
@@ -6532,8 +6534,9 @@ function handleNavClick(link, e) {
             renderLiveTab('streaming');
             showLiveHero('streaming');
         } else if (section === 'providers') {
-            show('moviesSection', true);
-            show('tvShowsSection', true);
+            show('moviesSection', false);
+            show('tvShowsSection', false);
+            show('streamingSection', false);
             show('myListSection', false);
             show('homeGenres', false);
             show('trendingSection', false);
@@ -6543,10 +6546,6 @@ function handleNavClick(link, e) {
             show('mangaSection', false);
             show('collectionsSection', false);
             document.getElementById('heroSection').style.display = 'none';
-            document.getElementById('moviesSection').classList.add('catalog-grid');
-            document.getElementById('tvShowsSection').classList.add('catalog-grid');
-            renderCatalogGrid('movies');
-            renderCatalogGrid('tvshows');
             renderProviderGrid();
         } else if (section === 'theaters') {
             show('moviesSection', false);
