@@ -6506,8 +6506,8 @@ function handleNavClick(link, e) {
             renderLiveTab('streaming');
             showLiveHero('streaming');
         } else if (section === 'providers') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
+            show('moviesSection', true);
+            show('tvShowsSection', true);
             show('myListSection', false);
             show('homeGenres', false);
             show('trendingSection', false);
@@ -6517,6 +6517,10 @@ function handleNavClick(link, e) {
             show('mangaSection', false);
             show('collectionsSection', false);
             document.getElementById('heroSection').style.display = 'none';
+            document.getElementById('moviesSection').classList.add('catalog-grid');
+            document.getElementById('tvShowsSection').classList.add('catalog-grid');
+            renderCatalogGrid('movies');
+            renderCatalogGrid('tvshows');
             renderProviderGrid();
         } else if (section === 'theaters') {
             show('moviesSection', false);
