@@ -814,6 +814,7 @@ body.light-mode .provider-settings-link { color: #b03f70; }
 .providers-page-section { padding-top: 34px; }
 .providers-page-heading { margin-bottom: 22px; }
 .providers-page-heading .section-title { margin-bottom: 6px; }
+.providers-page-heading .providers-page-hint { display: block; visibility: visible; opacity: 1; }
 .provider-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
