@@ -916,6 +916,8 @@ body.trending-active #trendingSection,
 body.trending-active #trendingSection .section-title,
 body.streaming-active #streamingSection,
 body.streaming-active #streamingSection .section-title,
+body.providers-active #streamingSection,
+body.providers-active #streamingSection .section-title,
 body.theaters-active #theatersSection,
 body.theaters-active #theatersSection .section-title,
 body.popular-active #popularSection,
@@ -968,6 +970,14 @@ body.streaming-active #streamingSection {
     justify-content: flex-start;
     min-height: 60vh;
     margin-top: -30px;
+}
+
+body.providers-active #streamingSection {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 60vh;
+    margin-top: 0;
 }
 
 body.theaters-active #theatersSection {

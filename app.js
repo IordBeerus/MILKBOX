@@ -6542,17 +6542,17 @@ function handleNavClick(link, e) {
         } else if (section === 'providers') {
             show('moviesSection', false);
             show('tvShowsSection', false);
-            show('streamingSection', false);
+            show('streamingSection', true);
             show('myListSection', false);
             show('homeGenres', false);
             show('trendingSection', false);
-            show('streamingSection', false);
             show('theatersSection', false);
             show('popularSection', false);
             show('mangaSection', false);
             show('collectionsSection', false);
             const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
             document.getElementById('heroSection').style.display = 'none';
+            renderLiveTab('streaming');
             renderProviderGrid();
         } else if (section === 'theaters') {
             show('moviesSection', false);
