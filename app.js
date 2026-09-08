@@ -1613,6 +1613,7 @@ function collectionForTitle(title) {
     return null;
 }
 const tmdbCollectionData = new Map();
+let collectionsRenderId = 0;
 async function fetchTmdbCollectionForDefinition(def) {
     const cached = tmdbCollectionData.get(def.label);
     if (cached) return cached;
@@ -1655,6 +1656,7 @@ function shouldShowCollections() {
     return settings.showCollections !== false && (currentSection === 'home' || currentSection === 'trending');
 }
 function renderCollections() {
+    const renderId = ++collectionsRenderId;
     const sec = document.getElementById('collectionsSection');
     const grid = document.getElementById('collectionsGrid');
     if (!sec || !grid) return;
@@ -1686,6 +1688,7 @@ function renderCollections() {
         }
     });
     const doRender = (cols) => {
+        if (renderId !== collectionsRenderId) return;
         if (!cols.length || !shouldShowCollections()) { sec.style.display='none'; grid.innerHTML=''; return; }
         sec.style.display='';
         grid.innerHTML = cols.map(([label, items]) => {
@@ -1710,8 +1713,10 @@ function renderCollections() {
     doRender(cols);
     // enrich with TMDB scan for each collection (adds titles like Star Wars from TMDB)
     (async () => {
+        if (renderId !== collectionsRenderId) return;
         const before = new Map(Array.from(buckets.entries()).map(([k,v])=>[k,v.length]));
         await enrichCollectionsWithTMDB(buckets);
+        if (renderId !== collectionsRenderId) return;
         let grew = false;
         for (const [k,v] of buckets) if ((before.get(k)||0) !== v.length) { grew = true; break; }
         if (grew) {
