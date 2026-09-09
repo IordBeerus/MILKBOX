@@ -710,25 +710,27 @@
     <!-- Manga Reader Modal -->
     <div class="modal" id="mangaModal">
         <div class="modal-content manga-reader">
-            <span class="close-modal" id="closeMangaModal">&times;</span>
+            <button class="close-modal manga-reader-close" id="closeMangaModal" type="button" aria-label="Close reader">&times;</button>
             <div class="manga-reader-head">
                 <div class="manga-reader-title-wrap">
                     <h2 class="modal-title manga-reader-name" id="mangaReadName"></h2>
-                    <div class="manga-reader-meta" id="mangaReadMeta"></div>
-                    <div class="manga-reader-genres" id="mangaReadGenres"></div>
+                    <div class="manga-reader-info-row">
+                        <div class="manga-reader-meta" id="mangaReadMeta"></div>
+                        <div class="manga-reader-genres" id="mangaReadGenres"></div>
+                    </div>
                 </div>
+                <label class="manga-language-control" for="mangaLanguageSelect">Language
+                    <select id="mangaLanguageSelect" class="manga-language-select" aria-label="Chapter language">
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="ja">Japanese</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="pt-br">Portuguese (Brazil)</option>
+                        <option value="all">All languages</option>
+                    </select>
+                </label>
                 <div class="manga-reader-controls">
-                    <label class="manga-language-control" for="mangaLanguageSelect">Language
-                        <select id="mangaLanguageSelect" class="manga-language-select" aria-label="Chapter language">
-                            <option value="en">English</option>
-                            <option value="es">Spanish</option>
-                            <option value="ja">Japanese</option>
-                            <option value="fr">French</option>
-                            <option value="de">German</option>
-                            <option value="pt-br">Portuguese (Brazil)</option>
-                            <option value="all">All languages</option>
-                        </select>
-                    </label>
                     <button class="manga-reader-btn" id="mangaReadPrev" disabled>&#10094;</button>
                     <span class="manga-reader-chapter" id="mangaReadChapterLabel"></span>
                     <button class="manga-reader-btn" id="mangaReadNext" disabled>&#10095;</button>

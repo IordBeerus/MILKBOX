@@ -1,5 +1,5 @@
 // ==================== DATA STORE ====================
-const HOSTED_LIBRARY_URL = 'https://raw.githubusercontent.com/IordBeerus/DrivePlayer-About-blank-Opener/refs/heads/main/library.json';
+const HOSTED_LIBRARY_URL = '/library.json';
 let movies = JSON.parse(localStorage.getItem('sf_movies')) || [];
 let tvShows = JSON.parse(localStorage.getItem('sf_tvshows')) || [];
 let myList = JSON.parse(localStorage.getItem('sf_mylist')) || [];
@@ -6304,6 +6304,7 @@ function renderReaderDetail(info) {
     if (info?.title) mrEl('mangaReadName').textContent = info.title;
     const meta = [];
     if (info?.authors && info.authors.length) meta.push('✍ ' + info.authors.map(a => a.name).join(', '));
+    if (info?.publishers && info.publishers.length) meta.push('Published by ' + info.publishers.map(p => p.name || p).join(', '));
     if (info?.status) meta.push(info.status);
     if (info?.score) meta.push('⭐ ' + Number(info.score).toFixed(1));
     if (info?.chapters) meta.push('Ch. ' + info.chapters);
