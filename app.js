@@ -7293,7 +7293,15 @@ function wireAnimeTheaterOnce(){
     renderAnimeTheaterBreadcrumb(it); updateAnimePrevNextState(); setTimeout(renderAnimeEpisodeListDOM, 80);
   });}
   const report = document.getElementById('animeCtrlReport');
-  if (report && !report._wired){ report._wired=1; report.addEventListener('click', ()=>{ try{toast('Thanks for reporting — we will check this episode','success');}catch{} });}
+    if (report && !report._wired){ report._wired=1; report.addEventListener('click', ()=>{
+        const item = playContext && playContext.item;
+        const title = item && (item.title || item.name) || 'Unknown anime';
+        const episode = playContext && playContext.episode ? `Episode ${playContext.episode}` : 'Episode unknown';
+        const subject = `MILKBOX report: ${title} - ${episode}`;
+        const body = `Anime: ${title}\n${episode}\nURL: ${window.location.href}\n\nDescribe the issue:\n`;
+        window.location.href = `mailto:haidaaggretsuko2@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        try{toast('Opening your email app to report this episode','success');}catch{}
+    });}
   const cc = document.getElementById('animeCcBtn');
   if (cc && !cc._wired){ cc._wired=1; cc.addEventListener('click', ()=>{
     _animeCcOn = !_animeCcOn;
