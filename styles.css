@@ -1368,6 +1368,7 @@ body.light-mode .manga-filter-row option {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 10px;
     width: min(100%, 980px);
     margin: 0 auto;
@@ -1375,10 +1376,19 @@ body.light-mode .manga-filter-row option {
 }
 .manga-reader-pages img {
     max-width: 100%;
+    cursor: pointer;
     display: block;
     border-radius: 6px;
     background: #1a1a1f;
 }
+.manga-page-nav {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 20px 22px;
+    flex-shrink: 0;
+}
+.manga-page-next { min-width: 118px; }
 @media (max-width: 760px) {
     .manga-reader-head { align-items: stretch; flex-direction: column; gap: 10px; padding: 14px 58px 12px 16px; }
     .manga-reader-name { font-size: 21px; }

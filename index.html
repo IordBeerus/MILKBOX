@@ -202,6 +202,7 @@
                 <div class="slider" id="myListSlider"></div>
                 <button class="slider-btn slider-right" data-slider="myListSlider">❯</button>
             </div>
+            <div class="pagination" id="myListPager" style="display:none"></div>
         </section>
 
         <section class="content-section live-section" id="trendingSection">
@@ -737,8 +738,12 @@
                     <button class="manga-reader-btn" id="mangaReadList">Chapters</button>
                 </div>
             </div>
-            <div class="manga-reader-body" id="mangaReadBody">
+            <div class="manga-reader-body" id="mangaReadBody" tabindex="0" aria-label="Manga page viewer">
                 <div class="manga-reader-pages" id="mangaReadPages"><div class="live-loading">Loading page images…</div></div>
+                <div class="manga-page-nav" aria-label="Page navigation">
+                    <button class="manga-reader-btn" id="mangaReadPagePrev" type="button" disabled aria-label="Previous page">&#10094; Previous</button>
+                    <button class="manga-reader-btn manga-page-next" id="mangaReadPageNext" type="button" disabled aria-label="Next page">Next &#10095;</button>
+                </div>
             </div>
         </div>
     </div>

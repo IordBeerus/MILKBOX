@@ -1056,55 +1056,49 @@ function createCard(item, type) {
     return card;
 }
 
-// Per-slider lazy-load state: each row keeps its full list but only renders a window.
-const SLIDER_WINDOW = 24;   // initial cards built per row
+// Paginated state for rows that have more titles than fit on one page.
+const SLIDER_PAGE_SIZE = 14;
 const sliderState = {};
 
-function renderSlider(containerId, items, type) {
+function renderSlider(containerId, items, type, pagerId, pageKey = containerId) {
     const slider = document.getElementById(containerId);
+    const pager = pagerId ? document.getElementById(pagerId) : null;
+    if (!slider) return;
     slider.innerHTML = '';
     if (items.length === 0) {
         let icon = '<svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#FFFFFF"><path d="m160-800 80 160h120l-80-160h80l80 160h120l-80-160h80l80 160h120l-80-160h120q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800Zm0 240v320h640v-320H160Zm0 0v320-320Z"/></svg>', msg = 'No movies yet.';
         if (type === 'tv') { icon = '<svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#FFFFFF"><path d="m853-221-53-53v-486H314l-80-80h566q33 0 56.5 23.5T880-760v480q0 18-6.5 32.5T853-221ZM127-833l73 73h-40v480h406L28-820l56-56L876-84l-56 56-172-172h-8v80H320v-80H160q-33 0-56.5-23.5T80-280v-480q0-37 23.5-55l23.5-18Zm237 351Zm195-33Z"/></svg>'; msg = 'No TV shows yet.'; }
         else if (type === 'mixed') { icon = '<svg xmlns="http://www.w3.org/2000/svg" height="48px" viewBox="0 -960 960 960" width="48px" fill="#FFFFFF"><path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 46-15.5 90T810-447.5Q771-395 705-329T538-172l-58 52Zm0-108q96-86 158-147.5t98-107q36-45.5 50-81t14-70.5q0-60-40-100t-100-40q-47 0-87 26.5T518-680h-76q-15-41-55-67.5T300-774q-60 0-100 40t-40 100q0 35 14 70.5t50 81q36 45.5 98 107T480-228Zm0-273Z"/></svg>'; msg = 'No items in your list yet.'; }
         slider.innerHTML = `<div class="empty-state"><div class="empty-state-icon">${icon}</div><p>${msg}<br>Click "+ Add Content" to get started!</p></div>`;
-        delete sliderState[containerId];
+        delete sliderState[pageKey];
+        if (pager) pager.style.display = 'none';
         return;
     }
-    // Store full list; render only the first window, then lazy-load the rest on scroll.
-    sliderState[containerId] = { items, type, shown: Math.min(SLIDER_WINDOW, items.length) };
+    const total = Math.ceil(items.length / SLIDER_PAGE_SIZE);
+    const page = Math.min(Math.max(1, sliderState[pageKey]?.page || 1), total);
+    const start = (page - 1) * SLIDER_PAGE_SIZE;
+    sliderState[pageKey] = { items, type, page, containerId, pagerId };
     const frag = document.createDocumentFragment();
-    for (let i = 0; i < sliderState[containerId].shown; i++) {
+    for (let i = start; i < Math.min(start + SLIDER_PAGE_SIZE, items.length); i++) {
         frag.appendChild(createCard(items[i], type));
     }
     slider.appendChild(frag);
-}
-
-// Appends the next batch of cards when a slider is scrolled near its end.
-function sliderLoadMore(slider) {
-    const st = sliderState[slider.id];
-    if (!st || st.shown >= st.items.length) return;
-    const next = Math.min(st.shown + SLIDER_WINDOW, st.items.length);
-    const frag = document.createDocumentFragment();
-    for (let i = st.shown; i < next; i++) {
-        frag.appendChild(createCard(st.items[i], st.type));
+    if (pager) {
+        pager.style.display = total > 1 ? '' : 'none';
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-sliderpage="${pageKey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total}</span><button class="pager-btn pager-nav" data-sliderpage="${pageKey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
     }
-    slider.appendChild(frag);
-    st.shown = next;
 }
 
-// Any slider scroll near the right edge triggers loading the next batch (debounced per slider).
-const _sliderScrollTimers = new WeakMap();
-document.addEventListener('scroll', (e) => {
-    const el = e.target;
-    if (!el || !el.classList || !el.classList.contains('slider')) return;
-    if (el.scrollLeft + el.clientWidth < el.scrollWidth - 400) return;
-    if (_sliderScrollTimers.has(el)) return;
-    _sliderScrollTimers.set(el, setTimeout(() => {
-        _sliderScrollTimers.delete(el);
-        sliderLoadMore(el);
-    }, 120));
-}, true);
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pager-btn[data-sliderpage]');
+    if (!btn) return;
+    const key = btn.dataset.sliderpage;
+    const page = parseInt(btn.dataset.page, 10);
+    const state = sliderState[key];
+    if (!state || isNaN(page)) return;
+    state.page = page;
+    renderSlider(state.containerId || key, state.items, state.type, state.pagerId, key);
+});
 
 function renderMovies() {
     const sec = document.getElementById('moviesSection');
@@ -1120,7 +1114,7 @@ function renderTvShows() {
     if (title && title.textContent !== 'TV Shows') title.textContent = 'TV Shows';
     renderCatalogGrid('tvshows', 'home');
 }
-function renderMyList() { renderSlider('myListSlider', myList, 'mixed'); }
+function renderMyList() { renderSlider('myListSlider', myList, 'mixed', 'myListPager', 'myList'); }
 
 // ---- Paginated catalog grids (Movies / TV / Anime tab views) ----
 const CATALOG_PER_PAGE = 14;
@@ -1917,10 +1911,10 @@ function renderGenreRows() {
         const items = genreIndex.get(key);
         toRender.push({ key, items });
         const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-        html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="slider-container"><button class="slider-btn slider-left" data-slider="genreSlider-${key}"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M560-280 360-480l200-200v400Z"/></svg></button><div class="slider" id="genreSlider-${key}"></div><button class="slider-btn slider-right" data-slider="genreSlider-${key}"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M400-280v-400l200 200-200 200Z"/></svg></button></div></section>`;
+        html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="slider-container"><div class="slider" id="genreSlider-${key}"></div></div><div class="pagination" id="genrePager-${key}"></div></section>`;
     });
     container.innerHTML = html;
-    toRender.forEach(({ key, items }) => renderSlider('genreSlider-' + key, items, 'mixed'));
+    toRender.forEach(({ key, items }) => renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key));
 }
 
 document.addEventListener('click', (e) => {
@@ -5280,7 +5274,7 @@ async function resolveMangadexMangaId(title) {
     if (!key) return null;
     if (mangadexMangaCache.has(key)) return mangadexMangaCache.get(key);
     try {
-        const res = await fetchMangadex(`https://api.mangadex.org/manga?title=${encodeURIComponent(title)}&limit=10&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=cover_art`);
+        const res = await fetchMangadex(`https://api.mangadex.org/manga?title=${encodeURIComponent(title)}&limit=100&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=cover_art`);
         if (!res.ok) throw new Error('search failed');
         const j = await res.json();
         const normalize = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -6163,7 +6157,7 @@ function renderMangaGrid(page) {
 // ==================== MANGA READER ====================
 let mangaReader = {
     mangaId: '', info: null, chapters: [], currentId: null, images: [], item: null,
-    language: localStorage.getItem('milkbox_manga_language') || 'en'
+    language: localStorage.getItem('milkbox_manga_language') || 'en', pageIndex: 0
 };
 
 function mrEl(id) { return document.getElementById(id); }
@@ -6182,6 +6176,7 @@ function showMangaReader(m) {
     mangaReader.chapters = [];
     mangaReader.currentId = null;
     mangaReader.images = [];
+    mangaReader.pageIndex = 0;
     mrEl('mangaReadName').textContent = m.title;
     mrEl('mangaReadMeta').textContent = '';
     mrEl('mangaReadGenres').innerHTML = '';
@@ -6290,9 +6285,9 @@ function showMangaReader(m) {
                 renderChapterDrawer();
             }
         } catch (e) {
-            const cover = m.poster || makeSvgCover(m.title || 'Manga', 'Manga');
-            mangaReader.images = [{ image: cover, title: m.title || 'Manga cover' }];
-            renderChapterPages();
+            mangaReader.images = [];
+            mrEl('mangaReadPages').innerHTML = '<div class="live-error">Could not load chapter pages for this manga.</div>';
+            updatePageNav();
             mrEl('mangaReadChapterLabel').textContent = m.title || 'Manga';
             renderChapterDrawer();
             updateReaderNav();
@@ -6316,6 +6311,7 @@ function renderReaderDetail(info) {
 
 async function openChapter(chId) {
     if (!chId || !mangaReader.mangaId) return;
+    mangaReader.pageIndex = 0;
     let ch = mangaReader.chapters.find(c => String(c.id) === String(chId));
     let resolvedChapterId = String(chId);
     // Some fallback APIs return chapter numbers instead of MangaDex UUIDs.
@@ -6363,27 +6359,12 @@ async function openChapter(chId) {
             }
         } catch {}
     }
-    try {
-        const res = await fetch(`${MANGA_API_BASE}/manga/${encodeURIComponent(mangaReader.mangaId)}/pictures`);
-        if (!res.ok) throw new Error('HTTP ' + res.status);
-        const data = await res.json();
-        const pictures = Array.isArray(data?.data) ? data.data : [];
-        mangaReader.images = pictures.length ? pictures.map(p => ({
-            image: p?.jpg?.large_image_url || p?.jpg?.image_url || p?.webp?.large_image_url || p?.webp?.image_url || '',
-            title: ch?.name || 'Manga page'
-        })).filter(p => p.image) : [];
-        if (!mangaReader.images.length) {
-            pagesEl.innerHTML = '<div class="live-error">No chapter pages were returned for this manga.</div>';
-        }
-        mrEl('mangaReadChapterLabel').textContent = ch?.name || chId;
-        renderChapterPages();
-        updateReaderNav();
-        renderChapterDrawer();
-        const body = mrEl('mangaReadBody');
-        if (body) body.scrollTop = 0;
-    } catch (e) {
-        pagesEl.innerHTML = '<div class="live-error">No chapter pages were returned for this manga.</div>';
-    }
+    pagesEl.innerHTML = '<div class="live-error">No chapter pages were returned for this manga.</div>';
+    mangaReader.images = [];
+    mrEl('mangaReadChapterLabel').textContent = ch?.name || chId;
+    updatePageNav();
+    updateReaderNav();
+    renderChapterDrawer();
 }
 
 function renderChapterPages() {
@@ -6391,27 +6372,45 @@ function renderChapterPages() {
     pagesEl.innerHTML = '';
     if (!mangaReader.images.length) {
         pagesEl.innerHTML = '<div class="live-error">No page images were returned for this chapter.</div>';
+        updatePageNav();
         return;
     }
-    const frag = document.createDocumentFragment();
-    mangaReader.images.forEach(p => {
-        if (p.isHeader) {
-            const h = document.createElement('div');
-            h.className = 'manga-chapter-header';
-            h.dataset.ch = p.chapterId || '';
-            h.textContent = p.title || '';
-            h.style.cssText = 'width:100%;padding:18px 0 8px;font-weight:800;font-size:18px;color:#ffb6d8;border-bottom:1px solid rgba(255,182,216,0.18);margin:10px 0;text-align:center;';
-            frag.appendChild(h);
-            return;
-        }
+    mangaReader.pageIndex = Math.max(0, Math.min(mangaReader.pageIndex, mangaReader.images.length - 1));
+    const page = mangaReader.images[mangaReader.pageIndex];
+    if (page.isHeader) {
+        const header = document.createElement('div');
+        header.className = 'manga-chapter-header';
+        header.dataset.ch = page.chapterId || '';
+        header.textContent = page.title || '';
+        pagesEl.appendChild(header);
+    } else {
         const img = document.createElement('img');
-        img.src = p.image || '';
-        img.alt = p.title || '';
-        img.loading = 'lazy';
+        img.src = page.image || '';
+        img.alt = page.title || '';
+        img.loading = 'eager';
+        img.title = 'Click to go to the next page';
+        img.addEventListener('click', () => changeReaderPage(1));
         img.onerror = () => { img.style.display = 'none'; };
-        frag.appendChild(img);
-    });
-    pagesEl.appendChild(frag);
+        pagesEl.appendChild(img);
+    }
+    updatePageNav();
+}
+
+function changeReaderPage(delta) {
+    const nextIndex = mangaReader.pageIndex + delta;
+    if (nextIndex < 0 || nextIndex >= mangaReader.images.length) return;
+    mangaReader.pageIndex = nextIndex;
+    renderChapterPages();
+    const body = mrEl('mangaReadBody');
+    if (body) body.scrollTop = 0;
+}
+
+function updatePageNav() {
+    const hasPages = mangaReader.images.length > 0;
+    const prev = mrEl('mangaReadPagePrev');
+    const next = mrEl('mangaReadPageNext');
+    if (prev) prev.disabled = !hasPages || mangaReader.pageIndex <= 0;
+    if (next) next.disabled = !hasPages || mangaReader.pageIndex >= mangaReader.images.length - 1;
 }
 
 function chapterIndex() {
@@ -7465,6 +7464,15 @@ document.getElementById('mangaReadNext')?.addEventListener('click', () => {
             updateReaderNav(); renderChapterDrawer();
             if (header) header.scrollIntoView({ behavior:'smooth', block:'start' });
         } else openChapter(mangaReader.chapters[idx + 1].id);
+    }
+});
+document.getElementById('mangaReadPagePrev')?.addEventListener('click', () => changeReaderPage(-1));
+document.getElementById('mangaReadPageNext')?.addEventListener('click', () => changeReaderPage(1));
+document.getElementById('mangaReadBody')?.addEventListener('keydown', (event) => {
+    if (event.key === 'ArrowLeft') changeReaderPage(-1);
+    if (event.key === 'ArrowRight' || event.key === ' ') {
+        event.preventDefault();
+        changeReaderPage(1);
     }
 });
 document.getElementById('mangaReadList')?.addEventListener('click', () => {
