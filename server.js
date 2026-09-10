@@ -1,7 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { Readable } = require('stream');
+const { Writable } = require('stream');
 const { Innertube, Platform } = require('youtubei.js');
 
 Platform.shim.eval = async (data) => new Function(data.output)();
@@ -111,6 +111,27 @@ async function proxyKissKh(req, res, requestPath, query) {
     return true;
 }
 
+async function resolveYouTubeFormat(videoId) {
+    const attempts = [
+        { client_type: 'ANDROID', quality: 'best', type: 'video+audio', format: 'mp4' },
+        { client_type: 'WEB', quality: 'best', type: 'video+audio', format: 'mp4' },
+        { client_type: 'ANDROID', quality: 'best', type: 'video+audio', format: 'any' },
+        { client_type: 'WEB', quality: 'best', type: 'video+audio', format: 'any' }
+    ];
+    let lastError;
+    for (const attempt of attempts) {
+        try {
+            const { client_type, ...options } = attempt;
+            const youtube = await Innertube.create({ client_type });
+            const format = await youtube.getStreamingData(videoId, options);
+            if (format?.url) return format;
+        } catch (error) {
+            lastError = error;
+        }
+    }
+    throw new Error(lastError?.message || 'No downloadable stream was found for this video');
+}
+
 async function downloadYouTube(req, res, requestPath, query) {
     if (requestPath !== '/api/youtube/download') return false;
     if (req.method !== 'GET') {
@@ -133,15 +154,17 @@ async function downloadYouTube(req, res, requestPath, query) {
     }
 
     try {
-        const youtube = await Innertube.create();
-        const stream = await youtube.download(videoId, { quality: 'best', type: 'video+audio', format: 'mp4' });
+        const format = await resolveYouTubeFormat(videoId);
+        const upstream = await fetch(format.url);
+        if (!upstream.ok || !upstream.body) throw new Error(`YouTube media request failed with status ${upstream.status}`);
         const headers = {
-            'Content-Type': 'video/mp4',
+            'Content-Type': format.mime_type?.split(';')[0] || 'video/mp4',
             'Content-Disposition': `attachment; filename="youtube-${videoId}.mp4"`,
             'Cache-Control': 'no-store'
         };
+        if (format.content_length) headers['Content-Length'] = format.content_length;
         res.writeHead(200, headers);
-        Readable.fromWeb(stream).on('error', (error) => res.destroy(error)).pipe(res);
+        upstream.body.pipeTo(Writable.toWeb(res)).catch((error) => res.destroy(error));
     } catch (error) {
         if (!res.headersSent) {
             res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
