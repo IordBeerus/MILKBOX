@@ -1,6 +1,10 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { Readable } = require('stream');
+const { Innertube, Platform } = require('youtubei.js');
+
+Platform.shim.eval = async (data) => new Function(data.output)();
 
 function loadEnvFile() {
     const envPath = path.join(__dirname, '.env');
@@ -107,6 +111,46 @@ async function proxyKissKh(req, res, requestPath, query) {
     return true;
 }
 
+async function downloadYouTube(req, res, requestPath, query) {
+    if (requestPath !== '/api/youtube/download') return false;
+    if (req.method !== 'GET') {
+        res.writeHead(405, { Allow: 'GET', 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Method not allowed');
+        return true;
+    }
+
+    const videoUrl = query.get('url') || '';
+    let videoId;
+    try {
+        videoId = new URL(videoUrl).searchParams.get('v') || new URL(videoUrl).pathname.split('/').pop();
+    } catch {
+        videoId = '';
+    }
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Paste a valid YouTube video URL.' }));
+        return true;
+    }
+
+    try {
+        const youtube = await Innertube.create();
+        const stream = await youtube.download(videoId, { quality: 'best', type: 'video+audio', format: 'mp4' });
+        const headers = {
+            'Content-Type': 'video/mp4',
+            'Content-Disposition': `attachment; filename="youtube-${videoId}.mp4"`,
+            'Cache-Control': 'no-store'
+        };
+        res.writeHead(200, headers);
+        Readable.fromWeb(stream).on('error', (error) => res.destroy(error)).pipe(res);
+    } catch (error) {
+        if (!res.headersSent) {
+            res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Unable to prepare the YouTube download', message: error.message }));
+        }
+    }
+    return true;
+}
+
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
@@ -114,6 +158,7 @@ const server = http.createServer(async (req, res) => {
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
+    if (await downloadYouTube(req, res, requestPath, query)) return;
     const requestedFile = requestPath === '/' ? '/index.html' : requestPath;
     const filePath = path.resolve(root, `.${requestedFile}`);
 

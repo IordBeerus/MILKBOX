@@ -10,5 +10,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "youtubei.js": "^18.0.0"
   }
 }

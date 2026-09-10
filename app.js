@@ -4897,6 +4897,7 @@ function openAboutBlankPlayer() {
         : `background-color:${bgColor};`;
 
     const logoUrl = 'https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';
+    const youtubeDownloadEndpoint = `${window.location.origin}/api/youtube/download`;
     const newWindow = window.open('about:blank', '_blank');
     if (newWindow) {
         newWindow.document.write(`<!DOCTYPE html>
@@ -4927,6 +4928,8 @@ body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:
 .btn:hover{background:#f40612;transform:translateY(-1px)}
 .btn-ghost{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12)}
 .btn-ghost:hover{background:rgba(255,255,255,0.13)}
+.btn-download{background:#1d8f58}
+.btn-download:hover{background:#24aa6a}
 .file-drop{margin-top:14px;border:1.5px dashed rgba(255,255,255,0.24);border-radius:12px;padding:18px 16px;text-align:center;background:rgba(255,255,255,0.06);cursor:pointer;transition:border-color 0.2s,background 0.2s;display:block;width:100%;box-sizing:border-box;position:relative;overflow:hidden;background-clip:padding-box}
 .file-drop:hover{border-color:#e50914;background:rgba(229,9,20,0.10)}
 .file-drop input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0,0,0,0);pointer-events:none}
@@ -4948,8 +4951,8 @@ body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:
 <button class="tab" data-tab="pdf">PDF</button>
 </div>
 <div class="panel active" id="panel-video">
-<div class="row"><input type="text" id="videoUrl" placeholder="Paste YouTube, video, or PDF URL…"><button class="btn" onclick="loadVideo()">Play</button></div>
-<div class="hint">YouTube links auto-convert to embed • Direct .mp4/.webm also works • PDF links open as document</div>
+<div class="row"><input type="text" id="videoUrl" placeholder="Paste YouTube, video, or PDF URL…"><button class="btn" onclick="loadVideo()">Play</button><button class="btn btn-download" onclick="downloadYoutube()">Download</button></div>
+<div class="hint">YouTube links auto-convert to embed • Download uses the pasted YouTube link • Direct .mp4/.webm also works</div>
 </div>
 <div class="panel" id="panel-drive">
 <div class="row"><input type="text" id="driveUrl" placeholder="Google Drive share link…"><button class="btn" onclick="loadDriveVideo()">Play Drive</button></div>
@@ -4964,15 +4967,25 @@ body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:
 <button class="btn btn-ghost" onclick="window.close()">Close Tab</button>
 <button class="btn btn-ghost" onclick="document.getElementById('videoUrl').value='';document.getElementById('driveUrl').value='';document.getElementById('pdfUrl').value='';">Clear</button>
 </div>
-<div id="player"><iframe id="videoFrame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe></div>
+<div id="player"><iframe id="videoFrame" title="Video player" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
 </div>
 <script>
 let pdfObjectUrl=null;
+const youtubeEmbedOrigin=${JSON.stringify(window.location.origin)};
 function toYouTubeEmbed(u){
-  var m=u.match(/(?:youtube\\.com\\/watch\\?v=|youtu\\.be\\/|youtube\\.com\\/embed\\/)([a-zA-Z0-9_-]{11})/);
-  if(m) return 'https://www.youtube.com/embed/'+m[1]+'?autoplay=1&rel=0';
-  if(u.includes('youtube.com')||u.includes('youtu.be')) return u;
-  return '';
+    var id='';
+    try{
+        var parsed=new URL(u);
+        var host=parsed.hostname.toLowerCase();
+        if(host==='youtu.be') id=parsed.pathname.slice(1).split('/')[0];
+        else if(host.endsWith('youtube.com')){
+            if(parsed.pathname==='/watch') id=parsed.searchParams.get('v')||'';
+            else if(parsed.pathname.startsWith('/shorts/')||parsed.pathname.startsWith('/embed/')||parsed.pathname.startsWith('/live/')) id=parsed.pathname.split('/')[2]||'';
+        }
+    }catch{}
+    if(!/^[a-zA-Z0-9_-]{11}$/.test(id)) return '';
+    var params=new URLSearchParams({autoplay:'1',rel:'0',playsinline:'1',origin:youtubeEmbedOrigin});
+    return 'https://www.youtube-nocookie.com/embed/'+id+'?'+params.toString();
 }
 function toDrivePreview(u){
   var m=u.match(/\\/file\\/d\\/([a-zA-Z0-9_-]+)/);
@@ -5001,6 +5014,11 @@ function loadVideo(){
   var d=toDrivePreview(u);
   if(d!==u){ showPlayer(d,'video'); return; }
   showPlayer(u,'video');
+}
+function downloadYoutube(){
+    var u=document.getElementById('videoUrl').value.trim();
+    if(!u || !toYouTubeEmbed(u)){ alert('Paste a valid YouTube video link first'); return; }
+    window.location.href=${JSON.stringify(youtubeDownloadEndpoint)}+'?url='+encodeURIComponent(u);
 }
 function loadDriveVideo(){
   var u=document.getElementById('driveUrl').value.trim();
