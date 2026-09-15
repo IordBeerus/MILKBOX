@@ -2208,9 +2208,9 @@ function vidsrcIframe(tmdbId, type, season, episode) {
 function cinesrcIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
+        url = `https://www.cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
     } else {
-        url = `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+        url = `https://www.cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
     return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
 }
@@ -2926,6 +2926,11 @@ function armAutoFallback(frame, server) {
 
     // Fires only when the iframe fails to load its document at all (dead source).
     ifr.addEventListener('error', () => { if (!fallbackLoaded) tryAutoFallback(server); });
+    if (server === 'cinesrc') {
+        setTimeout(() => {
+            if (!fallbackLoaded && fallbackStart === server) tryAutoFallback(server);
+        }, 10000);
+    }
 
     // Initial timer: if iframe never even loads within 25s, try next server.
     fallbackTimer = setTimeout(() => {
