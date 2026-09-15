@@ -213,11 +213,11 @@ function hardenCloudIframe(iframe){
     // Don't show for Drive or for megavid anime which is low-ad; detect via src
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /phantom|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(src);
+        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(src);
         if (isCloud) setTimeout(showPopupShield, 320);
         else {
             const pf = document.getElementById('playerFrame');
-            if (pf && /phantom|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(pf.innerHTML)) setTimeout(showPopupShield, 320);
+            if (pf && /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(pf.innerHTML)) setTimeout(showPopupShield, 320);
         }
     } catch { setTimeout(showPopupShield, 320); }
 }
@@ -2205,6 +2205,26 @@ function vidsrcIframe(tmdbId, type, season, episode) {
     return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
 }
 
+function cinesrcIframe(tmdbId, type, season, episode) {
+    let url;
+    if (type === 'tv') {
+        url = `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
+    } else {
+        url = `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+    }
+    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
+}
+
+function vidsrcSbsIframe(tmdbId, type, season, episode) {
+    let url;
+    if (type === 'tv') {
+        url = `https://vidsrc.sbs/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+    } else {
+        url = `https://vidsrc.sbs/embed/movie/${encodeURIComponent(tmdbId)}`;
+    }
+    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
+}
+
 // VidCore — https://www.vidcore.org free ad-free TMDB embed (4K, HLS, 99.9% uptime).
 function vidcoreIframe(tmdbId, type, season, episode) {
     let url;
@@ -2812,7 +2832,7 @@ function effectiveServerFor(item, type) {
         if (isAnime(item)) return playerServer;
         return item.tmdbId ? 'tmdb' : 'drive';
     }
-    if (['tmdb','phantom','vidsrc','vidcore','videasy','superembed','twoembed','autoembed','smashystream','vidfast','vidlink','embedsu','nontongo','animekai','kisskh','vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream'].includes(playerServer)) return playerServer;
+    if (['tmdb','phantom','cinesrc','vidsrc','vidsrcsbs','vidcore','videasy','superembed','twoembed','autoembed','smashystream','vidfast','vidlink','embedsu','nontongo','animekai','kisskh','vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream'].includes(playerServer)) return playerServer;
     // Auto: for anime with AnimeKai available, prefer it; otherwise TMDB
     if (isAnime(item) && currentAnimekaiMalId) return 'animekai';
     // Auto: prefer TMDB (now Vidsrc) when an ID exists, otherwise fall back to Drive.
@@ -2820,7 +2840,7 @@ function effectiveServerFor(item, type) {
 }
 
 // Ordered list used for automatic server fallback (TMDB-based sources only).
-const SERVER_ORDER = ['tmdb', 'phantom', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','animekai', 'kisskh'];
+const SERVER_ORDER = ['tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
 let fallbackLoaded = false;
@@ -2929,6 +2949,8 @@ function tryAutoFallback(server) {
 const SERVER_IFRAME = {
     tmdb: vidsrcIframe,
     phantom: phantomIframe,
+    cinesrc: cinesrcIframe,
+    vidsrcsbs: vidsrcSbsIframe,
     vidsrc: vidsrcIframe,
     vidcore: vidcoreIframe,
     videasy: videasyIframe,
