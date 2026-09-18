@@ -2628,10 +2628,16 @@ document.addEventListener('click', async (e) => {
 function autoembedIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://autoembed.co/tv/tmdb/${encodeURIComponent(tmdbId)}-${encodeURIComponent(season || 1)}-${encodeURIComponent(episode || 1)}`;
+        url = `https://autoembed.app/tv/tmdb/${encodeURIComponent(tmdbId)}-${encodeURIComponent(season || 1)}-${encodeURIComponent(episode || 1)}`;
     } else {
-        url = `https://autoembed.co/movie/tmdb/${encodeURIComponent(tmdbId)}`;
+        url = `https://autoembed.app/movie/tmdb/${encodeURIComponent(tmdbId)}`;
     }
+    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
+}
+
+// AutoEmbed.app anime API — uses the resolved anime id and episode number.
+function autoembedAnimeIframe(id, episode) {
+    const url = `https://autoembed.app/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}`;
     return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"</iframe>`;
 }
 
@@ -2828,7 +2834,7 @@ function serverBtnActive() {
 function effectiveServerFor(item, type) {
     // Drive-file servers (Google Drive links / uploaded episodes): direct playback servers.
     if (['drive', 'hd20'].includes(playerServer)) return playerServer;
-    if (['vidhawk','anixo'].includes(playerServer)) {
+    if (['vidhawk','anixo','autoembedanime'].includes(playerServer)) {
         if (isAnime(item)) return playerServer;
         return item.tmdbId ? 'tmdb' : 'drive';
     }
@@ -2840,7 +2846,7 @@ function effectiveServerFor(item, type) {
 }
 
 // Ordered list used for automatic server fallback (TMDB-based sources only).
-const SERVER_ORDER = ['tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','animekai', 'kisskh'];
+const SERVER_ORDER = ['tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','autoembedanime','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
 let fallbackLoaded = false;
@@ -3014,6 +3020,12 @@ const SERVER_IFRAME = {
         }
         return anixoIframe(aid, episode || 1, currentAnimeLang);
     },
+    autoembedanime: (tmdbId, type, season, episode) => {
+        const pc = playContext?.item;
+        const id = currentAnimekaiMalId || pc?.malId || pc?.mal_id || pc?.anilistId || pc?.anilist_id;
+        if (!pc || !isAnime(pc) || !id || !/^\d+$/.test(String(id))) return vidsrcIframe(tmdbId, type, season, episode);
+        return autoembedAnimeIframe(id, episode || 1);
+    },
     animekai: (tmdbId, type, season, episode) => {
         // megavid anime — uses the per-item MAL/AniList id; movies drop the episode segment
         const itemKey = playContext?.item ? String(playContext.item.id) : '';
@@ -3124,7 +3136,10 @@ function renderPlay() {
             const srv = effectiveServerFor(item, type);
             const src = storedAnimeSrc[itemKey] || (item.anilistId || item.anilist_id ? 'ani' : 'mal');
             const base = src === 'ani' ? 'ani' : 'mal';
-            if (srv === 'autoembed') {
+            if (srv === 'autoembedanime') {
+                frame.innerHTML = SERVER_IFRAME.autoembedanime(item.tmdbId, type, season, ep);
+                subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AutoEmbed Anime (${malId})`;
+            } else if (srv === 'autoembed') {
                 frame.innerHTML = SERVER_IFRAME.autoembed(item.tmdbId, type, season, ep);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AutoEmbed ${base.toUpperCase()} (${malId})`;
             } else if (srv === 'vidhawk' || srv === 'anixo') {
@@ -3149,7 +3164,10 @@ function renderPlay() {
         }
         if (currentAnidbId) {
             const srv2 = effectiveServerFor(item, type);
-            if (srv2 === 'autoembed') {
+            if (srv2 === 'autoembedanime') {
+                frame.innerHTML = SERVER_IFRAME.autoembedanime(item.tmdbId, type, season, ep);
+                subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AutoEmbed Anime (${currentAnidbId})`;
+            } else if (srv2 === 'autoembed') {
                 frame.innerHTML = SERVER_IFRAME.autoembed(item.tmdbId, type, season, ep);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AutoEmbed AniDB (${currentAnidbId})`;
             } else if (srv2 === 'vidhawk' || srv2 === 'anixo') {
@@ -3223,6 +3241,7 @@ function playItem(item, type) {
     // anime only: show sub/dub toggle and resolve anidb + animekai ids
     const langSel = document.getElementById('animeLangSelector');
     const animekaiOpt = document.getElementById('serverOptAnimekai');
+    const autoembedAnimeOpt = document.getElementById('serverOptAutoembedAnime');
     if (isAnime(item)) {
         if (langSel) {
             langSel.style.display = 'flex';
@@ -3234,6 +3253,7 @@ function playItem(item, type) {
             });
         }
         if (animekaiOpt) animekaiOpt.style.display = '';
+        if (autoembedAnimeOpt) autoembedAnimeOpt.style.display = '';
         const vidhawkOpt = document.getElementById('serverOptVidhawk');
         const anixoOpt = document.getElementById('serverOptAnixo');
         if (vidhawkOpt) vidhawkOpt.style.display = '';
@@ -3295,11 +3315,12 @@ function playItem(item, type) {
     } else {
         if (langSel) langSel.style.display = 'none';
         if (animekaiOpt) animekaiOpt.style.display = 'none';
+        if (autoembedAnimeOpt) autoembedAnimeOpt.style.display = 'none';
         const vidhawkOpt2 = document.getElementById('serverOptVidhawk');
         const anixoOpt2 = document.getElementById('serverOptAnixo');
         if (vidhawkOpt2) vidhawkOpt2.style.display = 'none';
         if (anixoOpt2) anixoOpt2.style.display = 'none';
-        if (['animekai','vidhawk','anixo'].includes(playerServer)) { playerServer = 'tmdb'; settings.playerServer = playerServer; try { saveData(); } catch {} }
+        if (['animekai','vidhawk','anixo','autoembedanime'].includes(playerServer)) { playerServer = 'tmdb'; settings.playerServer = playerServer; try { saveData(); } catch {} }
         currentAnidbId = null;
         currentAnimekaiMalId = null;
     }
