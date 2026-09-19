@@ -7274,14 +7274,18 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
   try {
     await tmdbEnsureConfig();
     const detail = await tmdbJson(`/tv/${encodeURIComponent(item.tmdbId)}`);
-    const seasons = (detail.seasons||[]).filter(s=>s && s.season_number>=1 && s.episode_count>0).map(s=>s.season_number);
+    const seasonDetails = (detail.seasons||[]).filter(s=>s && s.season_number>=1 && s.episode_count>0);
+    const seasons = seasonDetails.map(s=>s.season_number);
     _animeSeasons = seasons.length ? seasons : [1];
     if (requestedSeason !== undefined) _animeCurrentSeason = requestedSeason;
     else _animeCurrentSeason = (playContext && playContext.season) ? playContext.season : (_animeSeasons[0]||1);
     if (!seasons.includes(_animeCurrentSeason) && _animeSeasons.length) _animeCurrentSeason = _animeSeasons[0];
     if (seasonSel){
       if (_animeSeasons.length > 1){
-        seasonSel.innerHTML = _animeSeasons.map(sn=>`<option value="${sn}">${sn===0?'Specials':'Season '+sn}</option>`).join('');
+                seasonSel.innerHTML = seasonDetails.map(season => {
+                    const label = season.season_number === 0 ? 'Specials' : `Season ${season.season_number}`;
+                    return `<option value="${season.season_number}">${label} (${season.episode_count} episode${season.episode_count === 1 ? '' : 's'})</option>`;
+                }).join('');
         seasonSel.value = String(_animeCurrentSeason);
         seasonSel.style.display = '';
       } else {
