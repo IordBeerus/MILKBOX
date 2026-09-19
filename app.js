@@ -3123,6 +3123,7 @@ function renderPlay() {
     if (isAnimeTitle) {
         const langSel = document.getElementById('animeLangSelector');
         if (langSel) langSel.style.display = 'flex';
+        serverBtnActive();
         const ep = (type === 'tv' ? (playContext.episode || item.episode || 1) : 1);
         const season = playContext.season || item.season || 1;
         const itemKey = String(item.id);
@@ -3324,6 +3325,7 @@ function playItem(item, type) {
         currentAnidbId = null;
         currentAnimekaiMalId = null;
     }
+    serverBtnActive();
     renderPlay();
     modal.classList.add('active');
 }
