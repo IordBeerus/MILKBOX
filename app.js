@@ -259,32 +259,6 @@ function hardenCloudIframe(iframe){
         // allow dragging inside player for controls, but block elsewhere
         if (!e.target.closest || !e.target.closest('#playerFrame')) e.preventDefault();
     }, true);
-    // DevTools detection — reload once when opened to deter casual inspection
-    let dtOpen = false;
-    const reloadKey = 'milkbox_devtools_reload';
-    const reloadForDevTools = () => {
-        try {
-            if (sessionStorage.getItem(reloadKey) === '1') return;
-            sessionStorage.setItem(reloadKey, '1');
-        } catch {}
-        window.location.reload();
-    };
-    const detect = () => {
-        try {
-            const w = window.outerWidth - window.innerWidth;
-            const h = window.outerHeight - window.innerHeight;
-            const isOpen = w > 160 || h > 160;
-            if (isOpen && !dtOpen) {
-                dtOpen = true;
-                console.clear();
-                console.log('%c' + BLOCK_MSG, 'font-size:32px;color:#e50914;font-weight:900;');
-                console.log('%cCurious? This site is protected. Please contact the owner instead of copying.', 'font-size:13px;color:#888;');
-                reloadForDevTools();
-            } else if (!isOpen) dtOpen = false;
-            if (!isOpen) sessionStorage.removeItem(reloadKey);
-        } catch {}
-    };
-    setInterval(detect, 1200);
     // Clear console on load, add warning
     try { console.clear(); console.log('%c' + BLOCK_MSG + ' — unauthorized copying is not permitted.', 'color:#e50914;font-weight:800;'); } catch {}
 })();
@@ -6964,6 +6938,7 @@ function enterAnimeTheater(item){
   if (right) right.classList.toggle('anime-movie-mode', isMovie);
   if (rightTitle) rightTitle.textContent = isMovie ? 'Servers' : 'Episodes';
   renderAnimeTheaterLeft(item);
+    loadAnimeTheaterDetails(item);
   renderAnimeTheaterBreadcrumb(item);
   syncAnimeControlsUI();
   _animeEpAll = []; _animeEpRangeStart = 0; _animeEpFilter = '';
@@ -6985,6 +6960,36 @@ function enterAnimeTheater(item){
     if (epHead) epHead.style.display = '';
     renderAnimeTheaterEpisodes(item);
   }
+}
+
+function animeDurationLabel(item) {
+    const raw = item.runtime ?? item.duration ?? item.runtimeMinutes;
+    if (raw == null || raw === '') return 'Unknown';
+    if (typeof raw === 'number' && Number.isFinite(raw)) return `${raw} min`;
+    const value = String(raw).trim();
+    return value || 'Unknown';
+}
+
+function animeStatusLabel(item) {
+    const raw = String(item.status || '').toLowerCase();
+    if (raw === 'ended' || raw === 'finished' || raw === 'completed' || raw === 'released') return 'Completed';
+    if (raw === 'upcoming' || raw === 'planned' || raw === 'in production') return 'Upcoming';
+    if (raw === 'returning series' || raw === 'airing' || raw === 'ongoing') return 'Ongoing';
+    const date = item.releaseDate || item.firstAirDate;
+    return date && new Date(date) > new Date() ? 'Upcoming' : 'Ongoing';
+}
+
+async function loadAnimeTheaterDetails(item) {
+    if (!item?.tmdbId) return;
+    const type = (playContext?.type === 'movie' || item.type === 'movie') ? 'movie' : 'tv';
+    try {
+        const details = await tmdbJson(`/${type}/${encodeURIComponent(item.tmdbId)}`);
+        if (!playContext?.item || String(playContext.item.id) !== String(item.id)) return;
+        const runtime = type === 'movie' ? details.runtime : details.episode_run_time?.[0];
+        const updated = { ...item, runtime: runtime || item.runtime, status: details.status || item.status, releaseDate: details.release_date || details.first_air_date || item.releaseDate, episodeCount: details.number_of_episodes || item.episodeCount };
+        playContext.item = updated;
+        renderAnimeTheaterLeft(updated);
+    } catch {}
 }
 function exitAnimeTheater(){
   const theater = document.getElementById('animeTheater');
@@ -7076,8 +7081,8 @@ function renderAnimeTheaterLeft(item){
     const genres = (genArr(item.genre).join(', ') || '—');
     const isMovie = item.type === 'movie' || item.media_type === 'movie';
     const eps = isMovie ? '1' : (item.episodeCount || item.episodes?.length || '—');
-    const dur = item.runtime ? (item.runtime+' min') : (item.duration ? item.duration+' min' : '24');
-    const status = item.status || 'Completed';
+    const dur = animeDurationLabel(item);
+    const status = animeStatusLabel(item);
     const mal = item.rating || '—';
     const ani = item.anilistId || item.anilist_id || 'AL';
     meta.innerHTML = `
