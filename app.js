@@ -4035,11 +4035,13 @@ async function tmdbJson(path) {
     const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
     const res = await fetch(url, { headers: { 'accept': 'application/json' } });
     if (!res.ok) {
+        const responseBody = await res.text();
         let detail = '';
         try {
-            const body = await res.json();
+            const body = JSON.parse(responseBody);
             detail = body.status_message || body.error || '';
         } catch {}
+        if (!detail) detail = responseBody.trim().slice(0, 240);
         if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
         if ([401, 403, 503].includes(res.status)) tmdbUnavailableUntil = Date.now() + 60000;
@@ -4279,15 +4281,32 @@ function popularPaths() {
 
 async function fetchBatched(paths, batchSize = 15) {
     const jsons = [];
+    let firstError = null;
     for (let i = 0; i < paths.length; i += batchSize) {
         const chunk = paths.slice(i, i + batchSize);
         const results = await Promise.allSettled(chunk.map(p => tmdbJson(p)));
+        if (!firstError) {
+            const failed = results.find(result => result.status === 'rejected');
+            if (failed) firstError = failed.reason;
+        }
         const successful = results.filter(result => result.status === 'fulfilled').map(result => result.value);
         jsons.push(...successful);
         if (!successful.length) break;
     }
-    if (!jsons.length) throw new Error('TMDB did not return any pages. Check the server TMDB configuration.');
+    if (!jsons.length) {
+        const detail = firstError instanceof Error ? firstError.message : String(firstError || 'No request succeeded.');
+        throw new Error(`TMDB returned no pages (${paths.length} requests attempted). ${detail}`);
+    }
     return jsons;
+}
+
+function showLiveLoadError(grid, message, error) {
+    if (!grid) return;
+    const detail = error instanceof Error ? error.message : String(error || '');
+    const notice = document.createElement('div');
+    notice.className = 'live-error';
+    notice.textContent = `${message}${detail ? ` ${detail}` : ''}`;
+    grid.replaceChildren(notice);
 }
 
 // Fetches each added title's logo + content rating from TMDB (detail request, appended
@@ -5667,7 +5686,7 @@ const [gridId, pagerId] = liveGridIds(key);
         enrichLiveLogos(key);
     } catch (e) {
         if (grid && (grid.textContent.trim() === 'Loading…' || grid.innerHTML.includes('live-loading'))) {
-            grid.innerHTML = `<div class="live-error">Couldn't load live titles. Check your internet connection and try again.</div>`;
+            showLiveLoadError(grid, "Couldn't load live titles.", e);
         }
     } finally {
         delete liveFed[key];
@@ -5731,7 +5750,7 @@ function renderLiveTab(section) {
                 } catch (e) {
                     const grid = document.getElementById('streamingGrid');
                     if (grid && (grid.textContent.trim() === 'Loading…' || grid.innerHTML.includes('live-loading'))) {
-                        grid.innerHTML = `<div class="live-error">Couldn't load live titles. Check your internet connection and try again.</div>`;
+                        showLiveLoadError(grid, "Couldn't load live titles.", e);
                     }
                 } finally {
                     delete liveFed['streaming'];
@@ -5761,7 +5780,7 @@ function renderLiveTab(section) {
                     enrichLiveLogos('free');
                 } catch (e) {
                     const grid = document.getElementById('freeGrid');
-                    if (grid) grid.innerHTML = '<div class="live-error">Couldn\'t load free titles. Check your internet connection and try again.</div>';
+                    showLiveLoadError(grid, "Couldn't load free titles.", e);
                 } finally {
                     delete liveFed.free;
                     if (currentSection === 'free') {
@@ -5802,7 +5821,7 @@ function renderLiveTab(section) {
                 } catch (e) {
                     const grid = document.getElementById('popularGrid');
                     if (grid && (grid.textContent.trim() === 'Loading…' || grid.innerHTML.includes('live-loading'))) {
-                        grid.innerHTML = `<div class="live-error">Couldn't load popular titles. Check your internet connection and try again.</div>`;
+                        showLiveLoadError(grid, "Couldn't load popular titles.", e);
                     }
                 } finally {
                     delete liveFed['popular'];
