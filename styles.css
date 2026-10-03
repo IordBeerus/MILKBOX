@@ -3497,7 +3497,6 @@ body.light-mode .btn-icon:hover { background: rgba(0, 0, 0, 0.09); color: #111; 
 .hero-desc { margin-bottom: 8px; }
 .hero-fade {
     height: 180px;
-    background: linear-gradient(180deg, rgba(11,11,15,0) 0%, rgba(11,11,15,0.55) 45%, var(--mb-bg) 100%);
 }
 
 .btn-primary {
@@ -3887,7 +3886,6 @@ h1, h2, h3, h4,
 }
 .hero-fade {
     height: 160px;
-    background: linear-gradient(180deg, rgba(23,23,23,0) 0%, rgba(23,23,23,0.55) 45%, #171717 100%);
 }
 .btn-primary {
     background: #fff;
@@ -4052,8 +4050,6 @@ body.light-mode .form-group input,
 body.light-mode .form-group textarea,
 body.light-mode .form-group select { background: #fff; border-color: rgba(0,0,0,0.12); color: #1a1a1a; }
 body.light-mode .modal-content { background: #fff; border-color: rgba(0,0,0,0.1); }
-body.light-mode .hero-fade { background: linear-gradient(180deg, rgba(245,245,245,0) 0%, rgba(245,245,245,0.6) 45%, #f5f5f5 100%); }
-
 /* --- Mobile --- */
 @media (max-width: 768px) {
     .navbar { padding: 0 14px; }
