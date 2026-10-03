@@ -807,6 +807,24 @@ function updateBgPreview() {
     }
 }
 
+function getSeasonalThemeName() {
+    const month = new Date().getMonth();
+    if (month === 9) return 'halloween';
+    if (month === 11) return 'christmas';
+    if (month === 0) return 'newyear';
+    return '';
+}
+
+function applySeasonalThemeIfNeeded() {
+    const seasonalTheme = getSeasonalThemeName();
+    if (!seasonalTheme) return;
+    const currentlySelected = settings.activeTheme || '';
+    const shouldAutoApply = !currentlySelected || currentlySelected === 'default';
+    if (shouldAutoApply) {
+        applyTheme(seasonalTheme);
+    }
+}
+
 function applyTheme(themeName) {
     const themes = {
         // --- Dark themes ---
@@ -7654,6 +7672,7 @@ document.getElementById('logoWrap').addEventListener('click', (e) => {
 function initAll() {
     try { initGenreOptions(); } catch (e) { console.error('initGenreOptions error:', e); }
     try { applyCloak(); } catch (e) { console.error('applyCloak error:', e); }
+    try { applySeasonalThemeIfNeeded(); } catch (e) { console.error('applySeasonalThemeIfNeeded error:', e); }
     try { applyBackground(); } catch (e) { console.error('applyBackground error:', e); }
     try { scanMovieQualities(true); } catch (e) { console.error('scanMovieQualities error:', e); }
     try {
