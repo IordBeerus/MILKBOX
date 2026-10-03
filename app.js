@@ -3996,13 +3996,12 @@ const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 let tmdbImageBase = TMDB_IMG;
 let tmdbConfigLoaded = false;
 let tmdbUnavailableUntil = 0;
+let tmdbUnavailableReason = '';
 
 async function tmdbEnsureConfig() {
     if (tmdbConfigLoaded) return;
-    try {
-        const d = await tmdbJson('/configuration');
-        if (d.images && d.images.secure_base_url) tmdbImageBase = d.images.secure_base_url;
-    } catch (e) { /* keep the default base on failure */ }
+    const d = await tmdbJson('/configuration');
+    if (d.images && d.images.secure_base_url) tmdbImageBase = d.images.secure_base_url;
     tmdbConfigLoaded = true;
 }
 
@@ -4030,7 +4029,7 @@ const TMDB_GENRE_MAP = {
 
 async function tmdbJson(path) {
     if (Date.now() < tmdbUnavailableUntil) {
-        throw new Error('TMDB proxy unavailable. Check the server TMDB configuration.');
+        throw new Error(tmdbUnavailableReason);
     }
     const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
     const res = await fetch(url, { headers: { 'accept': 'application/json' } });
@@ -4044,8 +4043,12 @@ async function tmdbJson(path) {
         if (!detail) detail = responseBody.trim().slice(0, 240);
         if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
-        if ([401, 403, 503].includes(res.status)) tmdbUnavailableUntil = Date.now() + 60000;
-        throw new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
+        const error = new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
+        if ([401, 403, 503].includes(res.status)) {
+            tmdbUnavailableUntil = Date.now() + 60000;
+            tmdbUnavailableReason = error.message;
+        }
+        throw error;
     }
     return res.json();
 }
@@ -4282,8 +4285,10 @@ function popularPaths() {
 async function fetchBatched(paths, batchSize = 15) {
     const jsons = [];
     let firstError = null;
+    let attempted = 0;
     for (let i = 0; i < paths.length; i += batchSize) {
         const chunk = paths.slice(i, i + batchSize);
+        attempted += chunk.length;
         const results = await Promise.allSettled(chunk.map(p => tmdbJson(p)));
         if (!firstError) {
             const failed = results.find(result => result.status === 'rejected');
@@ -4295,7 +4300,7 @@ async function fetchBatched(paths, batchSize = 15) {
     }
     if (!jsons.length) {
         const detail = firstError instanceof Error ? firstError.message : String(firstError || 'No request succeeded.');
-        throw new Error(`TMDB returned no pages (${paths.length} requests attempted). ${detail}`);
+        throw new Error(`TMDB returned no pages (${attempted} requests attempted). ${detail}`);
     }
     return jsons;
 }
