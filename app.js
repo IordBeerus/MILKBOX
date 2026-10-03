@@ -816,6 +816,9 @@ function applyTheme(themeName) {
         forest:   { bgColor: '#0a1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         ocean:    { bgColor: '#0a1a2e', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         sunset:   { bgColor: '#2e1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
+        halloween:{ bgColor: '#1b0d16', bgImage: '', bgOpacity: 30, bgBlur: 0 },
+        christmas:{ bgColor: '#091f1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
+        newyear:  { bgColor: '#0c122b', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         dracula:  { bgColor: '#282a36', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         nord:     { bgColor: '#2e3440', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         cyberpunk:{ bgColor: '#0d0221', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -2827,6 +2830,7 @@ let fallbackLoaded = false;
 let fallbackVideoSignal = false;
 let _fallbackMsgHandler = null;
 let _autoNextArmed = false;
+const AUTO_FALLBACK_DELAY_MS = 45000;
 
 // Clears any in-flight auto-fallback watchdog (called on server switch / new item).
 function clearAutoFallback() {
@@ -2895,11 +2899,11 @@ function armAutoFallback(frame, server) {
         fallbackLoaded = true;
         // If a video signal already arrived before load, don't restart timer.
         if (fallbackVideoSignal) return;
-        // Restart timer: give the embed 25s to emit a video signal.
+        // Restart timer: give the embed 45s to emit a video signal.
         if (fallbackTimer) clearTimeout(fallbackTimer);
         fallbackTimer = setTimeout(() => {
             if (fallbackStart) tryAutoFallback(server);
-        }, 25000);
+        }, AUTO_FALLBACK_DELAY_MS);
     };
     ifr.removeEventListener('load', onLoad);
     ifr.addEventListener('load', onLoad);
@@ -2909,13 +2913,13 @@ function armAutoFallback(frame, server) {
     if (server === 'cinesrc') {
         setTimeout(() => {
             if (!fallbackLoaded && fallbackStart === server) tryAutoFallback(server);
-        }, 10000);
+        }, 20000);
     }
 
-    // Initial timer: if iframe never even loads within 25s, try next server.
+    // Initial timer: if iframe never even loads within 45s, try next server.
     fallbackTimer = setTimeout(() => {
         if (fallbackStart) tryAutoFallback(server);
-    }, 25000);
+    }, AUTO_FALLBACK_DELAY_MS);
 }
 
 // Advance to the next TMDB server in the order. Stops once we've come full circle.
