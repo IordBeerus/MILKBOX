@@ -4833,7 +4833,7 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     #homeGenres .slider .card-img, #homeGenres .slider .card-placeholder { height: 180px !important; }
 }
 /* Chromebook fit — 1366x768, 1280x800, 1920x1080 scaled (ChromeOS) — compact top UI */
-@media (max-width: 1366px) {
+@media (min-width: 821px) and (max-width: 1366px) {
     html, body { max-width: 100vw; overflow-x: hidden; }
     .navbar { padding: 0 12px !important; height: 48px !important; }
     .nav-left { gap: 16px !important; }
@@ -5442,4 +5442,198 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
   .anime-left{ grid-template-columns: 1fr; }
   .anime-controls{ gap:6px; }
   .anime-ctrl{ padding:6px 8px; font-size:11px; }
+}
+
+/* Mobile layout refinements */
+@media (max-width: 820px) {
+    html, body { max-width: 100%; overflow-x: hidden; }
+
+    .navbar {
+        height: 108px !important;
+        min-height: 108px;
+        padding: 8px 12px !important;
+        align-items: flex-start;
+    }
+    .nav-left, .nav-right { height: 42px; }
+    .nav-left { gap: 0 !important; }
+    .nav-dropdown { display: none !important; }
+    .nav-right { gap: 8px !important; }
+    .logo-wrap img { width: 30px !important; height: 30px !important; }
+    .logo { font-size: 21px !important; letter-spacing: 0.5px !important; }
+    .mobile-menu-btn, #settingsBtn {
+        display: inline-flex;
+        width: 42px !important;
+        height: 42px !important;
+        min-width: 42px;
+        min-height: 42px;
+        justify-content: center;
+        align-items: center;
+    }
+    .mobile-menu-btn svg, #settingsBtn svg { width: 20px !important; height: 20px !important; }
+    .btn-discord { display: none !important; }
+    .search-box {
+        display: flex !important;
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        top: 58px;
+        height: 40px;
+        width: auto;
+        min-width: 0;
+        margin: 0;
+    }
+    .search-box input {
+        width: 100% !important;
+        min-width: 0;
+        font-size: 16px !important;
+    }
+    .mobile-nav-panel {
+        top: 108px;
+        max-height: calc(100vh - 108px);
+        max-height: calc(100dvh - 108px);
+    }
+    .mobile-nav-link { min-height: 46px; }
+
+    .hero {
+        min-height: min(72vh, 650px) !important;
+        min-height: min(72svh, 650px) !important;
+        padding: 132px 12px 32px !important;
+        align-items: flex-end;
+    }
+    .hero-content {
+        width: 100%;
+        max-width: none;
+        padding: 18px 16px;
+        border-radius: 14px;
+    }
+    .hero-title {
+        font-size: clamp(26px, 8vw, 36px) !important;
+        line-height: 1.08;
+        margin-bottom: 12px;
+    }
+    .hero-desc { font-size: 14px !important; line-height: 1.5; }
+    .hero-buttons { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .hero-buttons button { min-height: 44px; padding: 10px 16px; }
+    .hero-fade { height: 120px; }
+
+    .content-wrapper { padding: 12px 0 32px !important; }
+    .content-section { padding: 16px 12px 8px !important; }
+    .section-title { font-size: 20px; line-height: 1.25; margin-bottom: 14px !important; }
+    .content-grid,
+    #streamingSection .content-grid,
+    #freeSection .content-grid,
+    #trendingSection .content-grid,
+    #trendingGrid,
+    #theatersSection .content-grid,
+    #popularSection .content-grid,
+    #searchResultsSection .content-grid,
+    #homeGenres .content-grid,
+    #moviesSection.catalog-grid .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #homeGenres .slider {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+        width: 100%;
+    }
+    .content-grid .card,
+    #streamingSection .content-grid .card,
+    #freeSection .content-grid .card,
+    #trendingSection .content-grid .card,
+    #trendingGrid .card,
+    #theatersSection .content-grid .card,
+    #popularSection .content-grid .card,
+    #searchResultsSection .content-grid .card,
+    #homeGenres .content-grid .card,
+    #moviesSection.catalog-grid .slider .card,
+    #tvShowsSection.catalog-grid .slider .card,
+    #homeGenres .slider .card {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+    .content-grid .card-img, .content-grid .card-placeholder,
+    #streamingSection .content-grid .card-img,
+    #streamingSection .content-grid .card-placeholder,
+    #freeSection .content-grid .card-img,
+    #freeSection .content-grid .card-placeholder,
+    #trendingSection .content-grid .card-img,
+    #trendingSection .content-grid .card-placeholder,
+    #trendingGrid .card-img,
+    #trendingGrid .card-placeholder,
+    #theatersSection .content-grid .card-img,
+    #theatersSection .content-grid .card-placeholder,
+    #popularSection .content-grid .card-img,
+    #popularSection .content-grid .card-placeholder,
+    #searchResultsSection .content-grid .card-img,
+    #searchResultsSection .content-grid .card-placeholder,
+    #homeGenres .content-grid .card-img,
+    #homeGenres .content-grid .card-placeholder,
+    #moviesSection.catalog-grid .slider .card-img,
+    #moviesSection.catalog-grid .slider .card-placeholder,
+    #tvShowsSection.catalog-grid .slider .card-img,
+    #tvShowsSection.catalog-grid .slider .card-placeholder,
+    #homeGenres .slider .card-img,
+    #homeGenres .slider .card-placeholder {
+        height: auto !important;
+        aspect-ratio: 2 / 3;
+        max-height: 250px;
+    }
+    #collectionsSection .content-grid { grid-template-columns: minmax(0, 1fr) !important; }
+    #mangaGrid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+    #mangaGrid .manga-card { width: 100% !important; max-width: none !important; min-width: 0; }
+    #mangaGrid .manga-card img { width: 100%; }
+    .manga-filter-row, .manga-search-row { flex-wrap: wrap; gap: 8px; }
+    .manga-filter { flex: 1 1 140px; min-width: 0; }
+
+    .modal { padding: max(12px, env(safe-area-inset-top)) 10px max(12px, env(safe-area-inset-bottom)); }
+    .modal-content {
+        width: 100%;
+        max-width: 560px;
+        max-height: calc(100vh - 24px);
+        max-height: calc(100dvh - 24px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 24px 16px 18px;
+    }
+    .modal-title { font-size: 21px; padding-right: 28px; margin-bottom: 18px; }
+    .close-modal { top: 10px; right: 12px; width: 40px; height: 40px; display: grid; place-items: center; }
+    .form-group input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+    .form-group textarea, .form-group select,
+    .settings-row-control input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]) {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+        font-size: 16px;
+    }
+    .settings-row { flex-wrap: wrap; gap: 10px; }
+    .settings-row-info, .settings-row-control { width: 100%; max-width: none !important; }
+    .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tab-buttons { overflow-x: auto; }
+    .tab-btn { min-width: 100px; min-height: 44px; padding: 10px 8px; }
+
+    .player-modal { padding: max(10px, env(safe-area-inset-top)) 8px max(10px, env(safe-area-inset-bottom)); }
+    .player-content { width: 100%; max-width: none !important; }
+    .player-header { gap: 8px; }
+    .player-header .server-selector { min-width: 0; }
+    .player-header .close-modal.player-close { width: 42px; height: 42px; }
+    .player-layout { gap: 12px; }
+    .episode-selector { min-height: 0; max-height: 38vh; padding: 12px; }
+    .episode-list { overflow-y: auto; }
+    .episode-selector .ep-play-item { padding: 10px; }
+
+    .footer { padding: 24px 14px; }
+    .footer-links { justify-content: center; }
+}
+
+@media (max-width: 380px) {
+    .navbar { padding-left: 8px !important; padding-right: 8px !important; }
+    .nav-right { gap: 5px !important; }
+    .content-section { padding-left: 10px !important; padding-right: 10px !important; }
+    .content-grid,
+    #moviesSection.catalog-grid .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #homeGenres .slider,
+    #mangaGrid { gap: 8px !important; }
+    .hero-content { padding: 16px 12px; }
+    .hero-buttons button { flex: 1 1 auto; }
 }
