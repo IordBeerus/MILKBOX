@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+  <g fill="none" stroke="#e7f6ff" stroke-linecap="round" stroke-width="5" opacity=".78">
+    <g transform="translate(90 175)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+    <g transform="translate(890 280) scale(.8)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+    <g transform="translate(190 515) scale(.7)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+    <g transform="translate(795 660)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+    <g transform="translate(105 850) scale(.65)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+    <g transform="translate(925 905) scale(.6)"><path d="M0-27v54m-27-27h54m-46-19 38 38m0-38-38 38"/><circle r="3" fill="#e7f6ff"/></g>
+  </g>
+  <g fill="#fff" opacity=".8">
+    <circle cx="278" cy="91" r="4"/><circle cx="526" cy="245" r="3"/>
+    <circle cx="710" cy="130" r="4"/><circle cx="390" cy="430" r="3"/>
+    <circle cx="610" cy="570" r="4"/><circle cx="320" cy="730" r="4"/>
+    <circle cx="670" cy="845" r="3"/><circle cx="470" cy="930" r="4"/>
+  </g>
+</svg>

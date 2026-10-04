@@ -244,6 +244,23 @@ body.light-mode .player-container .player-placeholder p { color: #999 !important
     z-index: -1;
 }
 
+.seasonal-decorations {
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    overflow: hidden;
+    pointer-events: none;
+}
+.seasonal-decorations[hidden] {
+    display: none;
+}
+.seasonal-decorations img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }

@@ -703,6 +703,21 @@ function applyBackground() {
     const overlay = document.getElementById('bgOverlay');
     const body = document.getElementById('siteBody');
     if (!overlay || !body) return;
+    const seasonalDecorations = document.getElementById('seasonalDecorations');
+    const seasonalDecorationsImage = document.getElementById('seasonalDecorationsImage');
+    const seasonalDecorationImages = {
+        halloween: 'assets/theme-art/halloween-decorations.svg',
+        christmas: 'assets/theme-art/christmas-decorations.svg',
+        newyear: 'assets/theme-art/newyear-decorations.svg',
+        snow: 'assets/theme-art/snow-decorations.svg'
+    };
+    const seasonalDecorationImage = seasonalDecorationImages[settings.activeTheme];
+    if (seasonalDecorations && seasonalDecorationsImage) {
+        seasonalDecorations.hidden = !seasonalDecorationImage;
+        if (seasonalDecorationImage && seasonalDecorationsImage.getAttribute('src') !== seasonalDecorationImage) {
+            seasonalDecorationsImage.setAttribute('src', seasonalDecorationImage);
+        }
+    }
     const color = settings.bgColor || '#141414';
     const image = settings.bgImage;
     const opacity = (settings.bgOpacity || 30) / 100;
