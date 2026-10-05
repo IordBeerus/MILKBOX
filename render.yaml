@@ -3,7 +3,7 @@ services:
     name: milkbox
     runtime: node
     branch: main
-    autoDeploy: true
+    autoDeployTrigger: commit
     plan: free
     buildCommand: pnpm install --frozen-lockfile && pnpm build
     startCommand: pnpm start

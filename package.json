@@ -2,6 +2,7 @@
   "name": "milkbox",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@11.24.0",
   "description": "MILKBOX static media library",
   "scripts": {
     "build": "node --check app.js && node --check server.js && node --check sync-provider-icons.js",
@@ -9,7 +10,7 @@
     "sync:provider-icons": "node sync-provider-icons.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "dependencies": {
     "youtubei.js": "^18.0.0"
