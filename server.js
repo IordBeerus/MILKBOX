@@ -50,16 +50,15 @@ async function proxyMangaDex(req, res, requestPath, query) {
 }
 
 async function proxyTmdb(req, res, requestPath, query) {
-    const marker = '/api/tmdb/';
-    const markerIndex = requestPath.indexOf(marker);
-    if (markerIndex === -1) return false;
+    const marker = '/api/tmdb';
+    if (requestPath !== marker && !requestPath.startsWith(`${marker}/`)) return false;
     const tmdbCredential = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN;
     if (!tmdbCredential) {
         res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB_API_KEY or TMDB_ACCESS_TOKEN is not configured' }));
         return true;
     }
-    const targetPath = requestPath.slice(markerIndex + marker.length - 1);
+    const targetPath = requestPath === marker ? '/' : requestPath.slice(marker.length);
     const target = new URL(`https://api.themoviedb.org/3${targetPath}`);
     for (const [key, value] of query) target.searchParams.append(key, value);
     if (!target.searchParams.has('language')) target.searchParams.set('language', 'en-US');

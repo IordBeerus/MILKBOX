@@ -4005,7 +4005,7 @@ function saveEdit(e) {
 
 // ==================== TMDB AUTO-FILL ====================
 // Keep the proxy working when the app is hosted at the domain root or below a subpath.
-const TMDB_BASE = new URL('api/tmdb', document.baseURI).pathname.replace(/\/$/, '');
+const TMDB_BASE = new URL('api/tmdb/', document.baseURI).pathname;
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 
 let tmdbImageBase = TMDB_IMG;
@@ -4046,16 +4046,21 @@ async function tmdbJson(path) {
     if (Date.now() < tmdbUnavailableUntil) {
         throw new Error(tmdbUnavailableReason);
     }
-    const url = `${TMDB_BASE}${path}${path.includes('?') ? '&' : '?'}language=en-US`;
-    const res = await fetch(url, { headers: { 'accept': 'application/json' } });
+    const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
+    const tmdbUrl = `${TMDB_BASE.replace(/\/$/, '')}${normalizedPath}${normalizedPath.includes('?') ? '&' : '?'}language=en-US`;
+    const res = await fetch(tmdbUrl, { headers: { 'accept': 'application/json' } });
     if (!res.ok) {
         const responseBody = await res.text();
         let detail = '';
-        try {
-            const body = JSON.parse(responseBody);
-            detail = body.status_message || body.error || '';
-        } catch {}
-        if (!detail) detail = responseBody.trim().slice(0, 240);
+        if (responseBody && /^\s*<(?:!doctype|html|head|body|script)/i.test(responseBody)) {
+            detail = 'TMDB endpoint unavailable or blocked';
+        } else {
+            try {
+                const body = JSON.parse(responseBody);
+                detail = body.status_message || body.error || '';
+            } catch {}
+            if (!detail) detail = responseBody.trim().replace(/\s+/g, ' ').slice(0, 240);
+        }
         if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
         const error = new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
