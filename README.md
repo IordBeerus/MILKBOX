@@ -59,7 +59,7 @@ The app should be opened through the local server instead of opening index.html 
 
 Open MILKBOX in a browser that supports installing web apps and choose **Install MILKBOX** from the browser menu. In supported browsers, the **Install** button is also available in **Settings → General**. On iPhone or iPad, use **Share → Add to Home Screen**.
 
-Deployed sites must use HTTPS for app installation; `localhost` is supported for local development. The installed app requires an internet connection.
+Deployed sites must use HTTPS for app installation; `localhost` is supported for local development. MILKBOX uses a network-only service worker to enable Chrome's in-app installation prompt without caching site content. The installed app requires an internet connection.
 
 ## Render Deployment
 

@@ -7589,6 +7589,12 @@ const updateInstallAppUI = () => {
     if (isInstalledApp() && installAppStatus) installAppStatus.textContent = 'MILKBOX is already installed.';
 };
 
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/service-worker.js').catch((error) => {
+        console.error('Unable to register the app service worker.', error);
+    });
+}
+
 window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
     installPromptEvent = event;
