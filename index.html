@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="siteTitle">MILKBOX</title>
+    <meta name="theme-color" content="#141414">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="MILKBOX">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/pwa/icon-180.png">
     <link rel="icon" type="image/png" id="siteFavicon" href="https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png">
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <meta name="googlebot" content="noindex, nofollow, noarchive">
@@ -793,6 +798,22 @@
 
             <!-- General Tab -->
             <div class="settings-tab-panel active" data-settings-panel="general">
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Install MILKBOX</h3>
+                    <p class="settings-card-desc">Add MILKBOX to your device and open it in its own app window. An internet connection is required.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Install the app</div>
+                                <div class="settings-row-desc">If the install button is unavailable, use your browser menu and choose Install MILKBOX or Add to Home Screen. On iPhone or iPad, use Share, then Add to Home Screen.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-apply-btn" id="installAppBtn" type="button" hidden>Install</button>
+                            </div>
+                        </div>
+                        <p id="installAppStatus" aria-live="polite"></p>
+                    </div>
+                </div>
                 <div class="settings-card">
                     <h3 class="settings-card-title">Tab Cloak</h3>
                     <p class="settings-card-desc">Change the browser tab name, favicon, and navbar logo.</p>

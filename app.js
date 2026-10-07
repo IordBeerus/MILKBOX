@@ -7579,6 +7579,48 @@ if (settingsShowCollections) {
         }
     });
 }
+let installPromptEvent = null;
+const installAppButton = document.getElementById('installAppBtn');
+const installAppStatus = document.getElementById('installAppStatus');
+const isInstalledApp = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const updateInstallAppUI = () => {
+    if (!installAppButton) return;
+    installAppButton.hidden = isInstalledApp() || !installPromptEvent;
+    if (isInstalledApp() && installAppStatus) installAppStatus.textContent = 'MILKBOX is already installed.';
+};
+
+window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    installPromptEvent = event;
+    updateInstallAppUI();
+});
+
+window.addEventListener('appinstalled', () => {
+    installPromptEvent = null;
+    updateInstallAppUI();
+    if (installAppStatus) installAppStatus.textContent = 'MILKBOX was installed successfully.';
+});
+
+installAppButton?.addEventListener('click', async () => {
+    if (!installPromptEvent) return;
+    const promptEvent = installPromptEvent;
+    installPromptEvent = null;
+    updateInstallAppUI();
+    try {
+        await promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        if (installAppStatus) {
+            installAppStatus.textContent = outcome === 'accepted'
+                ? 'MILKBOX is being installed.'
+                : 'Installation was canceled. You can try again from your browser menu.';
+        }
+    } catch (error) {
+        console.error('Unable to open the app installation prompt.', error);
+        if (installAppStatus) installAppStatus.textContent = 'Unable to open the install prompt. Please use your browser menu to install MILKBOX.';
+    }
+});
+updateInstallAppUI();
+
 document.getElementById('closeMangaModal').addEventListener('click', () => document.getElementById('mangaModal').classList.remove('active'));
 document.getElementById('mangaDrawerClose')?.addEventListener('click', () => document.getElementById('mangaDrawer').classList.remove('active'));
 document.getElementById('mangaReadPrev')?.addEventListener('click', () => {

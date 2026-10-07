@@ -55,6 +55,12 @@ http://localhost:3000
 ```
 The app should be opened through the local server instead of opening index.html directly. The local server is required for the MangaDex proxy and manga chapter reader.
 
+## Install as an App
+
+Open MILKBOX in a browser that supports installing web apps and choose **Install MILKBOX** from the browser menu. In supported browsers, the **Install** button is also available in **Settings → General**. On iPhone or iPad, use **Share → Add to Home Screen**.
+
+Deployed sites must use HTTPS for app installation; `localhost` is supported for local development. The installed app requires an internet connection.
+
 ## Render Deployment
 
 Use the included `render.yaml` to create the web service. In the Render
