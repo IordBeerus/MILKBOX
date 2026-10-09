@@ -486,11 +486,12 @@
         <div class="player-content">
             <div class="player-header">
                 <div class="server-selector" id="serverSelector">
-                    <span class="server-selector-label"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#e3e3e3" style="vertical-align: middle; margin-right: 6px;"><path d="M260-160q-91 0-155.5-63T40-377q0-78 47-139t123-78q25-92 100-149t170-57q117 0 198.5 81.5T760-520q69 8 114.5 59.5T920-340q0 75-52.5 127.5T740-160H260Zm0-80h480q42 0 71-29t29-71q0-42-29-71t-71-29h-60v-80q0-83-58.5-141.5T480-720q-83 0-141.5 58.5T280-520h-20q-58 0-99 41t-41 99q0 58 41 99t99 41Zm220-240Z"/></svg> Cloud Server List:</span>
+                    <span class="server-selector-label">Playback:</span>
                     <div class="server-select-wrap">
                         <select id="serverSelect" class="server-dropdown">
                             <option value="auto">Auto (Smart Fallback)</option>
-                            <option value="direct">Milkbox Player</option>
+                            <option value="milkbox">Milkbox Player (authorized API)</option>
+                            <option value="direct">Direct / Uploaded Video</option>
                             <option value="phantom">Phantom (40+ Sources)</option>
                             <option value="cinesrc">CineSRC</option>
                             <option value="vidsrcsbs">VidSrc SBS</option>
@@ -595,12 +596,11 @@
                     </div>
                     <div class="anime-find-row" id="animeFindRow" style="display:none"><input id="animeFindInput" class="anime-find-input" placeholder="Search episodes..."><button id="animeFindClear" class="anime-find-clear">×</button></div>
                     <div class="anime-episode-list" id="animeEpisodeList"></div>
-                    <!-- Movie-only: server panel (hidden for TV) -->
                     <div class="anime-movie-panel" id="animeMoviePanel" style="display:none">
                         <div class="anime-movie-watching" id="animeMovieWatching"></div>
                         <div class="anime-movie-subdub">
                             <button class="anime-subdub-btn" data-lang="sub" id="animeMovieSubBtn"><span style="color:#ff6b35">CC</span> Sub</button>
-                            <button class="anime-subdub-btn" data-lang="dub" id="animeMovieDubBtn"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M395-435q-35-35-35-85v-240q0-50 35-85t85-35q50 0 85 35t35 85v240q0 50-35 85t-85 35q-50 0-85-35Zm85-205Zm-40 520v-123q-104-14-172-93t-68-184h80q0 83 58.5 141.5T480-320q83 0 141.5-58.5T680-520h80q0 105-68 184t-172 93v123h-80Zm68.5-371.5Q520-503 520-520v-240q0-17-11.5-28.5T480-800q-17 0-28.5 11.5T440-760v240q0 17 11.5 28.5T480-480q17 0 28.5-11.5Z"/></svg> Dub</button>
+                            <button class="anime-subdub-btn" data-lang="dub" id="animeMovieDubBtn">Dub</button>
                         </div>
                         <div class="anime-movie-msg">If the current server is not working, please try switching to other servers.</div>
                         <div class="anime-movie-servers" id="animeMovieServers">

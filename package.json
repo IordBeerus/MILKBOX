@@ -5,7 +5,7 @@
   "packageManager": "pnpm@11.24.0",
   "description": "MILKBOX static media library",
   "scripts": {
-    "build": "node --check app.js && node --check server.js && node --check service-worker.js && node --check sync-provider-icons.js",
+    "build": "node --check app.js && node --check server.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js",
     "start": "node server.js",
     "sync:provider-icons": "node sync-provider-icons.js"
   },

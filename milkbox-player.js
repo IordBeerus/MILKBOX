@@ -268,3 +268,55 @@ function createCustomVideoPlayer(container, sourceUrl, titleText, subtitleText) 
         }
     }
 }
+
+async function _milkboxResolvePlayback(options = {}) {
+    const { id, idType = 'tmdb', type, season = 1, episode = 1 } = options;
+    if (id === undefined || id === null || !String(id).trim()) throw new TypeError('A TMDB or IMDb ID is required.');
+    if (idType !== 'tmdb' && idType !== 'imdb') throw new TypeError('idType must be "tmdb" or "imdb".');
+    if (type !== 'movie' && type !== 'tv') throw new TypeError('type must be "movie" or "tv".');
+    const normalizedId = String(id).trim();
+    if (idType === 'tmdb' && !/^[1-9]\d*$/.test(normalizedId)) throw new TypeError('TMDB IDs must be positive integers.');
+    if (idType === 'imdb' && !/^tt\d{5,}$/i.test(normalizedId)) throw new TypeError('IMDb IDs must use the tt1234567 format.');
+    const positiveInteger = (value, name) => {
+        const number = Number(value);
+        if (!Number.isInteger(number) || number < 1) throw new TypeError(`${name} must be a positive integer.`);
+        return number;
+    };
+    const seasonNumber = type === 'tv' ? positiveInteger(season, 'season') : 1;
+    const episodeNumber = type === 'tv' ? positiveInteger(episode, 'episode') : 1;
+    const query = new URLSearchParams({
+        id: idType === 'imdb' ? normalizedId.toLowerCase() : normalizedId,
+        idType,
+        type,
+        season: String(seasonNumber),
+        episode: String(episodeNumber)
+    });
+    const response = await fetch(`/api/playback/resolve?${query}`, {
+        headers: { Accept: 'application/json' }
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `Playback lookup failed (${response.status}).`);
+    if (typeof result.url !== 'string' || !result.url) throw new Error('The playback API did not return a playable URL.');
+    return result;
+}
+
+async function _milkboxEmbed(options = {}) {
+    const target = typeof options.target === 'string'
+        ? document.querySelector(options.target)
+        : options.target;
+    if (!target || typeof target.replaceChildren !== 'function') {
+        throw new TypeError('target must be an element or a selector for an element.');
+    }
+    const playback = await _milkboxResolvePlayback(options);
+    const title = options.title || playback.title || `${options.type === 'tv' ? 'Series' : 'Movie'} player`;
+    const subtitle = options.type === 'tv' ? `Season ${options.season || 1} • Episode ${options.episode || 1}` : '';
+    createCustomVideoPlayer(target, playback.url, title, subtitle);
+    return target.querySelector('.milkbox-player');
+}
+
+if (typeof window !== 'undefined') {
+    window.MilkboxPlayer = Object.freeze({
+        embed: _milkboxEmbed,
+        resolvePlayback: _milkboxResolvePlayback
+    });
+}

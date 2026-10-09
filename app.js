@@ -2931,7 +2931,7 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
 
 // Current play context + selected server for the player.
 let playContext = null;
-let playerServer = ['drive', 'hd20'].includes(settings.playerServer) ? 'direct' : (settings.playerServer || 'auto');
+let playerServer = settings.playerServer || 'milkbox';
 
 function serverBtnActive() {
     const sel = document.getElementById('serverSelect');
@@ -2940,14 +2940,11 @@ function serverBtnActive() {
 
 function effectiveServerFor(item, type) {
     if (playerServer === 'direct') return 'direct';
-    if (['vidhawk','anixo','autoembedanime'].includes(playerServer)) {
-        if (isAnime(item)) return playerServer;
+    if (playerServer === 'auto') {
+        if (isAnime(item) && currentAnimekaiMalId) return 'animekai';
         return item.tmdbId ? 'tmdb' : 'direct';
     }
-    if (['tmdb','phantom','cinesrc','vidsrc','vidsrcsbs','vidcore','videasy','superembed','twoembed','autoembed','smashystream','vidfast','vidlink','embedsu','nontongo','animekai','kisskh','vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream'].includes(playerServer)) return playerServer;
-    // Auto: for anime with AnimeKai available, prefer it; otherwise TMDB
-    if (isAnime(item) && currentAnimekaiMalId) return 'animekai';
-    // Auto: prefer TMDB (now Vidsrc) when an ID exists, otherwise play the direct source.
+    if (playerServer === 'milkbox' || SERVER_IFRAME[playerServer] || playerServer === 'kisskh') return playerServer;
     return item.tmdbId ? 'tmdb' : 'direct';
 }
 
@@ -3155,6 +3152,10 @@ function renderTmdbPlay(server) {
     const frame = document.getElementById('playerFrame');
     if (!frame || !playContext) return;
     const { item, type, episode, season } = playContext;
+    if (server === 'milkbox') {
+        renderMilkboxPlay(item, type, season, episode);
+        return;
+    }
     if (server === 'kisskh') {
         renderKissKhPlay(item, type, season, episode);
         return;
@@ -3171,6 +3172,33 @@ function renderTmdbPlay(server) {
         frame.innerHTML = builder(item.tmdbId, 'tv', se, ep);
         armAutoFallback(frame, server);
         const ifr2 = frame.querySelector('iframe'); if (ifr2) hardenCloudIframe(ifr2);
+    }
+}
+
+async function renderMilkboxPlay(item, type, season, episode) {
+    const frame = document.getElementById('playerFrame');
+    if (!frame) return;
+    const id = item.tmdbId || item.imdbId || item.imdb_id;
+    if (!id) {
+        frame.innerHTML = '<div class="milkbox-player-empty">This title needs a TMDB or IMDb ID to look up playback.</div>';
+        return;
+    }
+    const idType = item.tmdbId ? 'tmdb' : 'imdb';
+    const context = playContext;
+    const request = { id, idType, type, season: season || 1, episode: episode || 1 };
+    clearAutoFallback();
+    stopCustomVideoPlayer(frame);
+    frame.innerHTML = '<div class="milkbox-player-empty">Resolving playback with the configured API…</div>';
+    try {
+        const playback = await MilkboxPlayer.resolvePlayback(request);
+        if (playContext !== context) return;
+        const subtitle = type === 'tv' ? `Season ${request.season} • Episode ${request.episode}` : item.year ? String(item.year) : '';
+        createCustomVideoPlayer(frame, playback.url, item.title, subtitle);
+        const video = frame.querySelector('video');
+        if (video) video.addEventListener('ended', _advanceToNextEpisode);
+    } catch (error) {
+        if (playContext !== context) return;
+        frame.innerHTML = `<div class="milkbox-player-empty">${escapeHtml(error.message || 'Playback resolution failed.')}</div>`;
     }
 }
 
@@ -3210,7 +3238,7 @@ function renderPlay() {
     // per-item resolved id (so each show plays ITS OWN title, not the same one). Items that carry a
     // kisskh episode id (any genre — drama, K-show, movie, BL, anime) use /kisskh/{episode-id}.
     const isAnimeTitle = isAnime(item);
-    if (isAnimeTitle && effectiveServerFor(item, type) !== 'direct') {
+    if (isAnimeTitle && !['direct', 'milkbox'].includes(effectiveServerFor(item, type))) {
         const langSel = document.getElementById('animeLangSelector');
         if (langSel) langSel.style.display = 'flex';
         serverBtnActive();
@@ -3274,24 +3302,24 @@ function renderPlay() {
         }
     }
     const langSel2 = document.getElementById('animeLangSelector');
-    if (langSel2) langSel2.style.display = isAnimeTitle ? 'flex' : 'none';
+    if(langSel2) langSel2.style.display = isAnimeTitle && playerServer !== 'milkbox' ? 'flex' : 'none';
     const server = effectiveServerFor(item, type);
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
     serverBtnActive();
 
-    const isTmdbServer = !!SERVER_IFRAME[server];
+    const isTmdbServer = server === 'milkbox' || !!SERVER_IFRAME[server];
     if (type === 'movie') {
         subtitle.textContent = (item.year ? item.year + '  ' : '') + (genArr(item.genre).join(', ') || '');
         epSelector.style.display = 'none';
-        if (server === 'kisskh' || (isTmdbServer && item.tmdbId)) {
+        if (server === 'milkbox' || server === 'kisskh' || (isTmdbServer && item.tmdbId)) {
             renderTmdbPlay(server);
         } else if (server === 'direct') {
             const videoUrl = getVideoSource(item);
             if (videoUrl) {
                 createCustomVideoPlayer(frame, videoUrl, item.title, item.year ? `${item.year}` : '');
             } else {
-                frame.innerHTML = `<div class="milkbox-player-empty">Add a direct video URL or TMDB ID to play this title.</div>`;
+                frame.innerHTML = '<div class="milkbox-player-empty">Add a direct video URL or switch to Milkbox Player (API).</div>';
             }
         } else {
             frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source on this server</div>`;
@@ -3302,7 +3330,7 @@ function renderPlay() {
             epSelector.style.display = 'block';
             if (item.tmdbId) renderTmdbEpisodes(item, server);
             playTmdbEpisode(item, item.season || 1, 1, server);
-        } else if (isTmdbServer && item.tmdbId) {
+        } else if (server === 'milkbox' || (isTmdbServer && item.tmdbId)) {
             epSelector.style.display = 'block';
             renderTmdbEpisodes(item, server);
             playTmdbEpisode(item, item.season || 1, 1, server);
@@ -3335,7 +3363,7 @@ function playItem(item, type) {
     const langSel = document.getElementById('animeLangSelector');
     const animekaiOpt = document.getElementById('serverOptAnimekai');
     const autoembedAnimeOpt = document.getElementById('serverOptAutoembedAnime');
-    if (isAnime(item)) {
+    if (isAnime(item) && playerServer !== 'milkbox') {
         if (langSel) {
             langSel.style.display = 'flex';
             document.querySelectorAll('.lang-btn').forEach(b => {

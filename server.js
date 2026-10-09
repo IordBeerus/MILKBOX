@@ -50,6 +50,69 @@ async function proxyMangaDex(req, res, requestPath, query) {
     return true;
 }
 
+async function resolvePlayback(req, res, requestPath, query) {
+    if (requestPath !== '/api/playback/resolve') return false;
+    const respond = (status, body) => {
+        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        res.end(JSON.stringify(body));
+    };
+    if (req.method !== 'GET') {
+        res.writeHead(405, { Allow: 'GET', 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Method not allowed' }));
+        return true;
+    }
+
+    const id = query.get('id') || '';
+    const idType = query.get('idType') || '';
+    const type = query.get('type') || '';
+    const season = query.get('season') || '1';
+    const episode = query.get('episode') || '1';
+    if ((idType === 'tmdb' && !/^[1-9]\d*$/.test(id)) ||
+        (idType === 'imdb' && !/^tt\d{5,}$/i.test(id)) ||
+        !['tmdb', 'imdb'].includes(idType) ||
+        !['movie', 'tv'].includes(type) ||
+        !/^[1-9]\d*$/.test(season) ||
+        !/^[1-9]\d*$/.test(episode)) {
+        respond(400, { error: 'Provide a valid TMDB/IMDb ID, media type, season, and episode.' });
+        return true;
+    }
+
+    const apiUrl = process.env.MILKBOX_PLAYBACK_API_URL;
+    if (!apiUrl) {
+        respond(503, { error: 'MILKBOX_PLAYBACK_API_URL is not configured.' });
+        return true;
+    }
+
+    try {
+        const target = new URL(apiUrl);
+        if (!['http:', 'https:'].includes(target.protocol)) throw new Error('Playback API URL must use HTTP or HTTPS.');
+        for (const [key, value] of Object.entries({ id, idType, type, season: type === 'tv' ? season : '1', episode: type === 'tv' ? episode : '1' })) {
+            target.searchParams.set(key, value);
+        }
+        const headers = { Accept: 'application/json' };
+        if (process.env.MILKBOX_PLAYBACK_API_KEY) headers.Authorization = `Bearer ${process.env.MILKBOX_PLAYBACK_API_KEY}`;
+        const upstream = await fetch(target, { headers, signal: AbortSignal.timeout(15000) });
+        if (!upstream.ok) {
+            respond(502, { error: `Playback API request failed (${upstream.status}).` });
+            return true;
+        }
+        const data = await upstream.json();
+        if (!data || typeof data.url !== 'string') {
+            respond(502, { error: 'Playback API response must contain a string "url" field.' });
+            return true;
+        }
+        const playbackUrl = new URL(data.url);
+        if (!['http:', 'https:'].includes(playbackUrl.protocol) || playbackUrl.username || playbackUrl.password) {
+            respond(502, { error: 'Playback API returned an invalid media URL.' });
+            return true;
+        }
+        respond(200, { url: playbackUrl.href, title: typeof data.title === 'string' ? data.title : '' });
+    } catch (error) {
+        respond(502, { error: 'Playback API request failed. Check the configured URL and API response.' });
+    }
+    return true;
+}
+
 async function proxyTmdb(req, res, requestPath, query) {
     const marker = '/api/tmdb';
     if (requestPath !== marker && !requestPath.startsWith(`${marker}/`)) return false;
@@ -178,6 +241,7 @@ const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
     if (proxyHealth(requestPath, res)) return;
+    if (await resolvePlayback(req, res, requestPath, query)) return;
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
