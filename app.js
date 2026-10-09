@@ -86,7 +86,9 @@ let currentInfoItem = null;
 let currentInfoType = null;
 // LightSpeed / Chrome block bypass — proxy TMDB + GitHub + Monochrome (music) when filtered
 (function(){
-    const origFetch = window.fetch.bind(window);
+    const nativeFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
+    if (!nativeFetch) return;
+    const origFetch = nativeFetch;
     const isProxied = (u) => /api\.themoviedb\.org|raw\.githubusercontent\.com|api\.mangadex\.org|monochrome\.tf|tidal\.com|deezer\.com|spotify\.com|api\.apple\.com|am-mint\.binimum\.org/i.test(String(u));
     const googleProxy = (u) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&url=${encodeURIComponent(u)}`;
     const allOriginsProxy = (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`;
@@ -7665,7 +7667,10 @@ if (settingsShowCollections) {
 let installPromptEvent = null;
 const installAppButton = document.getElementById('installAppBtn');
 const installAppStatus = document.getElementById('installAppStatus');
-const isInstalledApp = () => window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+const isInstalledApp = () => {
+    const mediaQuery = typeof window.matchMedia === 'function' ? window.matchMedia('(display-mode: standalone)') : null;
+    return Boolean(mediaQuery?.matches || navigator.standalone === true);
+};
 const updateInstallAppUI = () => {
     if (!installAppButton) return;
     installAppButton.hidden = isInstalledApp() || !installPromptEvent;
