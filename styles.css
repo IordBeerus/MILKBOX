@@ -5252,7 +5252,6 @@ body.light-mode .collection-tab.active { color: #fff; }
   width:100%;
 }
 .player-content.anime-mode{ max-width:1400px !important; }
-.player-content.anime-mode .player-header .server-selector{ display:none; }
 .player-content.anime-mode #genericPlayerLayout,
 .player-content.anime-mode #episodeSelector{ display:none !important; }
 
