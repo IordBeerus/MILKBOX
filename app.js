@@ -3418,8 +3418,8 @@ function playItem(item, type) {
         currentAnimekaiMalId = null;
     }
     serverBtnActive();
-    renderPlay();
     modal.classList.add('active');
+    renderPlay();
 }
 
 // Server switcher in the player modal (change event on dropdown).
