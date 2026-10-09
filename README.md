@@ -64,7 +64,7 @@ Deployed sites must use HTTPS for app installation; `localhost` is supported for
 
 ## Blocking Pop-up Ads
 
-MILKBOX's **Settings → Playback** tab links to [AdGuard PopupBlocker](https://github.com/AdguardTeam/PopupBlocker), an optional userscript that blocks pop-up and pop-under windows. To use it, install a compatible userscript manager (such as Tampermonkey, Violentmonkey, or Greasemonkey), then open the [official PopupBlocker userscript](https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js) and confirm the installation in the manager.
+We have a **Built in ad blocking system** where you can enjoy ad free!.
 
 This is a browser userscript, not a built-in MILKBOX feature. It targets pop-up and pop-under windows; it does not remove banners or in-player video ads. Playback providers run in cross-origin frames, so whether the userscript blocks their pop-ups depends on the browser and userscript manager's frame support. See the [official project instructions](https://github.com/AdguardTeam/PopupBlocker) for supported managers and details.
 
