@@ -61,6 +61,12 @@ Open MILKBOX in a browser that supports installing web apps and choose **Install
 
 Deployed sites must use HTTPS for app installation; `localhost` is supported for local development. MILKBOX uses a network-only service worker to enable Chrome's in-app installation prompt without caching site content. The installed app requires an internet connection.
 
+## Blocking Pop-up Ads
+
+MILKBOX's **Settings → Playback** tab links to [AdGuard PopupBlocker](https://github.com/AdguardTeam/PopupBlocker), an optional userscript that blocks pop-up and pop-under windows. To use it, install a compatible userscript manager (such as Tampermonkey, Violentmonkey, or Greasemonkey), then open the [official PopupBlocker userscript](https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js) and confirm the installation in the manager.
+
+This is a browser userscript, not a built-in MILKBOX feature. It targets pop-up and pop-under windows; it does not remove banners or in-player video ads. Playback providers run in cross-origin frames, so whether the userscript blocks their pop-ups depends on the browser and userscript manager's frame support. See the [official project instructions](https://github.com/AdguardTeam/PopupBlocker) for supported managers and details.
+
 ## Render Deployment
 
 Use the included `render.yaml` to create the web service. In the Render
