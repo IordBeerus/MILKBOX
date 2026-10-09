@@ -84,12 +84,11 @@ API availability depends on the external services and their rate limits.
 
 ## Embedding movies and series
 
-The player selector keeps the existing playback providers and adds the
-Milkbox API player and direct/uploaded video options. Existing providers
-continue to use their embedded players. Choose Milkbox Player to use MILKBOX's
-native video controls with a configured authorized playback API. TMDB and
-IMDb IDs identify titles but do not supply video; configure an API that accepts
-these IDs and returns a direct, browser-playable video URL.
+The player selector keeps the existing playback providers and adds Milkbox
+Player and direct/uploaded video options. Milkbox Player uses the title's TMDB
+ID with the same VidSrc TMDB embed route used by the Vidsrc option; it does not
+require a separately configured playback API. Other providers continue to
+use their respective embedded players.
 
 Set `MILKBOX_PLAYBACK_API_URL` and (if required) `MILKBOX_PLAYBACK_API_KEY`
 in `.env`. The key is sent from the server as a Bearer token and is never

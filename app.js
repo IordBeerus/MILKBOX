@@ -3062,6 +3062,7 @@ function tryAutoFallback(server) {
 
 // Map of server key -> iframe builder (movie/tv, season, episode).
 const SERVER_IFRAME = {
+    milkbox: vidsrcIframe,
     tmdb: vidsrcIframe,
     phantom: phantomIframe,
     cinesrc: cinesrcIframe,
@@ -3152,10 +3153,6 @@ function renderTmdbPlay(server) {
     const frame = document.getElementById('playerFrame');
     if (!frame || !playContext) return;
     const { item, type, episode, season } = playContext;
-    if (server === 'milkbox') {
-        renderMilkboxPlay(item, type, season, episode);
-        return;
-    }
     if (server === 'kisskh') {
         renderKissKhPlay(item, type, season, episode);
         return;
@@ -3164,41 +3161,14 @@ function renderTmdbPlay(server) {
     const builder = SERVER_IFRAME[server] || vidsrcIframe;
     if (type === 'movie') {
         frame.innerHTML = builder(item.tmdbId, 'movie');
-        armAutoFallback(frame, server);
+        armAutoFallback(frame, server === 'milkbox' ? 'vidsrc' : server);
         const ifr = frame.querySelector('iframe'); if (ifr) hardenCloudIframe(ifr);
     } else {
         const se = season || item.season || 1;
         const ep = episode || 1;
         frame.innerHTML = builder(item.tmdbId, 'tv', se, ep);
-        armAutoFallback(frame, server);
+        armAutoFallback(frame, server === 'milkbox' ? 'vidsrc' : server);
         const ifr2 = frame.querySelector('iframe'); if (ifr2) hardenCloudIframe(ifr2);
-    }
-}
-
-async function renderMilkboxPlay(item, type, season, episode) {
-    const frame = document.getElementById('playerFrame');
-    if (!frame) return;
-    const id = item.tmdbId || item.imdbId || item.imdb_id;
-    if (!id) {
-        frame.innerHTML = '<div class="milkbox-player-empty">This title needs a TMDB or IMDb ID to look up playback.</div>';
-        return;
-    }
-    const idType = item.tmdbId ? 'tmdb' : 'imdb';
-    const context = playContext;
-    const request = { id, idType, type, season: season || 1, episode: episode || 1 };
-    clearAutoFallback();
-    stopCustomVideoPlayer(frame);
-    frame.innerHTML = '<div class="milkbox-player-empty">Resolving playback with the configured API…</div>';
-    try {
-        const playback = await MilkboxPlayer.resolvePlayback(request);
-        if (playContext !== context) return;
-        const subtitle = type === 'tv' ? `Season ${request.season} • Episode ${request.episode}` : item.year ? String(item.year) : '';
-        createCustomVideoPlayer(frame, playback.url, item.title, subtitle);
-        const video = frame.querySelector('video');
-        if (video) video.addEventListener('ended', _advanceToNextEpisode);
-    } catch (error) {
-        if (playContext !== context) return;
-        frame.innerHTML = `<div class="milkbox-player-empty">${escapeHtml(error.message || 'Playback resolution failed.')}</div>`;
     }
 }
 
