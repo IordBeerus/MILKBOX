@@ -23,6 +23,14 @@ function _milkboxNormalizeVideoSource(source) {
     }
 }
 
+function stopCustomVideoPlayer(container) {
+    const video = container?.querySelector('video');
+    if (!video) return;
+    video.pause();
+    video.removeAttribute('src');
+    video.load();
+}
+
 function _milkboxFormatTime(seconds) {
     if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
     const totalSeconds = Math.floor(seconds);
@@ -258,13 +266,5 @@ function createCustomVideoPlayer(container, sourceUrl, titleText, subtitleText) 
             error.hidden = false;
             container.querySelector('.milkbox-player-loading').hidden = true;
         }
-    }
-
-    function stopCustomVideoPlayer(container) {
-        const video = container?.querySelector('video');
-        if (!video) return;
-        video.pause();
-        video.removeAttribute('src');
-        video.load();
     }
 }
