@@ -1552,6 +1552,19 @@ body.light-mode .manga-drawer-item.active { background: #ffeaf3; color: #d6336c;
     font-size: 15px;
 }
 
+.catalog-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 20px;
+    background: rgba(229, 9, 20, 0.12);
+    border-bottom: 1px solid rgba(229, 9, 20, 0.3);
+    color: #ffd6d8;
+    font-size: 14px;
+    text-align: center;
+}
+.catalog-notice[hidden] { display: none; }
+
 /* ---- Live tab grid + pagination ---- */
 .content-grid {
     display: grid;

@@ -29,7 +29,7 @@ Personal media library for movies, TV shows, anime, and manga.
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 20.19 or newer
 - pnpm
 
 ## Installation
@@ -64,12 +64,7 @@ Deployed sites must use HTTPS for app installation; `localhost` is supported for
 
 ## Blocking Pop-up Ads
 
-<<<<<<< HEAD
-We have a **Built in ad blocking system** where you can enjoy ad free!.
-=======
 MILKBOX includes built-in, app-level protection for pop-ups opened by MILKBOX; no extension or userscript installation is needed for that protection. Website code cannot provide AdGuard's browser-wide protection: browsers isolate cross-origin playback frames and other websites from MILKBOX.
-
->>>>>>> a704609 (UPDATE 51)
 
 
 ## Render Deployment

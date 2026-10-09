@@ -4166,6 +4166,27 @@ async function tmdbJson(path) {
     return res.json();
 }
 
+async function checkCatalogAvailability() {
+    const notice = document.getElementById('catalogNotice');
+    if (!notice) return;
+    try {
+        const healthUrl = new URL('api/health', document.baseURI);
+        const response = await fetch(healthUrl, { headers: { accept: 'application/json' } });
+        const health = await response.json();
+        if (response.ok && health.ok === true) return;
+        if (health.tmdb === 'missing') {
+            notice.textContent = 'Live movie, TV, and anime catalogs need a TMDB credential. Configure TMDB_API_KEY or TMDB_ACCESS_TOKEN in the server environment (.env locally or your hosting settings), then restart or redeploy.';
+        } else {
+            notice.textContent = 'The live catalog service is unavailable. Check the server configuration and try again.';
+        }
+        notice.hidden = false;
+    } catch (error) {
+        console.error('[MILKBOX] Unable to check catalog service health:', error);
+        notice.textContent = 'Unable to reach the live catalog service. Open MILKBOX through its web server and check the server/network status.';
+        notice.hidden = false;
+    }
+}
+
 // Content certification (age rating) for a title, US first then UK fallback.
 async function tmdbCertification(type, id) {
     try {
@@ -6703,9 +6724,14 @@ async function loadAnimeLive() {
             renderGenreRows();
         }
     } catch (e) {
-        const sl = document.getElementById('moviesSlider');
-        if (sl && !sl.children.length) {
-            sl.innerHTML = `<div class="live-error">Couldn't load anime. Check your internet connection and try again.</div>`;
+        console.error('[MILKBOX] Unable to load live anime catalog:', e);
+        const movieGrid = document.getElementById('moviesSlider');
+        const tvGrid = document.getElementById('tvShowsSlider');
+        if (movieGrid && !movieGrid.children.length) {
+            movieGrid.innerHTML = '<div class="live-error">Could not load live anime. Check catalog service configuration and try again.</div>';
+        }
+        if (tvGrid && !tvGrid.children.length) {
+            tvGrid.innerHTML = '<div class="live-error">Could not load live anime. Check catalog service configuration and try again.</div>';
         }
     } finally {
         animeLive.loading = false;
@@ -7870,6 +7896,7 @@ function initAll() {
     try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
 }
 initAll();
+checkCatalogAvailability();
 
 // provider click delegation
 document.addEventListener('click', (e) => {
