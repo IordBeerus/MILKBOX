@@ -122,6 +122,20 @@
 
     <!-- Content Sections -->
     <div class="content-wrapper">
+        <section class="content-section home-discovery-section" id="homeRecommendationsSection" style="display:none">
+            <h3 class="section-title">Recommended for You</h3>
+            <p class="live-hint" id="homeRecommendationsHint"></p>
+            <div class="slider-container">
+                <button class="slider-btn slider-left" data-slider="homeRecommendationsSlider" aria-label="Scroll recommendations left">❮</button>
+                <div class="slider" id="homeRecommendationsSlider"></div>
+                <button class="slider-btn slider-right" data-slider="homeRecommendationsSlider" aria-label="Scroll recommendations right">❯</button>
+            </div>
+            <div class="pagination" id="homeRecommendationsPager" style="display:none"></div>
+        </section>
+        <section class="content-section home-discovery-section" id="exploreGenresSection" style="display:none">
+            <h3 class="section-title">Explore by Genre</h3>
+            <div class="home-genre-links" id="homeGenreLinks"></div>
+        </section>
         <section class="content-section" id="searchResultsSection" style="display:none">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
                 <h3 class="section-title" id="searchResultsTitle" style="margin-bottom:0">Search Results</h3>

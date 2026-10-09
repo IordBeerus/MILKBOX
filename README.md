@@ -16,6 +16,7 @@ Personal media library for movies, TV shows, anime, and manga.
 - MangaDex chapter reader with real page images
 - Free To Watch titles
 - Trending titles
+- Home recommendations based on your My List and quick genre exploration
 - Streaming titles
 - In-theater movies
 - My List

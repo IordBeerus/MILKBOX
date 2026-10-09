@@ -970,6 +970,7 @@ function renderAll() {
     renderTvShows();
     renderMyList();
     renderGenreRows();
+    renderHomeDiscovery();
     try { renderCollections(); } catch {}
     updateHero();
 }
@@ -1926,6 +1927,97 @@ function renderGenreRows() {
     container.innerHTML = html;
     toRender.forEach(({ key, items }) => renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key));
 }
+
+function renderHomeDiscovery() {
+    if (currentSection !== 'home') return;
+
+    const recommendationsSection = document.getElementById('homeRecommendationsSection');
+    const recommendationsHint = document.getElementById('homeRecommendationsHint');
+    const recommendationsSlider = document.getElementById('homeRecommendationsSlider');
+    const recommendationPager = document.getElementById('homeRecommendationsPager');
+    const genreSection = document.getElementById('exploreGenresSection');
+    const genreLinks = document.getElementById('homeGenreLinks');
+    if (!recommendationsSection || !recommendationsSlider || !genreSection || !genreLinks) return;
+
+    const type = homeFilter === 'tvshows' ? 'tv' : 'movie';
+    const localItems = (type === 'tv' ? tvShows : movies)
+        .filter(item => completeItem(item) && !isAnime(item));
+    const listKeys = new Set(myList.map(item => `${item.type === 'tv' ? 'tv' : 'movie'}:${item.tmdbId || item.id || item.title}`));
+    const localCandidates = localItems.filter(item =>
+        !listKeys.has(`${type}:${item.tmdbId || item.id || item.title}`)
+    );
+    const candidates = localCandidates.length
+        ? localCandidates
+        : (liveState.trending.items || []).filter(item =>
+            item.type === type && !isAnime(item) &&
+            !listKeys.has(`${type}:${item.tmdbId || item.id || item.title}`)
+        );
+    const watchedGenres = new Map();
+    myList.forEach(item => {
+        if (isAnime(item)) return;
+        genArr(item.genre).forEach(genre => {
+            const key = String(genre).trim().toLowerCase();
+            if (key) watchedGenres.set(key, (watchedGenres.get(key) || 0) + 1);
+        });
+    });
+    const matches = candidates.filter(item =>
+        genArr(item.genre).some(genre => watchedGenres.has(String(genre).trim().toLowerCase()))
+    );
+    const ranked = (matches.length ? matches : candidates)
+        .map((item, index) => {
+            const genreScore = genArr(item.genre).reduce((score, genre) =>
+                score + (watchedGenres.get(String(genre).trim().toLowerCase()) || 0), 0);
+            const rating = Number.parseFloat(item.rating) || 0;
+            return { item, index, score: genreScore * 10 + rating };
+        })
+        .sort((a, b) => b.score - a.score || a.index - b.index)
+        .map(entry => entry.item);
+
+    recommendationsSection.style.display = ranked.length ? '' : 'none';
+    if (ranked.length) {
+        if (recommendationsHint) {
+            recommendationsHint.textContent = matches.length
+                ? 'Picked to match the genres in your My List.'
+                : localCandidates.length
+                    ? 'Top-rated picks from your library.'
+                    : 'Trending picks to get you started.';
+        }
+        renderSlider('homeRecommendationsSlider', ranked, type, 'homeRecommendationsPager', 'homeRecommendations');
+    } else {
+        recommendationsSlider.replaceChildren();
+        if (recommendationPager) recommendationPager.style.display = 'none';
+    }
+
+    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    const counts = new Map();
+    pool.forEach(item => genArr(item.genre).forEach(genre => {
+        const key = String(genre).trim();
+        if (key) counts.set(key, (counts.get(key) || 0) + 1);
+    }));
+    const labels = new Map(GENRE_ROWS.map(({ key, label }) => [key, label]));
+    const genreKey = key => String(key).trim().toLowerCase();
+    const knownKeys = GENRE_ROWS.map(({ key }) =>
+        [...counts.keys()].find(candidate => genreKey(candidate) === key)
+    ).filter(Boolean);
+    const knownSet = new Set(knownKeys.map(genreKey));
+    const keys = [
+        ...knownKeys,
+        ...[...counts.keys()].filter(key => !knownSet.has(genreKey(key))).sort((a, b) => counts.get(b) - counts.get(a))
+    ];
+    genreSection.style.display = keys.length ? '' : 'none';
+    genreLinks.innerHTML = keys.map(key => {
+        const normalizedKey = genreKey(key);
+        const label = labels.get(normalizedKey) || key.charAt(0).toUpperCase() + key.slice(1);
+        return `<button class="home-genre-link" type="button" data-home-genre="${escapeHtml(key)}">${escapeHtml(label)}<span>${counts.get(key)}</span></button>`;
+    }).join('');
+}
+
+document.addEventListener('click', (e) => {
+    const button = e.target.closest('.home-genre-link[data-home-genre]');
+    if (!button) return;
+    const section = document.getElementById(`genreSection-${button.dataset.homeGenre}`);
+    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
 
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn[data-animegenre]');
@@ -5717,6 +5809,7 @@ const [gridId, pagerId] = liveGridIds(key);
         delete liveFed[key];
         renderLiveGrid(key, grid, pager);
         if (currentSection === key) showLiveHero(key);
+        if (currentSection === 'home') renderHomeDiscovery();
     }
 }
 
@@ -6655,6 +6748,8 @@ function handleNavClick(link, e) {
             document.body.classList.add(section + '-active');
         }
         const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
+        show('homeRecommendationsSection', section === 'home');
+        show('exploreGenresSection', section === 'home');
         show('providerSection', section==='home' || section==='streaming');
         show('providersSection', section==='providers');
         show('collectionsSection', section==='home');
@@ -6889,6 +6984,7 @@ function applyHomeFilter() {
             const t2 = document.querySelector('#tvShowsSection .section-title'); if (t2) t2.textContent = 'TV Shows';
         }
         try { renderGenreRows(); } catch(e){ console.error(e); }
+        try { renderHomeDiscovery(); } catch(e){ console.error(e); }
     } catch(e){ console.error('applyHomeFilter', e); }
     try { renderCollections(); } catch {}
     document.querySelectorAll('.home-pill').forEach(b=> b.classList.toggle('active', b.dataset.filter===homeFilter));
