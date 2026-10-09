@@ -2422,6 +2422,15 @@ body.light-mode .empty-state-icon svg { fill: #111 !important; }
     gap: 16px;
     margin-bottom: 14px;
 }
+.player-modal .player-content > .player-header {
+    position: relative;
+    z-index: 2;
+}
+.player-modal .player-content > .player-header #serverSelector {
+    display: flex !important;
+    visibility: visible;
+    opacity: 1;
+}
 .player-header .server-selector {
     flex: 1;
     margin-bottom: 0;
