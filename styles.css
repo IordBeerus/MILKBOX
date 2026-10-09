@@ -68,10 +68,10 @@ body.light-mode .help-text { color: #777; }
 body.light-mode .toggle-btn { color: #666; }
 body.light-mode .toggle-group { background: #f0f0f0; border-color: #ccc; }
 body.light-mode .toggle-btn.active { background: #e50914; color: #fff; }
-body.light-mode .drive-ep-row input,
+body.light-mode .url-ep-row input,
 body.light-mode .edit-ep-row input,
 body.light-mode .ep-name-input,
-body.light-mode .ep-drive-input {
+body.light-mode .ep-url-input {
     background: #fff;
     border-color: #ccc;
     color: #111;
@@ -2309,21 +2309,21 @@ body.light-mode .empty-state-icon svg { fill: #111 !important; }
     background: rgba(255,255,255,0.05);
 }
 
-/* Drive episode input */
-.drive-ep-inputs {
+/* Direct video URL episode input */
+.url-ep-inputs {
     margin-bottom: 15px;
 }
-.drive-ep-row {
+.url-ep-row {
     display: flex;
     gap: 8px;
     margin-bottom: 8px;
     flex-wrap: wrap;
 }
-.drive-ep-row .ep-name-input {
+.url-ep-row .ep-name-input {
     flex: 1;
     min-width: 150px;
 }
-.drive-ep-row .ep-drive-input {
+.url-ep-row .ep-url-input {
     flex: 2;
     min-width: 200px;
 }
@@ -3341,8 +3341,8 @@ body.light-mode .settings-card {
     .search-box input { width: 120px; }
     .btn-about-blank { font-size: 11px; padding: 6px 10px; }
     .theme-grid { grid-template-columns: repeat(2, 1fr); }
-    .drive-ep-row { flex-direction: column; }
-    .drive-ep-row .btn-add-ep { width: 100%; }
+    .url-ep-row { flex-direction: column; }
+    .url-ep-row .btn-add-ep { width: 100%; }
 }
 
 /* =====================================================================

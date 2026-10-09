@@ -92,7 +92,7 @@
     <div class="hero" id="heroSection">
         <div class="hero-content">
             <h2 class="hero-title" id="heroTitle">Welcome to MILKBOX</h2>
-            <p class="hero-desc" id="heroDesc">Your personal streaming platform. Add movies via Google Drive or upload TV shows.</p>
+            <p class="hero-desc" id="heroDesc">Your personal streaming platform. Add direct video URLs or upload TV episodes.</p>
             <img class="hero-logo" id="heroLogo" alt="Hero Logo" style="display:none">
             <div class="hero-buttons">
                 <button class="btn-primary" id="heroPlayBtn"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z"/></svg> Play</button>
@@ -362,7 +362,7 @@
                         <label for="movieTmdbId">TMDB ID (optional)</label>
                         <input type="text" id="movieTmdbId" placeholder="27205">
                         <button type="button" class="btn-tmdb" id="movieFetchTmdb">Load from TMDB</button>
-                        <small class="help-text">Playback via a TMDB-powered player. Enter an ID like 27205, then click "Load from TMDB" to auto-fill title, poster, and more. If filled, Play uses this; otherwise it uses the Drive link below.</small>
+                        <small class="help-text">Playback via a TMDB-powered player. Enter an ID like 27205, then click "Load from TMDB" to auto-fill title, poster, and more. If filled, Play uses this; otherwise it plays the direct video URL below.</small>
                     </div>
                     <div class="form-group">
                         <label for="movieImdbId">IMDb ID (optional) — auto-scan</label>
@@ -371,9 +371,9 @@
                     </div>
                     <input type="hidden" id="movieCertification">
                     <div class="form-group">
-                        <label for="movieDriveLink">Google Drive Link</label>
-                        <input type="url" id="movieDriveLink" placeholder="https://drive.google.com/file/d/...">
-                        <small class="help-text">Paste your Google Drive share link. Set sharing to "Anyone with the link". Optional if a TMDB ID is set.</small>
+                        <label for="movieVideoUrl">Direct Video URL (optional)</label>
+                        <input type="url" id="movieVideoUrl" placeholder="https://example.com/video.mp4">
+                        <small class="help-text">Use a direct MP4, WebM, Ogg, or HLS video URL. Optional if a TMDB ID is set.</small>
                     </div>
                     <button type="submit" class="btn-submit">Add Movie</button>
                 </form>
@@ -438,27 +438,26 @@
                     <div class="episode-source-toggle">
                         <label class="toggle-label">Episode Source</label>
                         <div class="toggle-group">
-                            <button type="button" class="toggle-btn active" data-source="drive" id="epSourceDrive">Google Drive Links</button>
+                            <button type="button" class="toggle-btn active" data-source="url" id="epSourceUrl">Video URLs</button>
                             <button type="button" class="toggle-btn" data-source="file" id="epSourceFile">Upload Files</button>
                         </div>
                     </div>
 
-                    <!-- Drive links episode input -->
-                    <div id="epDriveSection">
+                    <div id="epUrlSection">
                         <div class="form-group">
-                            <label>Add Episodes via Google Drive</label>
+                            <label>Add Episodes via Direct Video URL</label>
                             <small class="help-text">Add episodes one by one. They will be listed in order below.</small>
                         </div>
-                        <div class="drive-ep-inputs">
-                            <div class="drive-ep-row">
+                        <div class="url-ep-inputs">
+                            <div class="url-ep-row">
                                 <input type="text" class="ep-name-input" placeholder="Episode name (e.g. S01E01 - Pilot)">
-                                <input type="url" class="ep-drive-input" placeholder="Google Drive link">
-                                <button type="button" class="btn-add-ep" id="addDriveEpBtn">+ Add</button>
+                                <input type="url" class="ep-url-input" placeholder="https://example.com/episode.mp4">
+                                <button type="button" class="btn-add-ep" id="addUrlEpBtn">+ Add</button>
                             </div>
                         </div>
-                        <div class="form-group" id="driveEpisodeListContainer" style="display:none;">
+                        <div class="form-group" id="urlEpisodeListContainer" style="display:none;">
                             <label>Episodes (Drag to reorder)</label>
-                            <div id="driveEpisodeList"></div>
+                            <div id="urlEpisodeList"></div>
                         </div>
                     </div>
 
@@ -490,6 +489,7 @@
                     <div class="server-select-wrap">
                         <select id="serverSelect" class="server-dropdown">
                             <option value="auto">Auto (Smart Fallback)</option>
+                            <option value="direct">Direct Video URL / Upload</option>
                             <option value="phantom">Phantom (40+ Sources)</option>
                             <option value="cinesrc">CineSRC</option>
                             <option value="vidsrcsbs">VidSrc SBS</option>
@@ -523,7 +523,6 @@
                             <option value="autoembedanime" id="serverOptAutoembedAnime">AutoEmbed.app (Anime)</option>
                             <option value="animekai" id="serverOptAnimekai">Megavid (Anime Sub/Dub)</option>
                             <option value="kisskh">KissKH (All Genres) — via megavid.buzz</option>
-                            <option value="drive">Google Drive</option>
                         </select>
                     </div>
                 </div>
@@ -630,7 +629,6 @@
                             <button class="anime-server-btn" data-srv="vidsrctop">HD-17</button>
                             <button class="anime-server-btn" data-srv="toustream">HD-18</button>
                             <button class="anime-server-btn" data-srv="vidfast">HD-19</button>
-                            <button class="anime-server-btn" data-srv="hd20">HD-20</button>
                         </div>
                         <div class="anime-movie-fallback" id="animeMovieFallback">If all servers failed then try this…</div>
                     </div>
@@ -941,19 +939,19 @@
                     </div>
                 </div>
                 <div class="settings-card">
-                    <h3 class="settings-card-title">Block Pop-up Ads</h3>
-                    <p class="settings-card-desc">AdGuard PopupBlocker blocks pop-up and pop-under windows when installed through a userscript manager.</p>
+                    <h3 class="settings-card-title">Pop-up Protection</h3>
+                    <p class="settings-card-desc">MILKBOX includes built-in protection for pop-ups opened by the app. No installation is needed.</p>
                     <div class="settings-card-body">
                         <div class="settings-row">
                             <div class="settings-row-info">
-                                <div class="settings-row-label">Install the official userscript</div>
-                                <div class="settings-row-desc">First install a userscript manager such as Tampermonkey, Violentmonkey, or Greasemonkey. Then open the official script and confirm its installation. This blocks pop-ups, not banners or in-player video ads. Playback providers run in cross-origin frames, so blocking there depends on your browser and userscript manager.</div>
+                                <div class="settings-row-label">Optional: browser-wide protection</div>
+                                <div class="settings-row-desc">For protection on other websites, install AdGuard PopupBlocker with a compatible userscript manager. MILKBOX cannot control pop-ups opened inside cross-origin playback providers, and this built-in protection does not remove banners or in-player video ads.</div>
                             </div>
                             <div class="settings-row-control">
-                                <a class="settings-apply-btn" style="display:inline-block;text-decoration:none" href="https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js" target="_blank" rel="noopener noreferrer">Get PopupBlocker</a>
+                                <a class="settings-apply-btn" style="display:inline-block;text-decoration:none" href="https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js" target="_blank" rel="noopener noreferrer">Install AdGuard PopupBlocker</a>
                             </div>
                         </div>
-                        <div class="settings-row-desc">MILKBOX does not install or run third-party scripts automatically. See the <a href="https://github.com/AdguardTeam/PopupBlocker" target="_blank" rel="noopener noreferrer">official project instructions</a> for supported managers and setup details.</div>
+                        <div class="settings-row-desc">The optional userscript requires a userscript manager. See the <a href="https://github.com/AdguardTeam/PopupBlocker" target="_blank" rel="noopener noreferrer">official project instructions</a> for supported managers and setup details.</div>
                     </div>
                 </div>
             </div>

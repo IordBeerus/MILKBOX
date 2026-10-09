@@ -1,4 +1,4 @@
-/* MILKBOX Google Drive Iframe Player Styles */
+/* MILKBOX custom video player styles */
 .material-symbols-outlined {
     font-family: 'Material Symbols Outlined';
     font-weight: normal;
@@ -15,35 +15,232 @@
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'liga';
 }
-.milkbox-cp-badge {
-    background: #e50914;
+.milkbox-player {
+    --milkbox-accent: #ffb6d8;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #050507;
     color: #fff;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 6px;
-    letter-spacing: 0.5px;
-    box-shadow: 0 2px 8px rgba(229,9,20,0.4);
+    font-family: 'Outfit', sans-serif;
+    outline: none;
+}
+.milkbox-player-empty {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 160px;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: rgba(255,255,255,0.68);
+    font-size: 14px;
+    text-align: center;
+}
+.milkbox-player-video {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #050507;
+    object-fit: contain;
+}
+.milkbox-player-loading {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(0,0,0,0.38);
+    color: rgba(255,255,255,0.78);
+    font-size: 13px;
+    pointer-events: none;
+}
+.milkbox-player-loading[hidden],
+.milkbox-player-error[hidden] { display: none; }
+.milkbox-player-loading > span:first-child {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top-color: var(--milkbox-accent);
+    border-radius: 50%;
+    animation: milkbox-player-spin 0.8s linear infinite;
+}
+@keyframes milkbox-player-spin { to { transform: rotate(360deg); } }
+.milkbox-player-error {
+    position: absolute;
+    z-index: 5;
+    left: 50%;
+    top: 50%;
+    max-width: min(420px, calc(100% - 40px));
+    padding: 15px 18px;
+    border: 1px solid rgba(255,182,216,0.25);
+    border-radius: 12px;
+    background: rgba(18,15,20,0.94);
+    color: #fff;
+    font-size: 14px;
+    line-height: 1.5;
+    text-align: center;
+    transform: translate(-50%, -50%);
+}
+.milkbox-player-center-play {
+    position: absolute;
+    z-index: 4;
+    top: 50%;
+    left: 50%;
+    display: grid;
+    width: 68px;
+    height: 68px;
+    padding: 0;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 50%;
+    background: rgba(255,182,216,0.92);
+    color: #171018;
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0.9);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.milkbox-player-center-play .material-symbols-outlined { font-size: 38px; }
+.milkbox-player.is-paused .milkbox-player-center-play {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, -50%) scale(1);
+}
+.milkbox-player-controls {
+    position: absolute;
+    z-index: 6;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    padding: 35px 20px 15px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.92));
+    opacity: 1;
+    transition: opacity 0.2s ease;
+}
+.milkbox-player.controls-hidden { cursor: none; }
+.milkbox-player.controls-hidden .milkbox-player-controls,
+.milkbox-player.controls-hidden .milkbox-player-center-play { opacity: 0; pointer-events: none; }
+.milkbox-player-seek {
+    display: block;
+    width: 100%;
+    height: 4px;
+    margin: 0 0 10px;
+    border-radius: 10px;
+    outline: none;
+    appearance: none;
+    background: linear-gradient(to right, var(--milkbox-accent) var(--milkbox-progress, 0%), rgba(255,255,255,0.38) var(--milkbox-progress, 0%));
+    cursor: pointer;
+}
+.milkbox-player-seek::-webkit-slider-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    appearance: none;
+    background: var(--milkbox-accent);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+.milkbox-player-seek::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--milkbox-accent);
+    box-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+.milkbox-player-control-row,
+.milkbox-player-control-group,
+.milkbox-player-speed-label {
+    display: flex;
+    align-items: center;
+}
+.milkbox-player-control-row { gap: 14px; }
+.milkbox-player-control-group { gap: 11px; }
+.milkbox-player-button {
+    display: inline-grid;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #fff;
+    cursor: pointer;
+}
+.milkbox-player-button:hover { background: rgba(255,255,255,0.13); color: var(--milkbox-accent); }
+.milkbox-player-button .material-symbols-outlined { font-size: 23px; }
+.milkbox-player-time {
+    color: rgba(255,255,255,0.82);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
-.milkbox-cp-back-btn {
-    background: rgba(255,255,255,0.12);
-    border: none;
+.milkbox-player-title {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    text-align: center;
+}
+.milkbox-player-title strong,
+.milkbox-player-title > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.milkbox-player-title strong { font-size: 13px; font-weight: 700; }
+.milkbox-player-title > span { color: rgba(255,255,255,0.62); font-size: 11px; }
+.milkbox-player-volume {
+    width: 72px;
+    accent-color: var(--milkbox-accent);
+}
+.milkbox-player-speed-label {
+    gap: 4px;
     color: #fff;
-    border-radius: 50%;
+}
+.milkbox-player-speed-label .material-symbols-outlined { font-size: 18px; }
+.milkbox-player-speed {
+    max-width: 75px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+.milkbox-player-speed option { background: #17141a; color: #fff; }
+.milkbox-player:fullscreen {
     display: flex;
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
 }
-.milkbox-cp-back-btn:hover {
-    background: rgba(229,9,20,0.8);
+.milkbox-player:fullscreen .milkbox-player-video {
+    width: 100vw;
+    height: 100vh;
 }
-.milkbox-drive-frame {
-    width: 100%;
-    flex: 1;
-    border: none;
-    background: #000;
+.milkbox-player button:focus-visible,
+.milkbox-player input:focus-visible,
+.milkbox-player select:focus-visible {
+    outline: 2px solid var(--milkbox-accent);
+    outline-offset: 2px;
+}
+@media (max-width: 600px) {
+    .milkbox-player-controls { padding: 30px 10px 9px; }
+    .milkbox-player-control-row { gap: 4px; }
+    .milkbox-player-control-group { gap: 5px; }
+    .milkbox-player-title { display: none; }
+    .milkbox-player-volume { width: 48px; }
+    .milkbox-player-actions { gap: 0; margin-left: auto; }
+    .milkbox-player-speed-label .material-symbols-outlined { display: none; }
+    .milkbox-player-speed { max-width: 62px; }
+    .milkbox-player-time { font-size: 11px; }
 }

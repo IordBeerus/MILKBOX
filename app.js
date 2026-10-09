@@ -80,7 +80,7 @@ let _activeBgUrl = null;
     if (settings.autoPlayNext === undefined) { settings.autoPlayNext = true; changed = true; }
     if (changed) localStorage.setItem('sf_settings', JSON.stringify(settings));
 })();
-let uploadedDriveEps = [];
+let uploadedUrlEps = [];
 let uploadedFileEps = [];
 let currentInfoItem = null;
 let currentInfoType = null;
@@ -141,7 +141,7 @@ let currentInfoType = null;
     };
     const allowUrl = (u) => {
         const s = String(u||'');
-        return s === 'about:blank' || s === '' || s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('https://drive.google.com') || s.startsWith('https://www.youtube.com/embed/');
+        return s === 'about:blank' || s === '' || s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('https://www.youtube.com/embed/');
     };
     window.open = function(url, name, specs){
         const u = String(url||'');
@@ -210,7 +210,7 @@ function hardenCloudIframe(iframe){
         if (cw) cw.open = window.open;
     } catch {}
     // Show shield for cloud iframes so first click is intercepted (prevents ad popup on first interaction)
-    // Don't show for Drive or for megavid anime which is low-ad; detect via src
+    // Don't show for direct-file playback or megavid anime, which is low-ad; detect via src.
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
         const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(src);
@@ -404,18 +404,21 @@ function toast(msg, type = '') {
     setTimeout(() => t.className = 'toast', 3000);
 }
 
-function convertDriveLink(url) {
-    if (!url || typeof url !== 'string') return '';
-    const trimmed = url.trim();
-    if (/^\s*javascript:/i.test(trimmed) || /^\s*data:/i.test(trimmed) || /^\s*vbscript:/i.test(trimmed)) return '';
-    const match = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-    if (match) return `https://drive.google.com/file/d/${match[1]}/preview`;
-    const match2 = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-    if (match2) return `https://drive.google.com/file/d/${match2[1]}/preview`;
-    if (trimmed.includes('drive.google.com')) {
-        return trimmed.replace('/view', '/preview').replace('/edit', '/preview');
+function getVideoSource(item) {
+    if (!item) return '';
+    for (const source of [item.blobUrl, item.videoUrl, item.url, item.driveLink]) {
+        if (typeof source !== 'string' || !source.trim()) continue;
+        try {
+            const url = new URL(source.trim(), window.location.href);
+            if (!['http:', 'https:', 'blob:'].includes(url.protocol)) continue;
+            const host = url.hostname.toLowerCase();
+            if (host === 'drive.google.com' || host.endsWith('.drive.google.com') ||
+                host === 'docs.google.com' || host.endsWith('.docs.google.com') ||
+                host === 'drive.usercontent.google.com') continue;
+            return url.href;
+        } catch {}
     }
-    return trimmed;
+    return '';
 }
 
 function formatSize(bytes) {
@@ -2261,7 +2264,7 @@ function updateHero() {
         const heroTitle = document.getElementById('heroTitle');
         heroTitle.textContent = 'Welcome to MILKBOX';
         heroTitle.style.display = '';
-        document.getElementById('heroDesc').textContent = 'Your personal streaming platform. Add movies via Google Drive or upload TV shows.';
+        document.getElementById('heroDesc').textContent = 'Your personal streaming platform. Add direct video URLs or upload TV episodes.';
         document.getElementById('heroSection').style.backgroundImage = '';
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
@@ -2926,7 +2929,7 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
 
 // Current play context + selected server for the player.
 let playContext = null;
-let playerServer = settings.playerServer || 'auto';
+let playerServer = ['drive', 'hd20'].includes(settings.playerServer) ? 'direct' : (settings.playerServer || 'auto');
 
 function serverBtnActive() {
     const sel = document.getElementById('serverSelect');
@@ -2934,17 +2937,16 @@ function serverBtnActive() {
 }
 
 function effectiveServerFor(item, type) {
-    // Drive-file servers (Google Drive links / uploaded episodes): direct playback servers.
-    if (['drive', 'hd20'].includes(playerServer)) return playerServer;
+    if (playerServer === 'direct') return 'direct';
     if (['vidhawk','anixo','autoembedanime'].includes(playerServer)) {
         if (isAnime(item)) return playerServer;
-        return item.tmdbId ? 'tmdb' : 'drive';
+        return item.tmdbId ? 'tmdb' : 'direct';
     }
     if (['tmdb','phantom','cinesrc','vidsrc','vidsrcsbs','vidcore','videasy','superembed','twoembed','autoembed','smashystream','vidfast','vidlink','embedsu','nontongo','animekai','kisskh','vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream'].includes(playerServer)) return playerServer;
     // Auto: for anime with AnimeKai available, prefer it; otherwise TMDB
     if (isAnime(item) && currentAnimekaiMalId) return 'animekai';
-    // Auto: prefer TMDB (now Vidsrc) when an ID exists, otherwise fall back to Drive.
-    return item.tmdbId ? 'tmdb' : 'drive';
+    // Auto: prefer TMDB (now Vidsrc) when an ID exists, otherwise play the direct source.
+    return item.tmdbId ? 'tmdb' : 'direct';
 }
 
 // Ordered list used for automatic server fallback (TMDB-based sources only).
@@ -3155,23 +3157,6 @@ function renderTmdbPlay(server) {
         renderKissKhPlay(item, type, season, episode);
         return;
     }
-    // Drive-file servers (HD-20 shows the item's Google Drive file(s) directly).
-    if (server === 'drive' || server === 'hd20') {
-        if (type === 'movie') {
-            const driveLink = convertDriveLink(item.driveLink);
-            if (driveLink) {
-                createCustomVideoPlayer(frame, driveLink, item.title, item.year ? `${item.year}` : '');
-            } else {
-                frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No Google Drive link on this server</div>`;
-            }
-        } else if (item.episodes && item.episodes.length > 0) {
-            renderEpisodePlaylist(item);
-            playEpisode(item, item.episodes[0], 0);
-        } else {
-            frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No uploaded episodes on Drive for this show</div>`;
-        }
-        return;
-    }
     if (!item.tmdbId) return;
     const builder = SERVER_IFRAME[server] || vidsrcIframe;
     if (type === 'movie') {
@@ -3223,7 +3208,7 @@ function renderPlay() {
     // per-item resolved id (so each show plays ITS OWN title, not the same one). Items that carry a
     // kisskh episode id (any genre — drama, K-show, movie, BL, anime) use /kisskh/{episode-id}.
     const isAnimeTitle = isAnime(item);
-    if (isAnimeTitle) {
+    if (isAnimeTitle && effectiveServerFor(item, type) !== 'direct') {
         const langSel = document.getElementById('animeLangSelector');
         if (langSel) langSel.style.display = 'flex';
         serverBtnActive();
@@ -3289,6 +3274,7 @@ function renderPlay() {
     const langSel2 = document.getElementById('animeLangSelector');
     if (langSel2) langSel2.style.display = isAnimeTitle ? 'flex' : 'none';
     const server = effectiveServerFor(item, type);
+    stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
     serverBtnActive();
 
@@ -3298,12 +3284,12 @@ function renderPlay() {
         epSelector.style.display = 'none';
         if (server === 'kisskh' || (isTmdbServer && item.tmdbId)) {
             renderTmdbPlay(server);
-        } else if (['drive', 'hd20'].includes(server) || (server === 'auto' && !item.tmdbId)) {
-            const driveLink = convertDriveLink(item.driveLink);
-            if (driveLink) {
-                createCustomVideoPlayer(frame, driveLink, item.title, item.year ? `${item.year}` : '');
+        } else if (server === 'direct') {
+            const videoUrl = getVideoSource(item);
+            if (videoUrl) {
+                createCustomVideoPlayer(frame, videoUrl, item.title, item.year ? `${item.year}` : '');
             } else {
-                frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No Google Drive link on this server</div>`;
+                frame.innerHTML = `<div class="milkbox-player-empty">Add a direct video URL or TMDB ID to play this title.</div>`;
             }
         } else {
             frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source on this server</div>`;
@@ -3318,13 +3304,13 @@ function renderPlay() {
             epSelector.style.display = 'block';
             renderTmdbEpisodes(item, server);
             playTmdbEpisode(item, item.season || 1, 1, server);
-        } else if (['drive', 'hd20'].includes(server) && item.episodes && item.episodes.length > 0) {
+        } else if (server === 'direct' && item.episodes && item.episodes.length > 0) {
             epSelector.style.display = 'block';
             renderEpisodePlaylist(item);
             playEpisode(item, item.episodes[0], 0);
         } else {
             epSelector.style.display = 'none';
-            frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">${['drive', 'hd20'].includes(server) ? 'No uploaded episodes on Drive for this show' : 'No episodes available on this server'}</div>`;
+            frame.innerHTML = `<div class="milkbox-player-empty">${server === 'direct' ? 'Add direct video URLs or upload episodes to play this show.' : 'No episodes available on this server.'}</div>`;
         }
     }
 }
@@ -3338,6 +3324,7 @@ function playItem(item, type) {
     clearAutoFallback();
     try { hidePopupShield(); } catch {}
     title.textContent = item.title;
+    stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
     playContext = { item, type };
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
@@ -3655,6 +3642,23 @@ function playTmdbEpisode(tvItem, season, episode, server) {
         subtitle.textContent = `Season ${season || 1} • Episode ${episode}`;
         playContext = { item: tvItem, type: 'tv', season: season || 1, episode };
     }
+    if (server === 'direct') {
+        stopCustomVideoPlayer(frame);
+        if (isMovie) {
+            const videoUrl = getVideoSource(tvItem);
+            if (videoUrl) createCustomVideoPlayer(frame, videoUrl, tvItem.title, tvItem.year ? `${tvItem.year}` : '');
+            else frame.innerHTML = '<div class="milkbox-player-empty">Add a direct video URL to play this title.</div>';
+        } else {
+            const episodeIndex = Number(episode) - 1;
+            const directEpisodes = Array.isArray(tvItem.episodes) ? tvItem.episodes : [];
+            if (Number.isInteger(episodeIndex) && episodeIndex >= 0 && directEpisodes[episodeIndex]) {
+                playEpisode(tvItem, directEpisodes[episodeIndex], episodeIndex);
+            } else {
+                frame.innerHTML = '<div class="milkbox-player-empty">No direct video source is available for this episode.</div>';
+            }
+        }
+        return;
+    }
     try{ if(isAnime(tvItem)){ renderAnimeTheaterBreadcrumb(tvItem); updateAnimePrevNextState(); setTimeout(()=>{ try{renderAnimeEpisodeListDOM();}catch{} }, 80); } }catch{}
     renderTmdbPlay(server);
 }
@@ -3669,7 +3673,7 @@ function renderEpisodePlaylist(tvItem) {
             <div class="ep-num">${i + 1}</div>
             <div class="ep-info">
                 <div class="ep-title">${escapeHtml(ep.name)}</div>
-                <div class="ep-size">${ep.size ? formatSize(ep.size) : (ep.driveLink ? 'Google Drive' : '')}</div>
+                <div class="ep-size">${ep.size ? formatSize(ep.size) : (getVideoSource(ep) ? 'Video URL' : '')}</div>
             </div>
         `;
         div.onclick = () => {
@@ -3689,30 +3693,23 @@ function playEpisode(tvItem, episode, index) {
     subtitle.textContent = `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`;
     // Keep playContext in sync for auto-play next
     playContext = { item: tvItem, type: 'tv', season: tvItem.season || 1, episode: index + 1 };
+    stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
 
-    if (episode.blobUrl) {
-        createCustomVideoPlayer(frame, episode.blobUrl, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
+    const videoUrl = getVideoSource(episode);
+    if (videoUrl) {
+        createCustomVideoPlayer(frame, videoUrl, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
         const vid = frame.querySelector('video');
-        if (vid) {
-            vid.addEventListener('ended', () => {
-                if (settings.autoPlayNext === false) return;
-                const nextIdx = index + 1;
-                if (nextIdx < tvItem.episodes.length) {
-                    try { toast(`Playing next: Episode ${nextIdx + 1}`, 'success'); } catch {}
-                    const nextEp = tvItem.episodes[nextIdx];
-                    // update active state
-                    document.querySelectorAll('#episodePlaylist .ep-play-item').forEach((el,i)=> el.classList.toggle('active', i===nextIdx));
-                    playEpisode(tvItem, nextEp, nextIdx);
-                }
-            });
-        }
-    } else if (episode.driveLink) {
-        const driveLink = convertDriveLink(episode.driveLink);
-        createCustomVideoPlayer(frame, driveLink, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
-    } else if (episode.url) {
-        const driveLink = convertDriveLink(episode.url);
-        createCustomVideoPlayer(frame, driveLink, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
+        if (vid) vid.addEventListener('ended', () => {
+            if (settings.autoPlayNext === false) return;
+            const nextIdx = index + 1;
+            if (nextIdx < tvItem.episodes.length) {
+                toast(`Playing next: Episode ${nextIdx + 1}`, 'success');
+                const nextEp = tvItem.episodes[nextIdx];
+                document.querySelectorAll('#episodePlaylist .ep-play-item').forEach((el, i) => el.classList.toggle('active', i === nextIdx));
+                playEpisode(tvItem, nextEp, nextIdx);
+            }
+        });
     } else {
         frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source</div>`;
     }
@@ -3882,9 +3879,10 @@ function showInfo(item, type) {
     document.getElementById('infoEditBtn').onclick = () => { modal.classList.remove('active'); openEdit(sourceItem, type); };
     const dlBtn = document.getElementById('infoDownloadBtn');
     if (dlBtn) dlBtn.onclick = () => {
-        const url = sourceItem.driveLink ? convertDriveLink(sourceItem.driveLink) : (sourceItem.poster || sourceItem.backdrop || '');
+        const videoUrl = getVideoSource(sourceItem);
+        const url = videoUrl || (sourceItem.poster || sourceItem.backdrop || '');
         if (!url) { toast('No download available for this title', 'error'); return; }
-        if (sourceItem.driveLink) {
+        if (videoUrl) {
             window.open(url, '_blank');
             toast('Opening download...', 'success');
         } else {
@@ -3927,7 +3925,7 @@ function openEdit(item, type) {
         episodesHTML = item.episodes.map((ep, i) => `
             <div class="edit-ep-row">
                 <input type="text" class="edit-ep-name" value="${escapeHtml(ep.name)}" data-i="${i}" placeholder="Episode name">
-                <input type="url" class="edit-ep-src" value="${escapeHtml(ep.driveLink || ep.url || '')}" data-i="${i}" placeholder="Drive link or URL">
+                <input type="url" class="edit-ep-src" value="${escapeHtml(getVideoSource({ videoUrl: ep.videoUrl || ep.url || ep.driveLink }))}" data-i="${i}" placeholder="Direct video URL">
             </div>`).join('');
     }
 
@@ -3972,11 +3970,11 @@ function openEdit(item, type) {
                 <label for="editTmdbId">TMDB ID (optional)</label>
                 <input type="text" id="editTmdbId" placeholder="27205" value="${escapeHtml(item.tmdbId || '')}">
                 <button type="button" class="btn-tmdb" id="editFetchTmdb">Load from TMDB</button>
-                <small class="help-text">Playback via a TMDB-powered player. If filled, Play uses this; otherwise it uses the Drive link below.</small>
+                <small class="help-text">Playback via a TMDB-powered player. If filled, Play uses this; otherwise it uses the direct video URL below.</small>
             </div>
             <div class="form-group">
-                <label for="editDriveLink">Google Drive Link</label>
-                <input type="url" id="editDriveLink" value="${escapeHtml(item.driveLink || '')}">
+                <label for="editVideoUrl">Direct Video URL</label>
+                <input type="url" id="editVideoUrl" value="${escapeHtml(getVideoSource(item))}" placeholder="https://example.com/video.mp4">
             </div>` : `
             <div class="form-group">
                 <label>Season Number</label>
@@ -3993,7 +3991,7 @@ function openEdit(item, type) {
                 <input type="url" id="editLogo" placeholder="https://example.com/logo.png" value="${escapeHtml(item.logo || '')}">
                 <small class="help-text">Logo image shown on top of the TV show title in the info modal and hero banner.</small>
             </div>
-            ${episodesHTML ? `<div class="form-group"><label>Episodes (Google Drive links or URLs)</label>${episodesHTML}</div>` : ''}
+            ${episodesHTML ? `<div class="form-group"><label>Episode video URLs</label>${episodesHTML}</div>` : ''}
             `}
             <button type="submit" class="btn-submit">Save Changes</button>
         </form>
@@ -4066,7 +4064,8 @@ function saveEdit(e) {
         target.logo = editLogoEl ? editLogoEl.value.trim() : '';
         const tmdbEl = document.getElementById('editTmdbId');
         target.tmdbId = tmdbEl ? tmdbEl.value.trim() : '';
-        target.driveLink = document.getElementById('editDriveLink').value.trim();
+        target.videoUrl = document.getElementById('editVideoUrl').value.trim();
+        delete target.driveLink;
     } else {
         const editLogoEl = document.getElementById('editLogo');
         target.logo = editLogoEl ? editLogoEl.value.trim() : '';
@@ -4081,8 +4080,8 @@ function saveEdit(e) {
                 const src = row.querySelector('.edit-ep-src').value.trim();
                 if (target.episodes[i]) {
                     target.episodes[i].name = name;
-                    target.episodes[i].driveLink = src;
-                    target.episodes[i].url = '';
+                    target.episodes[i].url = src;
+                    delete target.episodes[i].driveLink;
                 }
             });
         }
@@ -4563,7 +4562,7 @@ function tmdbListItemToItem(r, type, anime) {
         backdrop: r.backdrop_path ? `${tmdbImageBase}w1920${r.backdrop_path}` : '',
         logo: '',
         tmdbId: String(r.id),
-        driveLink: '',
+        videoUrl: '',
         certification: '',
         quality: type === 'tv' ? 'HD' : qualityFor(r.id),
         type
@@ -4643,11 +4642,11 @@ document.getElementById('movieForm').addEventListener('submit', (e) => {
     const movieLogoEl = document.getElementById('movieLogoUrl');
     const logo = movieLogoEl ? movieLogoEl.value.trim() : '';
     const tmdbId = document.getElementById('movieTmdbId').value.trim();
-    const driveLink = document.getElementById('movieDriveLink').value.trim();
+    const videoUrl = document.getElementById('movieVideoUrl').value.trim();
     const certEl = document.getElementById('movieCertification');
     const certification = certEl ? certEl.value.trim() : '';
-    if (!title || (!driveLink && !tmdbId)) { toast('Please fill in the title and a Google Drive link or TMDB ID.', 'error'); return; }
-    movies.push({ id: generateId(), title, description: desc, genre, year, rating, poster, backdrop, logo, tmdbId, driveLink, certification, type: 'movie', quality: qualityFor(tmdbId || generateId()) });
+    if (!title || (!videoUrl && !tmdbId)) { toast('Please fill in the title and a direct video URL or TMDB ID.', 'error'); return; }
+    movies.push({ id: generateId(), title, description: desc, genre, year, rating, poster, backdrop, logo, tmdbId, videoUrl, certification, type: 'movie', quality: qualityFor(tmdbId || generateId()) });
     saveData();
     refreshCurrent();
     document.getElementById('addContentModal').classList.remove('active');
@@ -4658,28 +4657,28 @@ document.getElementById('movieForm').addEventListener('submit', (e) => {
 
 // ==================== TV SHOW EPISODE MANAGEMENT ====================
 
-// --- Drive Episodes ---
-document.getElementById('addDriveEpBtn').addEventListener('click', () => {
-    const row = document.querySelector('.drive-ep-row');
+// --- Direct URL Episodes ---
+document.getElementById('addUrlEpBtn').addEventListener('click', () => {
+    const row = document.querySelector('.url-ep-row');
     const nameInput = row.querySelector('.ep-name-input');
-    const driveInput = row.querySelector('.ep-drive-input');
+    const urlInput = row.querySelector('.ep-url-input');
     const name = nameInput.value.trim();
-    const link = driveInput.value.trim();
-    if (!link) { toast('Please enter a Google Drive link.', 'error'); return; }
-    uploadedDriveEps.push({ name: name || `Episode ${uploadedDriveEps.length + 1}`, driveLink: link, order: uploadedDriveEps.length });
+    const url = urlInput.value.trim();
+    if (!url) { toast('Please enter a direct video URL.', 'error'); return; }
+    uploadedUrlEps.push({ name: name || `Episode ${uploadedUrlEps.length + 1}`, url, order: uploadedUrlEps.length });
     nameInput.value = '';
-    driveInput.value = '';
-    renderDriveEpisodeList();
+    urlInput.value = '';
+    renderUrlEpisodeList();
     toast('Episode added!', 'success');
 });
 
-function renderDriveEpisodeList() {
-    const list = document.getElementById('driveEpisodeList');
-    const container = document.getElementById('driveEpisodeListContainer');
+function renderUrlEpisodeList() {
+    const list = document.getElementById('urlEpisodeList');
+    const container = document.getElementById('urlEpisodeListContainer');
     list.innerHTML = '';
-    if (uploadedDriveEps.length === 0) { container.style.display = 'none'; return; }
+    if (uploadedUrlEps.length === 0) { container.style.display = 'none'; return; }
     container.style.display = 'block';
-    uploadedDriveEps.forEach((ep, i) => {
+    uploadedUrlEps.forEach((ep, i) => {
         const div = document.createElement('div');
         div.className = 'episode-item';
         div.draggable = true;
@@ -4687,12 +4686,12 @@ function renderDriveEpisodeList() {
         div.innerHTML = `
             <span class="ep-number">${i + 1}</span>
             <span class="ep-name" title="${escapeHtml(ep.name)}">${escapeHtml(ep.name)}</span>
-            <span class="ep-type-badge drive">Drive</span>
+            <span class="ep-type-badge file">URL</span>
             <button class="ep-remove" data-index="${i}">&times;</button>
         `;
         list.appendChild(div);
     });
-    setupDragDrop(list, uploadedDriveEps, renderDriveEpisodeList);
+    setupDragDrop(list, uploadedUrlEps, renderUrlEpisodeList);
 }
 
 // --- File Episodes ---
@@ -4778,7 +4777,7 @@ document.querySelectorAll('.toggle-btn[data-source]').forEach(btn => {
         document.querySelectorAll('.toggle-btn[data-source]').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         const source = btn.dataset.source;
-        document.getElementById('epDriveSection').style.display = source === 'drive' ? '' : 'none';
+        document.getElementById('epUrlSection').style.display = source === 'url' ? '' : 'none';
         document.getElementById('epFileSection').style.display = source === 'file' ? '' : 'none';
     });
 });
@@ -4799,13 +4798,13 @@ document.getElementById('tvShowForm').addEventListener('submit', (e) => {
     const season = document.getElementById('tvSeason').value;
     const certEl = document.getElementById('tvCertification');
     const certification = certEl ? certEl.value.trim() : '';
-    const isDrive = document.querySelector('#tvTab .toggle-btn[data-source].active')?.dataset.source === 'drive';
+    const isUrl = document.querySelector('#tvTab .toggle-btn[data-source].active')?.dataset.source === 'url';
     if (!title) { toast('Please enter a TV show title.', 'error'); return; }
 
     let episodes = [];
-    if (isDrive) {
-        episodes = uploadedDriveEps.map((ep, i) => ({
-            name: ep.name, driveLink: ep.driveLink, size: 0, order: i
+    if (isUrl) {
+        episodes = uploadedUrlEps.map((ep, i) => ({
+            name: ep.name, url: ep.url, size: 0, order: i
         }));
     } else {
         episodes = uploadedFileEps.map((ep, i) => ({
@@ -4821,20 +4820,20 @@ document.getElementById('tvShowForm').addEventListener('submit', (e) => {
     toast(`"${title}" added successfully!`, 'success');
     enrichNewItemLogo(tmdbId, 'tv');
 
-    uploadedDriveEps = [];
+    uploadedUrlEps = [];
     uploadedFileEps = [];
 
     try { e.target.reset(); } catch(_) {}
 
-    document.getElementById('driveEpisodeList').innerHTML = '';
-    document.getElementById('driveEpisodeListContainer').style.display = 'none';
+    document.getElementById('urlEpisodeList').innerHTML = '';
+    document.getElementById('urlEpisodeListContainer').style.display = 'none';
     document.getElementById('fileEpisodeList').innerHTML = '';
     document.getElementById('fileEpisodeListContainer').style.display = 'none';
 
     document.querySelectorAll('#tvTab .toggle-btn[data-source]').forEach(b => b.classList.remove('active'));
-    const driveBtn = document.getElementById('epSourceDrive');
-    if (driveBtn) driveBtn.classList.add('active');
-    document.getElementById('epDriveSection').style.display = '';
+    const urlBtn = document.getElementById('epSourceUrl');
+    if (urlBtn) urlBtn.classList.add('active');
+    document.getElementById('epUrlSection').style.display = '';
     document.getElementById('epFileSection').style.display = 'none';
 });
 
@@ -4945,7 +4944,7 @@ async function fetchSearchResults(query, page) {
                 backdrop: r.backdrop_path ? `${tmdbImageBase}w1920${r.backdrop_path}` : '',
                 logo: '',
                 tmdbId: String(r.id),
-                driveLink: '',
+                videoUrl: '',
                 certification: '',
                 type
             });
@@ -5126,19 +5125,14 @@ body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:
 <div class="bg-layer"></div>
 <div class="shell">
 <div class="brand"><img src="${logoUrl}" alt="MILKBOX" onerror="this.style.display='none'"><h1>MILK<span>BOX</span></h1></div>
-<p class="sub">YouTube <span style="color:#555">•</span> Drive <span style="color:#555">•</span> PDF — paste a link or drop a PDF file. Everything opens in this cloaked tab.</p>
+<p class="sub">YouTube <span style="color:#555">•</span> Direct video <span style="color:#555">•</span> PDF — paste a link or drop a PDF file. Everything opens in this cloaked tab.</p>
 <div class="tabs">
 <button class="tab active" data-tab="video">Video / YouTube</button>
-<button class="tab" data-tab="drive">Drive</button>
 <button class="tab" data-tab="pdf">PDF</button>
 </div>
 <div class="panel active" id="panel-video">
 <div class="row"><input type="text" id="videoUrl" placeholder="Paste YouTube, video, or PDF URL…"><button class="btn" onclick="loadVideo()">Play</button><button class="btn btn-download" onclick="downloadYoutube()">Download</button></div>
 <div class="hint">YouTube links auto-convert to embed • Download uses the pasted YouTube link • Direct .mp4/.webm also works</div>
-</div>
-<div class="panel" id="panel-drive">
-<div class="row"><input type="text" id="driveUrl" placeholder="Google Drive share link…"><button class="btn" onclick="loadDriveVideo()">Play Drive</button></div>
-<div class="hint">Supports /file/d/ID/view and ?id= links — converted to /preview</div>
 </div>
 <div class="panel" id="panel-pdf">
 <div class="row"><input type="text" id="pdfUrl" placeholder="Paste PDF URL (https://…/file.pdf)"><button class="btn" onclick="loadPdf()">Open PDF</button></div>
@@ -5147,7 +5141,7 @@ body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:
 <div class="actions">
 <button class="btn btn-ghost" onclick="stopVideo()">Stop</button>
 <button class="btn btn-ghost" onclick="window.close()">Close Tab</button>
-<button class="btn btn-ghost" onclick="document.getElementById('videoUrl').value='';document.getElementById('driveUrl').value='';document.getElementById('pdfUrl').value='';">Clear</button>
+<button class="btn btn-ghost" onclick="document.getElementById('videoUrl').value='';document.getElementById('pdfUrl').value='';">Clear</button>
 </div>
 <div id="player"><iframe id="videoFrame" title="Video player" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
 </div>
@@ -5169,14 +5163,6 @@ function toYouTubeEmbed(u){
     var params=new URLSearchParams({autoplay:'1',rel:'0',playsinline:'1',origin:youtubeEmbedOrigin});
     return 'https://www.youtube-nocookie.com/embed/'+id+'?'+params.toString();
 }
-function toDrivePreview(u){
-  var m=u.match(/\\/file\\/d\\/([a-zA-Z0-9_-]+)/);
-  if(m) return 'https://drive.google.com/file/d/'+m[1]+'/preview';
-  var m2=u.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-  if(m2) return 'https://drive.google.com/file/d/'+m2[1]+'/preview';
-  if(u.includes('drive.google.com')) return u.replace('/view','/preview').replace('/edit','/preview');
-  return u;
-}
 function showPlayer(url,kind){
   var p=document.getElementById('player'), f=document.getElementById('videoFrame');
   if(pdfObjectUrl && kind!=='pdf'){ try{ URL.revokeObjectURL(pdfObjectUrl); }catch{} pdfObjectUrl=null; }
@@ -5190,22 +5176,22 @@ function isPdfUrl(u){ return /\\.pdf($|[?#])/i.test(u) || u.includes('.pdf'); }
 function loadVideo(){
   var u=document.getElementById('videoUrl').value.trim();
   if(!u) return;
+  try{
+    var host=new URL(u).hostname.toLowerCase();
+    if(host==='drive.google.com'||host.endsWith('.drive.google.com')||host==='docs.google.com'||host.endsWith('.docs.google.com')||host==='drive.usercontent.google.com'){
+      alert('Cloud-drive links are not supported. Use a direct video file URL instead.');
+      return;
+    }
+  }catch{}
   if(isPdfUrl(u)){ showPlayer(u,'pdf'); return; }
   var yt=toYouTubeEmbed(u);
   if(yt){ showPlayer(yt,'video'); return; }
-  var d=toDrivePreview(u);
-  if(d!==u){ showPlayer(d,'video'); return; }
   showPlayer(u,'video');
 }
 function downloadYoutube(){
     var u=document.getElementById('videoUrl').value.trim();
     if(!u || !toYouTubeEmbed(u)){ alert('Paste a valid YouTube video link first'); return; }
     window.location.href=${JSON.stringify(youtubeDownloadEndpoint)}+'?url='+encodeURIComponent(u);
-}
-function loadDriveVideo(){
-  var u=document.getElementById('driveUrl').value.trim();
-  if(!u) return;
-  showPlayer(toDrivePreview(u),'video');
 }
 function loadPdf(){
   var u=document.getElementById('pdfUrl').value.trim();
@@ -5219,7 +5205,6 @@ function stopVideo(){
   if(pdfObjectUrl){ try{ URL.revokeObjectURL(pdfObjectUrl); }catch{} pdfObjectUrl=null; }
 }
 document.getElementById('videoUrl').addEventListener('keydown',function(e){if(e.key==='Enter')loadVideo()});
-document.getElementById('driveUrl').addEventListener('keydown',function(e){if(e.key==='Enter')loadDriveVideo()});
 document.getElementById('pdfUrl').addEventListener('keydown',function(e){if(e.key==='Enter')loadPdf()});
 document.getElementById('pdfFile').addEventListener('change',function(e){
   var file=e.target.files[0]; if(!file) return;
@@ -5749,7 +5734,7 @@ function liveItemToItem(r, type) {
         backdrop: r.backdrop_path ? `${tmdbImageBase}w1920${r.backdrop_path}` : '',
         logo: '',
         tmdbId: String(r.id),
-        driveLink: '',
+        videoUrl: '',
         certification: '',
         quality: t === 'tv' ? 'HD' : qualityFor(r.id),
         type: t
@@ -6073,7 +6058,7 @@ function mangaItemToItem(m) {
         backdrop: mainImage || fallbackPoster,
         logo: '',
         tmdbId: '',
-        driveLink: '',
+        videoUrl: '',
         certification: '',
         quality: 'HD',
         type: 'manga',
@@ -7479,7 +7464,7 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
 }
 function wireAnimeTheaterOnce(){
   const bcHome = document.getElementById('animeBcHome');
-  if (bcHome && !bcHome._wired){ bcHome._wired=1; bcHome.addEventListener('click', (e)=>{ e.preventDefault(); document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater(); try{ document.querySelector('.nav-link[data-section="home"]')?.click(); }catch{} }); }
+  if (bcHome && !bcHome._wired){ bcHome._wired=1; bcHome.addEventListener('click', (e)=>{ e.preventDefault(); const pf=document.getElementById('playerFrame'); if(pf){stopCustomVideoPlayer(pf);pf.replaceChildren();} document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater(); try{ document.querySelector('.nav-link[data-section="home"]')?.click(); }catch{} }); }
   const expand = document.getElementById('animeCtrlExpand');
   if (expand && !expand._wired){ expand._wired=1; expand.addEventListener('click', async ()=>{
     const wrap = document.getElementById('animePlayerWrap');
@@ -7617,12 +7602,14 @@ document.addEventListener('keydown', (e)=>{
 });
 
 document.getElementById('closePlayer').addEventListener('click', () => {
-    try { const pf = document.getElementById('playerFrame'); if (pf) { const ifr = pf.querySelector('iframe'); if (ifr) try { ifr.src = 'about:blank'; } catch {} pf.innerHTML = ''; } } catch {}
+    const pf = document.getElementById('playerFrame');
+    if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
     document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
 });
 document.getElementById('playerModal').addEventListener('click', (e) => {
     if (e.target.id === 'playerModal') {
-        try { const pf = document.getElementById('playerFrame'); if (pf) { const ifr = pf.querySelector('iframe'); if (ifr) try { ifr.src = 'about:blank'; } catch {} pf.innerHTML = ''; } } catch {}
+        const pf = document.getElementById('playerFrame');
+        if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
         document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
     }
 });
@@ -7833,7 +7820,7 @@ window.addEventListener('scroll', () => {
 });
 
 // ==================== FOOTER LINKS ====================
-document.getElementById('footerHelp').addEventListener('click', (e) => { e.preventDefault(); toast('Help: Add movies with Google Drive links, upload TV episodes, and click Play to watch!'); });
+document.getElementById('footerHelp').addEventListener('click', (e) => { e.preventDefault(); toast('Help: Add direct video URLs, upload TV episodes, and click Play to watch!'); });
 document.getElementById('footerTerms').addEventListener('click', (e) => { e.preventDefault(); toast('For personal use only. MILKBOX is a personal media organizer.'); });
 document.getElementById('footerPrivacy').addEventListener('click', (e) => { e.preventDefault(); toast('All data is stored locally in your browser. Nothing is sent to any server.'); });
 

@@ -20,7 +20,7 @@ Personal media library for movies, TV shows, anime, and manga.
 - Streaming titles
 - In-theater movies
 - My List
-- Google Drive playback
+- Custom controls for direct video URLs and uploaded video files
 - Uploaded TV episodes
 - About:Blank opener
 - Custom themes and backgrounds
@@ -64,9 +64,13 @@ Deployed sites must use HTTPS for app installation; `localhost` is supported for
 
 ## Blocking Pop-up Ads
 
+<<<<<<< HEAD
 We have a **Built in ad blocking system** where you can enjoy ad free!.
+=======
+MILKBOX includes built-in, app-level protection for pop-ups opened by MILKBOX; no extension or userscript installation is needed for that protection. Website code cannot provide AdGuard's browser-wide protection: browsers isolate cross-origin playback frames and other websites from MILKBOX.
 
-This is a browser userscript, not a built-in MILKBOX feature. It targets pop-up and pop-under windows; it does not remove banners or in-player video ads. Playback providers run in cross-origin frames, so whether the userscript blocks their pop-ups depends on the browser and userscript manager's frame support. See the [official project instructions](https://github.com/AdguardTeam/PopupBlocker) for supported managers and details.
+>>>>>>> a704609 (UPDATE 51)
+
 
 ## Render Deployment
 
