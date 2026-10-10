@@ -423,6 +423,34 @@ function getVideoSource(item) {
     return '';
 }
 
+const videoObjectUrls = new WeakMap();
+async function resolveVideoSource(item) {
+    if (!item) return '';
+    const directSource = getVideoSource({
+        videoUrl: item.videoUrl,
+        url: item.url,
+        driveLink: item.driveLink
+    });
+    if (directSource) return directSource;
+    if (item.videoFileKey) {
+        let objectUrl = videoObjectUrls.get(item);
+        if (!objectUrl) {
+            const file = await bgLoadFile(`video:${item.videoFileKey}`);
+            if (!(file instanceof Blob)) throw new Error('The uploaded video file is missing from this browser. Upload it again.');
+            objectUrl = URL.createObjectURL(file);
+            videoObjectUrls.set(item, objectUrl);
+        }
+        return objectUrl;
+    }
+    return getVideoSource(item);
+}
+
+async function deleteStoredVideoFiles(item) {
+    const keys = [item?.videoFileKey, ...(Array.isArray(item?.episodes) ? item.episodes.map(episode => episode.videoFileKey) : [])]
+        .filter(Boolean);
+    await Promise.all(keys.map(key => bgDeleteFile(`video:${key}`)));
+}
+
 function formatSize(bytes) {
     if (!bytes) return '';
     if (bytes < 1024) return bytes + ' B';
@@ -3196,6 +3224,26 @@ async function renderKissKhPlay(item, type, season, episode) {
     const ifr = frame.querySelector('iframe'); if (ifr) hardenCloudIframe(ifr);
 }
 
+async function playDirectVideo(item, subtitleText = '') {
+    const frame = document.getElementById('playerFrame');
+    const context = playContext;
+    if (!frame || !item) return;
+    frame.innerHTML = '<div class="milkbox-player-empty">Loading video…</div>';
+    try {
+        const videoUrl = await resolveVideoSource(item);
+        if (playContext !== context) return;
+        if (videoUrl) {
+            createCustomVideoPlayer(frame, videoUrl, item.title, subtitleText);
+        } else {
+            frame.innerHTML = '<div class="milkbox-player-empty">Add a direct video URL or upload a video file, then choose Direct / Uploaded Video.</div>';
+        }
+    } catch (error) {
+        if (playContext !== context) return;
+        frame.innerHTML = `<div class="milkbox-player-empty">${escapeHtml(error.message || 'Could not load the video file.')}</div>`;
+        toast(`Video playback failed: ${error.message || error}`, 'error');
+    }
+}
+
 function renderPlay() {
     const frame = document.getElementById('playerFrame');
     const subtitle = document.getElementById('playerSubtitle');
@@ -3285,12 +3333,7 @@ function renderPlay() {
         if (server === 'milkbox' || server === 'kisskh' || (isTmdbServer && item.tmdbId)) {
             renderTmdbPlay(server);
         } else if (server === 'direct') {
-            const videoUrl = getVideoSource(item);
-            if (videoUrl) {
-                createCustomVideoPlayer(frame, videoUrl, item.title, item.year ? `${item.year}` : '');
-            } else {
-                frame.innerHTML = '<div class="milkbox-player-empty">Add a direct video URL or switch to Milkbox Player (API).</div>';
-            }
+            playDirectVideo(item, item.year ? `${item.year}` : '');
         } else {
             frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source on this server</div>`;
         }
@@ -3645,9 +3688,7 @@ function playTmdbEpisode(tvItem, season, episode, server) {
     if (server === 'direct') {
         stopCustomVideoPlayer(frame);
         if (isMovie) {
-            const videoUrl = getVideoSource(tvItem);
-            if (videoUrl) createCustomVideoPlayer(frame, videoUrl, tvItem.title, tvItem.year ? `${tvItem.year}` : '');
-            else frame.innerHTML = '<div class="milkbox-player-empty">Add a direct video URL to play this title.</div>';
+            playDirectVideo(tvItem, tvItem.year ? `${tvItem.year}` : '');
         } else {
             const episodeIndex = Number(episode) - 1;
             const directEpisodes = Array.isArray(tvItem.episodes) ? tvItem.episodes : [];
@@ -3685,7 +3726,7 @@ function renderEpisodePlaylist(tvItem) {
     });
 }
 
-function playEpisode(tvItem, episode, index) {
+async function playEpisode(tvItem, episode, index) {
     const frame = document.getElementById('playerFrame');
     const title = document.getElementById('playerTitle');
     const subtitle = document.getElementById('playerSubtitle');
@@ -3693,25 +3734,34 @@ function playEpisode(tvItem, episode, index) {
     subtitle.textContent = `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`;
     // Keep playContext in sync for auto-play next
     playContext = { item: tvItem, type: 'tv', season: tvItem.season || 1, episode: index + 1 };
+    const context = playContext;
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
 
-    const videoUrl = getVideoSource(episode);
-    if (videoUrl) {
-        createCustomVideoPlayer(frame, videoUrl, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
-        const vid = frame.querySelector('video');
-        if (vid) vid.addEventListener('ended', () => {
-            if (settings.autoPlayNext === false) return;
-            const nextIdx = index + 1;
-            if (nextIdx < tvItem.episodes.length) {
-                toast(`Playing next: Episode ${nextIdx + 1}`, 'success');
-                const nextEp = tvItem.episodes[nextIdx];
-                document.querySelectorAll('#episodePlaylist .ep-play-item').forEach((el, i) => el.classList.toggle('active', i === nextIdx));
-                playEpisode(tvItem, nextEp, nextIdx);
-            }
-        });
-    } else {
-        frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source</div>`;
+    frame.innerHTML = '<div class="milkbox-player-empty">Loading video…</div>';
+    try {
+        const videoUrl = await resolveVideoSource(episode);
+        if (playContext !== context) return;
+        if (videoUrl) {
+            createCustomVideoPlayer(frame, videoUrl, tvItem.title, `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`);
+            const vid = frame.querySelector('video');
+            if (vid) vid.addEventListener('ended', () => {
+                if (settings.autoPlayNext === false) return;
+                const nextIdx = index + 1;
+                if (nextIdx < tvItem.episodes.length) {
+                    toast(`Playing next: Episode ${nextIdx + 1}`, 'success');
+                    const nextEp = tvItem.episodes[nextIdx];
+                    document.querySelectorAll('#episodePlaylist .ep-play-item').forEach((el, i) => el.classList.toggle('active', i === nextIdx));
+                    playEpisode(tvItem, nextEp, nextIdx);
+                }
+            });
+        } else {
+            frame.innerHTML = '<div class="milkbox-player-empty">No video source is available for this episode.</div>';
+        }
+    } catch (error) {
+        if (playContext !== context) return;
+        frame.innerHTML = `<div class="milkbox-player-empty">${escapeHtml(error.message || 'Could not load the episode.')}</div>`;
+        toast(`Video playback failed: ${error.message || error}`, 'error');
     }
     // highlight active in playlist
     setTimeout(()=> setActiveEpisode(tvItem.season || 1, index + 1, document.getElementById('episodePlaylist')), 80);
@@ -3902,6 +3952,7 @@ function showInfo(item, type) {
             else tvShows = tvShows.filter(m => m.id !== item.id);
             myList = myList.filter(m => m.id !== item.id);
             saveData(); refreshCurrent(); modal.classList.remove('active');
+            deleteStoredVideoFiles(sourceItem).catch(error => toast(`Could not remove stored video files: ${error.message}`, 'error'));
             toast(`Removed "${item.title}"`);
         }
     };
@@ -4651,7 +4702,7 @@ async function loadPopularContent(auto) {
 }
 
 // ==================== ADD MOVIE ====================
-document.getElementById('movieForm').addEventListener('submit', (e) => {
+document.getElementById('movieForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('movieTitle').value.trim();
     const desc = document.getElementById('movieDesc').value.trim();
@@ -4664,10 +4715,21 @@ document.getElementById('movieForm').addEventListener('submit', (e) => {
     const logo = movieLogoEl ? movieLogoEl.value.trim() : '';
     const tmdbId = document.getElementById('movieTmdbId').value.trim();
     const videoUrl = document.getElementById('movieVideoUrl').value.trim();
+    const videoFile = document.getElementById('movieVideoFile').files?.[0];
     const certEl = document.getElementById('movieCertification');
     const certification = certEl ? certEl.value.trim() : '';
-    if (!title || (!videoUrl && !tmdbId)) { toast('Please fill in the title and a direct video URL or TMDB ID.', 'error'); return; }
-    movies.push({ id: generateId(), title, description: desc, genre, year, rating, poster, backdrop, logo, tmdbId, videoUrl, certification, type: 'movie', quality: qualityFor(tmdbId || generateId()) });
+    if (!title || (!videoUrl && !videoFile && !tmdbId)) { toast('Please fill in the title and a direct video URL, uploaded video, or TMDB ID.', 'error'); return; }
+    if (videoUrl && videoFile) { toast('Choose either a direct video URL or an uploaded video, not both.', 'error'); return; }
+    const videoFileKey = videoFile ? generateId() : '';
+    if (videoFile) {
+        try {
+            await bgStoreFile(`video:${videoFileKey}`, videoFile);
+        } catch (error) {
+            toast(`Could not store the uploaded video: ${error.message || error}`, 'error');
+            return;
+        }
+    }
+    movies.push({ id: generateId(), title, description: desc, genre, year, rating, poster, backdrop, logo, tmdbId, videoUrl, videoFileKey, certification, type: 'movie', quality: qualityFor(tmdbId || generateId()) });
     saveData();
     refreshCurrent();
     document.getElementById('addContentModal').classList.remove('active');
@@ -4723,7 +4785,6 @@ document.getElementById('tvEpisodes').addEventListener('change', (e) => {
         uploadedFileEps.push({
             name: file.name.replace(/\.[^/.]+$/, ''),
             file, size: file.size, type: file.type,
-            blobUrl: URL.createObjectURL(file),
             order: uploadedFileEps.length
         });
     });
@@ -4804,7 +4865,7 @@ document.querySelectorAll('.toggle-btn[data-source]').forEach(btn => {
 });
 
 // --- Submit TV Show ---
-document.getElementById('tvShowForm').addEventListener('submit', (e) => {
+document.getElementById('tvShowForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('tvTitle').value.trim();
     const desc = document.getElementById('tvDesc').value.trim();
@@ -4828,9 +4889,23 @@ document.getElementById('tvShowForm').addEventListener('submit', (e) => {
             name: ep.name, url: ep.url, size: 0, order: i
         }));
     } else {
-        episodes = uploadedFileEps.map((ep, i) => ({
-            name: ep.name, url: '', blobUrl: ep.blobUrl, size: ep.size, type: ep.type, order: i
-        }));
+        const storedKeys = [];
+        try {
+            for (const [i, ep] of uploadedFileEps.entries()) {
+                const videoFileKey = generateId();
+                await bgStoreFile(`video:${videoFileKey}`, ep.file);
+                storedKeys.push(videoFileKey);
+                episodes.push({
+                    name: ep.name, url: '', videoFileKey, size: ep.size, type: ep.type, order: i
+                });
+            }
+        } catch (error) {
+            await Promise.all(storedKeys.map(key => bgDeleteFile(`video:${key}`))).catch(cleanupError => {
+                toast(`Some temporary video data could not be cleaned up: ${cleanupError.message || cleanupError}`, 'error');
+            });
+            toast(`Could not store the uploaded episodes: ${error.message || error}`, 'error');
+            return;
+        }
     }
 
     tvShows.push({ id: generateId(), title, description: desc, genre, year, rating, poster, backdrop, logo, tmdbId, season: season || 1, episodes, certification, type: 'tv' });

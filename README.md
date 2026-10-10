@@ -90,6 +90,13 @@ ID with the same VidSrc TMDB embed route used by the Vidsrc option; it does not
 require a separately configured playback API. Other providers continue to
 use their respective embedded players.
 
+For personal videos, add a movie with either a direct video URL or an uploaded
+video file; TV shows support direct episode URLs and uploaded episode files.
+Choose **Direct / Uploaded Video** in the playback selector to play them.
+Uploaded files are stored in this browser's IndexedDB so they remain available
+after reloading MILKBOX. Direct URLs must point to browser-playable media, not
+to a webpage; supported formats depend on the browser.
+
 Set `MILKBOX_PLAYBACK_API_URL` and (if required) `MILKBOX_PLAYBACK_API_KEY`
 in `.env`. The key is sent from the server as a Bearer token and is never
 exposed to browser JavaScript. Restart MILKBOX after changing the environment.

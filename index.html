@@ -374,7 +374,12 @@
                     <div class="form-group">
                         <label for="movieVideoUrl">Direct Video URL (optional)</label>
                         <input type="url" id="movieVideoUrl" placeholder="https://example.com/video.mp4">
-                        <small class="help-text">Use a direct MP4, WebM, Ogg, or HLS video URL. Optional if a TMDB ID is set.</small>
+                        <small class="help-text">Use a direct MP4, WebM, Ogg, or HLS video URL, or upload a video below. Choose Direct / Uploaded Video in the player to play it.</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="movieVideoFile">Upload Movie Video (optional)</label>
+                        <input type="file" id="movieVideoFile" accept="video/*">
+                        <small class="help-text">The file is stored in this browser and can be played with Direct / Uploaded Video.</small>
                     </div>
                     <button type="submit" class="btn-submit">Add Movie</button>
                 </form>
