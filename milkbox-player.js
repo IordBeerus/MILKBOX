@@ -1,6 +1,3 @@
-// MILKBOX custom video player using Google Fonts Material Symbols
-// Self-contained: no dependency on app.js globals at parse time.
-
 function _milkboxEscapeHtml(s) {
     if (typeof escapeHtml === 'function') return escapeHtml(s);
     const d = document.createElement('div');
