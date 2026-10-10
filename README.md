@@ -96,6 +96,9 @@ Choose **Direct / Uploaded Video** in the playback selector to play them.
 Uploaded files are stored in this browser's IndexedDB so they remain available
 after reloading MILKBOX. Direct URLs must point to browser-playable media, not
 to a webpage; supported formats depend on the browser.
+The player shows audio and subtitle selectors when the browser exposes
+embedded tracks. Track support depends on the browser and file format; many
+browsers do not play MKV files or expose their embedded tracks.
 
 Set `MILKBOX_PLAYBACK_API_URL` and (if required) `MILKBOX_PLAYBACK_API_KEY`
 in `.env`. The key is sent from the server as a Bearer token and is never

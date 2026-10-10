@@ -198,6 +198,31 @@
 }
 .milkbox-player-title strong { font-size: 13px; font-weight: 700; }
 .milkbox-player-title > span { color: rgba(255,255,255,0.62); font-size: 11px; }
+.milkbox-player-track-selects {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.milkbox-player-track-label {
+    display: flex;
+    max-width: 125px;
+    flex-direction: column;
+    gap: 2px;
+    color: rgba(255,255,255,0.62);
+    font-size: 10px;
+}
+.milkbox-player-track-label[hidden] { display: none; }
+.milkbox-player-track-label select {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #fff;
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+.milkbox-player-track-label option { background: #17141a; color: #fff; }
 .milkbox-player-volume {
     width: 72px;
     accent-color: var(--milkbox-accent);
@@ -238,6 +263,9 @@
     .milkbox-player-control-row { gap: 4px; }
     .milkbox-player-control-group { gap: 5px; }
     .milkbox-player-title { display: none; }
+    .milkbox-player-track-selects { gap: 4px; }
+    .milkbox-player-track-label { max-width: 92px; }
+    .milkbox-player-track-label select { font-size: 10px; }
     .milkbox-player-volume { width: 48px; }
     .milkbox-player-actions { gap: 0; margin-left: auto; }
     .milkbox-player-speed-label .material-symbols-outlined { display: none; }

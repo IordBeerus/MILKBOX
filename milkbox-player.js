@@ -84,6 +84,16 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 <strong>${_milkboxEscapeHtml(titleText || 'Now Playing')}</strong>
                 <span>${_milkboxEscapeHtml(subtitleText || '')}</span>
             </div>
+            <div class="milkbox-player-track-selects">
+                <label class="milkbox-player-track-label" hidden>
+                    <span>Audio</span>
+                    <select class="milkbox-player-audio-track" aria-label="Audio track"></select>
+                </label>
+                <label class="milkbox-player-track-label" hidden>
+                    <span>Subtitles</span>
+                    <select class="milkbox-player-subtitle-track" aria-label="Subtitle track"></select>
+                </label>
+            </div>
             <div class="milkbox-player-control-group milkbox-player-actions">
                 <button class="milkbox-player-button milkbox-player-volume-button" type="button" aria-label="Mute">
                     <span class="material-symbols-outlined" aria-hidden="true">volume_up</span>
@@ -118,8 +128,75 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     const speed = controls.querySelector('.milkbox-player-speed');
     const fullscreenButton = controls.querySelector('.milkbox-player-fullscreen');
     const pictureInPictureButton = controls.querySelector('.milkbox-player-pip');
+    const audioTrackLabel = controls.querySelector('.milkbox-player-track-label');
+    const audioTrackSelect = controls.querySelector('.milkbox-player-audio-track');
+    const subtitleTrackLabel = controls.querySelectorAll('.milkbox-player-track-label')[1];
+    const subtitleTrackSelect = controls.querySelector('.milkbox-player-subtitle-track');
     let hideControlsTimer;
     if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) pictureInPictureButton.hidden = true;
+
+    const setTrackOptions = (select, tracks, getLabel, selectedValue) => {
+        const options = [];
+        tracks.forEach((track, index) => options.push(new Option(getLabel(track, index), String(index))));
+        select.replaceChildren(...options);
+        select.value = selectedValue;
+    };
+    const updateTrackSelectors = () => {
+        const audioTracks = video.audioTracks;
+        if (audioTracks) {
+            const tracks = Array.from(audioTracks);
+            audioTrackLabel.hidden = tracks.length === 0;
+            if (tracks.length) {
+                const selectedIndex = tracks.findIndex(track => track.enabled);
+                setTrackOptions(
+                    audioTrackSelect,
+                    tracks,
+                    (track, index) => track.label || track.name || [track.language, `Audio ${index + 1}`].filter(Boolean).join(' · '),
+                    String(selectedIndex < 0 ? 0 : selectedIndex)
+                );
+            }
+        } else {
+            audioTrackLabel.hidden = true;
+        }
+
+        const subtitleTracks = Array.from(video.textTracks || [])
+            .map((track, index) => ({ track, index }))
+            .filter(({ track }) => ['subtitles', 'captions'].includes(track.kind));
+        subtitleTrackLabel.hidden = subtitleTracks.length === 0;
+        if (subtitleTracks.length) {
+            const activeTrack = subtitleTracks.find(({ track }) => track.mode === 'showing');
+            const options = [new Option('Off', 'off')];
+            subtitleTracks.forEach(({ track, index }) => {
+                const kind = track.kind === 'captions' ? 'Captions' : 'Subtitles';
+                const label = track.label || track.name || [track.language, `${kind} ${index + 1}`].filter(Boolean).join(' · ');
+                options.push(new Option(label, String(index)));
+            });
+            subtitleTrackSelect.replaceChildren(...options);
+            subtitleTrackSelect.value = activeTrack ? String(activeTrack.index) : 'off';
+        }
+    };
+    audioTrackSelect.addEventListener('change', () => {
+        const tracks = video.audioTracks;
+        if (!tracks) return;
+        const selectedIndex = Number(audioTrackSelect.value);
+        Array.from(tracks).forEach((track, index) => { track.enabled = index === selectedIndex; });
+    });
+    subtitleTrackSelect.addEventListener('change', () => {
+        const selectedIndex = subtitleTrackSelect.value === 'off' ? -1 : Number(subtitleTrackSelect.value);
+        Array.from(video.textTracks || []).forEach((track, index) => {
+            if (['subtitles', 'captions'].includes(track.kind)) track.mode = index === selectedIndex ? 'showing' : 'disabled';
+        });
+    });
+    video.addEventListener('loadedmetadata', updateTrackSelectors);
+    video.addEventListener('loadeddata', updateTrackSelectors);
+    video.addEventListener('loadstart', updateTrackSelectors);
+    for (const trackList of [video.audioTracks, video.textTracks]) {
+        if (trackList?.addEventListener) {
+            trackList.addEventListener('addtrack', updateTrackSelectors);
+            trackList.addEventListener('removetrack', updateTrackSelectors);
+            trackList.addEventListener('change', updateTrackSelectors);
+        }
+    }
 
     const updatePlayState = () => {
         const icon = playButton.querySelector('span');
@@ -250,6 +327,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     });
 
     if (sourceUrl) video.src = sourceUrl;
+    updateTrackSelectors();
     updatePlayState();
     updateVolumeState();
 }
