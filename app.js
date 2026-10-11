@@ -84,12 +84,12 @@ let uploadedUrlEps = [];
 let uploadedFileEps = [];
 let currentInfoItem = null;
 let currentInfoType = null;
-// LightSpeed / Chrome block bypass — proxy TMDB + GitHub + Monochrome (music) when filtered
+// LightSpeed / Chrome block bypass — proxy external API and media requests when filtered
 (function(){
     const nativeFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     if (!nativeFetch) return;
     const origFetch = nativeFetch;
-    const isProxied = (u) => /api\.themoviedb\.org|raw\.githubusercontent\.com|api\.mangadex\.org|monochrome\.tf|tidal\.com|deezer\.com|spotify\.com|api\.apple\.com|am-mint\.binimum\.org/i.test(String(u));
+    const isProxied = (u) => /api\.themoviedb\.org|raw\.githubusercontent\.com|api\.mangadex\.org|tidal\.com|deezer\.com|spotify\.com|api\.apple\.com|am-mint\.binimum\.org/i.test(String(u));
     const googleProxy = (u) => `https://images1-focus-opensocial.googleusercontent.com/gadgets/proxy?container=focus&url=${encodeURIComponent(u)}`;
     const allOriginsProxy = (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}`;
     window.googleProxy = googleProxy;
