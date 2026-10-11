@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="siteTitle">MILKBOX</title>
+    <meta name="description" content="MILKBOX personal streaming and media platform">
+    <meta property="og:title" content="MILKBOX">
+    <meta property="og:description" content="MILKBOX personal streaming and media platform">
     <meta name="theme-color" content="#141414">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MILKBOX">
@@ -20,6 +23,8 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="milkbox-player.css">
     <link rel="stylesheet" href="discord-button.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="lune-player.css">
 </head>
 <body id="siteBody">
     <nav class="navbar">
@@ -290,22 +295,199 @@
         </section>
 
         <section class="content-section live-section" id="musicSection" style="display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">
-                <div>
-                    <h3 class="section-title" style="margin-bottom:4px">Music</h3>
+            <div id="lunePlayerContainer" class="lune-container">
+                <div class="lune-ambient-glow" id="luneAmbientGlow"></div>
+                
+                <!-- Lune Header -->
+                <header class="lune-header">
+                    <div class="lune-brand">
+                        <img src="/assets/lune-logo.svg" alt="Lune Logo" class="lune-logo-img">
+                        <div class="lune-brand-info">
+                            <h2>Lune <span class="lune-brand-badge">Material 3</span></h2>
+                            <p>Minimalist &amp; Elegant Music Player · 100% Offline &amp; Private</p>
+                        </div>
+                    </div>
 
-                </div>
-                <div style="display:flex;gap:8px;align-items:center;">
+                    <div class="lune-nav-tabs">
+                        <button class="lune-tab-btn active" data-tab="player">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>
+                            Player
+                        </button>
+                        <button class="lune-tab-btn" data-tab="eq">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-120v-240h80v80h320v80H520v80h-80Zm-320-80v-80h240v80H120Zm160-160v-80H120v-80h160v-80h80v240h-80Zm160-80v-80h400v80H440Zm160-160v-240h80v80h160v80H680v80h-80Zm-480-80v-80h400v80H120Z"/></svg>
+                            10-Band EQ
+                        </button>
+                        <button class="lune-tab-btn" data-tab="lyrics">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M280-280h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80ZM160-120q-33 0-56.5-23.5T80-200v-560q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v560q0 33-23.5 56.5T800-120H160Z"/></svg>
+                            Live Lyrics
+                        </button>
+                        <button class="lune-tab-btn" data-tab="portal">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-82q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 70 87.5t102 56.5Zm208 0q61-19 102-56.5t70-87.5H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5-39.5T380-480q0 21 1.5-40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5-39.5T660-480q0 21-1.5-40.5T654-400Z"/></svg>
+                            Lune Portal
+                        </button>
+                    </div>
 
-                    <button class="btn-secondary" id="musicReloadBtn" style="padding:8px 14px;font-size:13px;">Reload</button>
+                    <div class="lune-external-links">
+                        <a href="https://github.com/MrDemonc/Lune" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" title="View Lune on GitHub">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                            GitHub
+                        </a>
+                        <a href="https://f-droid.org/packages/com.demonlab.lune/" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" title="Lune on F-Droid">
+                            F-Droid
+                        </a>
+                        <a href="https://github.com/MrDemonc/Lune/releases" target="_blank" rel="noopener noreferrer" class="lune-badge-btn primary" title="Download Android APK">
+                            Get App APK
+                        </a>
+                    </div>
+                </header>
+
+                <div class="lune-content-body">
+                    <!-- VIEW 1: PLAYER -->
+                    <div class="lune-view-panel" id="luneView_player">
+                        <div class="lune-player-view">
+                            <!-- Left: Dark Defocus Card -->
+                            <div class="lune-defocus-card">
+                                <div class="lune-album-art-wrap">
+                                    <img src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=400&q=80" alt="Album Cover" class="lune-album-art" id="luneAlbumArt">
+                                    <span class="lune-hifi-badge">HI-FI AUDIO</span>
+                                </div>
+                                <h3 class="lune-now-title" id="luneNowTitle">Lune Melancholy</h3>
+                                <p class="lune-now-artist" id="luneNowArtist">MrDemonc &amp; Lune Studio</p>
+
+                                <!-- Visualizer Canvas -->
+                                <div class="lune-canvas-wrap">
+                                    <canvas id="luneVisualizerCanvas" class="lune-visualizer-canvas" width="330" height="48"></canvas>
+                                </div>
+
+                                <!-- Scrubber -->
+                                <div class="lune-scrubber-wrap">
+                                    <input type="range" class="lune-progress-slider" id="luneProgressBar" min="0" max="100" value="0">
+                                    <div class="lune-progress-time">
+                                        <span id="luneTimeCurrent">00:00</span>
+                                        <span id="luneTimeTotal">02:45</span>
+                                    </div>
+                                </div>
+
+                                <!-- Playback Controls -->
+                                <div class="lune-controls-row">
+                                    <button class="lune-ctrl-btn" id="luneShuffleBtn" title="Shuffle">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M560-160v-80h104L537-367l57-57 126 124v-100h80v240H560Zm-400 0v-80h136l424-424v104h80v-240H560v80h104L240-240H160v80Zm0-480v-80h136l88 88-57 57-67-65H160Z"/></svg>
+                                    </button>
+                                    <button class="lune-ctrl-btn" id="lunePrevBtn" title="Previous Track">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z"/></svg>
+                                    </button>
+                                    <button class="lune-ctrl-btn play-btn" id="lunePlayBtn" title="Play">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
+                                    </button>
+                                    <button class="lune-ctrl-btn" id="luneNextBtn" title="Next Track">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M660-240v-480h80v480h-80ZM220-240v-480l360 240-360 240Z"/></svg>
+                                    </button>
+                                    <button class="lune-ctrl-btn" id="luneRepeatBtn" title="Repeat Mode">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M280-80 120-240l160-160 56 58-64 62h408v-160h80v240H272l64 62-56 58Zm400-480L520-720l56-58 64 62H232v-240h-80v320h520l-64 62 56 58 160-160-160-160Z"/></svg>
+                                    </button>
+                                </div>
+
+                                <!-- Secondary Controls -->
+                                <div class="lune-secondary-controls">
+                                    <button class="lune-sec-btn" id="luneSpeedBtn" title="Speed">1.0x</button>
+                                    <button class="lune-sec-btn" id="luneTimerBtn" title="Sleep Timer">Timer: Off</button>
+                                    <div class="lune-volume-wrap">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M560-131v-82q90-26 145-100t55-167q0-93-55-167T560-747v-82q124 28 202 125.5T840-480q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-320q46 14 73 53.5t27 86.5q0 47-27 86.5T560-320Z"/></svg>
+                                        <input type="range" class="lune-volume-slider" id="luneVolumeSlider" min="0" max="1" step="0.05" value="0.9">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Music Library & Queue -->
+                            <div class="lune-library-card" id="luneLibraryCard">
+                                <div class="lune-lib-header">
+                                    <div class="lune-search-wrap">
+                                        <svg class="lune-search-icon" xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
+                                        <input type="text" class="lune-search-input" id="luneSearchInput" placeholder="Search track, artist, album...">
+                                    </div>
+                                    <div class="lune-actions-row">
+                                        <label class="lune-act-btn" title="Play local MP3/audio files" style="cursor:pointer;">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM160-160q-33 0-56.5-23.5T80-240v-160h80v160h640v-160h80v160q0 33-23.5 56.5T800-160H160Z"/></svg>
+                                            + Upload Audio
+                                            <input type="file" id="luneFileInput" accept="audio/*" multiple style="display:none">
+                                        </label>
+                                        <button class="lune-act-btn" id="luneAddUrlBtn" title="Add Audio Stream URL">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-280h80v-160h160v-80H520v-160h-80v160H280v80h160v160ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"/></svg>
+                                            Add Stream
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Category Filter Pills -->
+                                <div class="lune-categories-bar">
+                                    <button class="lune-cat-pill active" data-cat="all">All Tracks</button>
+                                    <button class="lune-cat-pill" data-cat="lofi">Lo-Fi Study</button>
+                                    <button class="lune-cat-pill" data-cat="chill">Chill Sessions</button>
+                                    <button class="lune-cat-pill" data-cat="ambient">Ambient</button>
+                                    <button class="lune-cat-pill" data-cat="favorites">Liked Songs</button>
+                                    <button class="lune-cat-pill" data-cat="uploads">My Files</button>
+                                </div>
+
+                                <!-- Tracklist Items -->
+                                <div class="lune-tracklist" id="luneTracklist"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 2: 10-BAND EQUALIZER -->
+                    <div class="lune-view-panel" id="luneView_eq" style="display:none;">
+                        <div class="lune-eq-view">
+                            <div class="lune-eq-card">
+                                <div class="lune-eq-topbar">
+                                    <div>
+                                        <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">10-Band Precision Equalizer</h3>
+                                        <p style="font-size:12px;color:var(--lune-text-secondary);margin:0;">Hardware-accelerated Web Audio biquad filtering with dynamic response</p>
+                                    </div>
+                                    <div class="lune-eq-presets">
+                                        <button class="lune-eq-preset-btn active" data-preset="flat">Flat</button>
+                                        <button class="lune-eq-preset-btn" data-preset="bass">Bass Boost</button>
+                                        <button class="lune-eq-preset-btn" data-preset="vocal">Vocal Booster</button>
+                                        <button class="lune-eq-preset-btn" data-preset="acoustic">Acoustic</button>
+                                        <button class="lune-eq-preset-btn" data-preset="electronic">Electronic</button>
+                                        <button class="lune-eq-preset-btn" data-preset="rock">Rock</button>
+                                        <button class="lune-eq-preset-btn" data-preset="pop">Pop</button>
+                                        <button class="lune-eq-preset-btn" data-preset="spatial">Spatial Audio</button>
+                                    </div>
+                                </div>
+
+                                <div class="lune-bands-wrap" id="luneBandsWrap"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 3: LIVE LYRICS -->
+                    <div class="lune-view-panel" id="luneView_lyrics" style="display:none;">
+                        <div class="lune-lyrics-view">
+                            <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">Synchronized Live Lyrics</h3>
+                            <p style="font-size:12px;color:var(--lune-text-secondary);margin:0 0 20px 0;">Time-synced lyrics with smooth scrolling · click any line to seek</p>
+                            <div class="lune-lyrics-container" id="luneLyricsContainer"></div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW 4: OFFICIAL LUNE PORTAL & RELEASES -->
+                    <div class="lune-view-panel" id="luneView_portal" style="display:none;">
+                        <div class="lune-portal-view">
+                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                                <div>
+                                    <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">Official Lune App &amp; Showcase</h3>
+                                    <p style="font-size:12px;color:var(--lune-text-secondary);margin:0;">Created by MrDemonc · GPL-3.0 Open Source</p>
+                                </div>
+                                <div style="display:flex;gap:8px;">
+                                    <a href="https://github.com/MrDemonc/Lune" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" style="text-decoration:none;">View on GitHub ↗</a>
+                                    <a href="https://github.com/MrDemonc/Lune/releases/download/1.5.2/Lune-release.apk" target="_blank" rel="noopener noreferrer" class="lune-badge-btn primary" style="text-decoration:none;">Download Latest APK</a>
+                                </div>
+                            </div>
+                            <div class="lune-portal-frame-wrap">
+                                <iframe src="https://mrdemonc.github.io/Lune/" class="lune-portal-frame" title="Lune Official Website" allow="fullscreen" loading="lazy"></iframe>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-            <div id="musicFrameWrap" style="position:relative;width:100%;height:calc(100vh - 250px);min-height:640px;border:1px solid rgba(255,255,255,0.12);border-radius:16px;overflow:hidden;background:#000;box-shadow:0 12px 40px rgba(0,0,0,0.45);">
-                <iframe id="musicFrame" src="https://monochrome.tf" title="Monochrome Music" style="width:100%;height:100%;border:none;background:#000;" allow="autoplay; encrypted-media; fullscreen; clipboard-write" loading="lazy" referrerpolicy="no-referrer"></iframe>
-                <a href="./" id="musicLogoPatch" class="sidebar-logo-link" title="MILKBOX MUSIC" style="position:absolute;top:0;left:0;width:232px;height:56px;background:#0a0a0a;display:flex;align-items:center;gap:10px;padding:0 16px;z-index:5;text-decoration:none;border-bottom:1px solid rgba(255,255,255,0.06);">
-                    <img src="https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png" alt="MILKBOX" width="28" height="28" style="flex-shrink:0;border-radius:6px;object-fit:cover;" referrerpolicy="no-referrer" onerror="this.style.display='none'">
-                    <span style="color:#fff;font-weight:800;font-size:18px;letter-spacing:0.3px;font-family:'Outfit',sans-serif;">MILKBOX MUSIC</span>
-                </a>
             </div>
         </section>
     </div>
@@ -994,6 +1176,7 @@
     </footer>
 
     <script src="milkbox-player.js?v=player-fix-20261009"></script>
+    <script src="lune-player.js"></script>
     <script src="app.js?v=player-fix-20261009"></script>
 </body>
 </html>

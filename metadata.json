@@ -1,0 +1,7 @@
+{
+  "name": "MILKBOX",
+  "description": "MILKBOX personal streaming and media platform",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

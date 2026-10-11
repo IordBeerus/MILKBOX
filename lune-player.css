@@ -1,0 +1,821 @@
+/* ==========================================================================
+   LUNE MUSIC PLAYER — Material 3: Expressive & Dark Defocus
+   Official Theme: Espresso, Roasted Coffee & Warm Caramel Accents
+   ========================================================================== */
+
+:root {
+  --lune-bg-dark: #120f0d;
+  --lune-bg-card: rgba(28, 23, 19, 0.78);
+  --lune-card-border: rgba(255, 235, 215, 0.08);
+  --lune-accent: #d99962;
+  --lune-accent-hover: #c6854d;
+  --lune-accent-gradient: linear-gradient(135deg, #e2a672 0%, #b8753a 100%);
+  --lune-accent-glow: rgba(226, 166, 114, 0.28);
+  --lune-text-primary: #f8f4ef;
+  --lune-text-secondary: #beb4a8;
+  --lune-text-muted: #857b70;
+  --lune-defocus-bg: rgba(20, 16, 13, 0.65);
+  --lune-badge-bg: rgba(226, 166, 114, 0.15);
+  --lune-badge-border: rgba(226, 166, 114, 0.3);
+}
+
+.lune-container {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: var(--lune-text-primary);
+  background: radial-gradient(circle at 50% 0%, #2a2019 0%, #120f0d 65%, #0a0807 100%);
+  border-radius: 24px;
+  border: 1px solid var(--lune-card-border);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 235, 215, 0.03);
+  overflow: hidden;
+  position: relative;
+  margin-top: 10px;
+}
+
+/* Background animated glow */
+.lune-ambient-glow {
+  position: absolute;
+  top: -150px;
+  left: 20%;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, var(--lune-accent-glow) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+  transition: all 1s ease;
+}
+
+/* Header */
+.lune-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--lune-card-border);
+  background: rgba(18, 15, 13, 0.7);
+  backdrop-filter: blur(20px);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lune-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+}
+
+.lune-logo-img {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: var(--lune-accent-gradient);
+  padding: 6px;
+  box-shadow: 0 4px 16px var(--lune-accent-glow);
+  object-fit: contain;
+}
+
+.lune-brand-info h2 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lune-brand-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--lune-badge-bg);
+  color: var(--lune-accent);
+  border: 1px solid var(--lune-badge-border);
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.lune-brand-info p {
+  font-size: 12px;
+  color: var(--lune-text-secondary);
+  margin: 2px 0 0 0;
+}
+
+.lune-nav-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 30px;
+  border: 1px solid var(--lune-card-border);
+  gap: 4px;
+}
+
+.lune-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--lune-text-secondary);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lune-tab-btn:hover {
+  color: #fff;
+}
+
+.lune-tab-btn.active {
+  background: var(--lune-accent-gradient);
+  color: #120f0d;
+  font-weight: 700;
+  box-shadow: 0 4px 12px var(--lune-accent-glow);
+}
+
+.lune-external-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lune-badge-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  color: #fff;
+  background: rgba(255, 235, 215, 0.06);
+  border: 1px solid var(--lune-card-border);
+  transition: all 0.2s ease;
+}
+
+.lune-badge-btn:hover {
+  background: rgba(255, 235, 215, 0.12);
+  border-color: var(--lune-accent);
+  color: var(--lune-accent);
+}
+
+.lune-badge-btn.primary {
+  background: var(--lune-accent-gradient);
+  color: #120f0d;
+  font-weight: 700;
+}
+
+.lune-badge-btn.primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 4px 16px var(--lune-accent-glow);
+}
+
+/* Main Grid Layout */
+.lune-content-body {
+  position: relative;
+  z-index: 1;
+  padding: 24px 28px;
+  min-height: 600px;
+}
+
+/* VIEW: PLAYER */
+.lune-player-view {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 960px) {
+  .lune-player-view {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Dark Defocus Widget */
+.lune-defocus-card {
+  background: var(--lune-defocus-bg);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--lune-card-border);
+  border-radius: 28px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.lune-album-art-wrap {
+  width: 220px;
+  height: 220px;
+  border-radius: 24px;
+  position: relative;
+  margin-bottom: 20px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.lune-album-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.lune-defocus-card:hover .lune-album-art {
+  transform: scale(1.03);
+}
+
+.lune-hifi-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(10px);
+  color: var(--lune-accent);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(217, 153, 98, 0.4);
+}
+
+.lune-now-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lune-now-artist {
+  font-size: 13px;
+  color: var(--lune-text-secondary);
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+/* Audio Visualizer Canvas */
+.lune-canvas-wrap {
+  width: 100%;
+  height: 48px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.lune-visualizer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Timeline & Scrubber */
+.lune-scrubber-wrap {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.lune-progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255, 235, 215, 0.12);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.lune-progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--lune-accent);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--lune-accent-glow);
+  transition: transform 0.1s;
+}
+
+.lune-progress-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.25);
+}
+
+.lune-progress-time {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--lune-text-muted);
+  margin-top: 6px;
+}
+
+/* Primary Playback Controls */
+.lune-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.lune-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--lune-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.lune-ctrl-btn:hover {
+  color: #fff;
+  background: rgba(255, 235, 215, 0.08);
+}
+
+.lune-ctrl-btn.active {
+  color: var(--lune-accent);
+  background: var(--lune-badge-bg);
+}
+
+.lune-ctrl-btn.play-btn {
+  width: 58px;
+  height: 58px;
+  background: var(--lune-accent-gradient);
+  color: #120f0d;
+  box-shadow: 0 8px 24px var(--lune-accent-glow);
+  border-radius: 50%;
+}
+
+.lune-ctrl-btn.play-btn:hover {
+  transform: scale(1.06);
+  filter: brightness(1.1);
+}
+
+.lune-ctrl-btn.play-btn:active {
+  transform: scale(0.96);
+}
+
+/* Secondary controls (Speed, Timer, Volume) */
+.lune-secondary-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid var(--lune-card-border);
+  gap: 12px;
+}
+
+.lune-sec-btn {
+  background: rgba(255, 235, 215, 0.05);
+  border: 1px solid var(--lune-card-border);
+  color: var(--lune-text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lune-sec-btn:hover {
+  color: #fff;
+  border-color: var(--lune-accent);
+}
+
+.lune-volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 130px;
+}
+
+.lune-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 235, 215, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+
+.lune-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--lune-accent);
+  cursor: pointer;
+}
+
+/* Right Column: Library & Playlist */
+.lune-library-card {
+  background: var(--lune-bg-card);
+  border: 1px solid var(--lune-card-border);
+  border-radius: 28px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lune-lib-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.lune-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.lune-search-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--lune-card-border);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px 8px 36px;
+  border-radius: 20px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.lune-search-input:focus {
+  border-color: var(--lune-accent);
+}
+
+.lune-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--lune-text-muted);
+  pointer-events: none;
+}
+
+.lune-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.lune-act-btn {
+  background: rgba(255, 235, 215, 0.06);
+  border: 1px solid var(--lune-card-border);
+  color: var(--lune-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.lune-act-btn:hover {
+  background: rgba(255, 235, 215, 0.12);
+  border-color: var(--lune-accent);
+  color: var(--lune-accent);
+}
+
+/* Category Filter Pills */
+.lune-categories-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+
+.lune-categories-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.lune-cat-pill {
+  background: transparent;
+  border: 1px solid var(--lune-card-border);
+  color: var(--lune-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.lune-cat-pill:hover {
+  color: #fff;
+  border-color: rgba(255, 235, 215, 0.2);
+}
+
+.lune-cat-pill.active {
+  background: var(--lune-badge-bg);
+  color: var(--lune-accent);
+  border-color: var(--lune-badge-border);
+}
+
+/* Track List */
+.lune-tracklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.lune-track-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 235, 215, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.lune-track-row:hover {
+  background: rgba(255, 235, 215, 0.06);
+  border-color: var(--lune-card-border);
+}
+
+.lune-track-row.playing {
+  background: rgba(217, 153, 98, 0.12);
+  border-color: var(--lune-badge-border);
+}
+
+.lune-track-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.lune-track-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.lune-track-names {
+  min-width: 0;
+  flex: 1;
+}
+
+.lune-track-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lune-track-row.playing .lune-track-title {
+  color: var(--lune-accent);
+}
+
+.lune-track-artist {
+  font-size: 12px;
+  color: var(--lune-text-secondary);
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lune-track-extra {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lune-track-duration {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--lune-text-muted);
+}
+
+.lune-heart-btn {
+  background: transparent;
+  border: none;
+  color: var(--lune-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.lune-heart-btn:hover, .lune-heart-btn.liked {
+  color: #e50914;
+}
+
+/* VIEW: EQUALIZER */
+.lune-eq-view {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.lune-eq-card {
+  background: var(--lune-bg-card);
+  border: 1px solid var(--lune-card-border);
+  border-radius: 28px;
+  padding: 28px;
+}
+
+.lune-eq-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.lune-eq-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.lune-eq-preset-btn {
+  background: rgba(255, 235, 215, 0.05);
+  border: 1px solid var(--lune-card-border);
+  color: var(--lune-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lune-eq-preset-btn.active {
+  background: var(--lune-accent-gradient);
+  color: #120f0d;
+  font-weight: 700;
+}
+
+.lune-bands-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 240px;
+  padding: 16px 8px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 20px;
+  border: 1px solid var(--lune-card-border);
+}
+
+.lune-band-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  flex: 1;
+}
+
+.lune-band-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--lune-accent);
+}
+
+.lune-band-slider {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 14px;
+  height: 160px;
+  accent-color: var(--lune-accent);
+  cursor: pointer;
+}
+
+.lune-band-freq {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--lune-text-muted);
+  margin-top: 6px;
+}
+
+/* VIEW: LYRICS */
+.lune-lyrics-view {
+  background: var(--lune-bg-card);
+  border: 1px solid var(--lune-card-border);
+  border-radius: 28px;
+  padding: 32px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.lune-lyrics-container {
+  max-width: 600px;
+  width: 100%;
+  max-height: 420px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 20px 0;
+}
+
+.lune-lyric-line {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--lune-text-muted);
+  margin: 16px 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 6px 12px;
+  border-radius: 12px;
+}
+
+.lune-lyric-line:hover {
+  color: var(--lune-text-secondary);
+}
+
+.lune-lyric-line.active {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  transform: scale(1.04);
+  text-shadow: 0 4px 20px var(--lune-accent-glow);
+}
+
+/* VIEW: SHOWCASE / PORTAL */
+.lune-portal-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lune-portal-frame-wrap {
+  position: relative;
+  width: 100%;
+  height: 640px;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid var(--lune-card-border);
+  background: #000;
+}
+
+.lune-portal-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}

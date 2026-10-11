@@ -143,9 +143,9 @@ async function proxyTmdb(req, res, requestPath, query) {
 }
 
 function proxyHealth(requestPath, res) {
-    if (!requestPath.endsWith('/api/health')) return false;
+    if (!requestPath.endsWith('/api/health') && requestPath !== '/api/health') return false;
     const configured = Boolean(process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN);
-    res.writeHead(configured ? 200 : 503, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
     res.end(JSON.stringify({ ok: configured, tmdb: configured ? 'configured' : 'missing' }));
     return true;
 }
@@ -246,6 +246,11 @@ const server = http.createServer(async (req, res) => {
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     if (await downloadYouTube(req, res, requestPath, query)) return;
+    if (requestPath.startsWith('/api/')) {
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Endpoint not found', path: requestPath }));
+        return;
+    }
     const requestedFile = requestPath === '/' ? '/index.html' : requestPath;
     const filePath = path.resolve(root, `.${requestedFile}`);
 

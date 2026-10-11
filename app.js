@@ -6965,34 +6965,8 @@ function handleNavClick(link, e) {
             show('mangaSection', false);
             show('musicSection', true);
             document.getElementById('heroSection').style.display = 'none';
-            // lazy-load Monochrome iframe — use Google proxy when Lightspeed is active (common on filtered Chromebooks)
-            const mf = document.getElementById('musicFrame');
-            if (mf && (!mf.src || mf.src === 'about:blank' || mf.src.includes('about:blank'))) {
-                const direct = 'https://monochrome.tf';
-                let isFiltered = false;
-                try { isFiltered = window._lightspeedDetected || localStorage.getItem('milkbox_lightspeed') === '1'; } catch {}
-                mf.src = isFiltered && window.googleProxy ? window.googleProxy(direct) : direct;
-                // verify reachability in background and switch to proxy if the direct URL is blocked
-                (async () => {
-                    if (isFiltered) return;
-                    try {
-                        const r = await fetch(direct, { method: 'HEAD', cache: 'no-store', mode: 'no-cors' });
-                        // no-cors always opaque, so we can't inspect — try a proxied fetch with real CORS as probe
-                        const probe = await fetch(direct, { cache: 'no-store' }).then(res => res.text().then(t => ({ ok: res.ok, text: t }))).catch(()=>null);
-                        if (probe && /LightSpeed|blocked by|filter|access denied/i.test(probe.text) ) {
-                            try { localStorage.setItem('milkbox_lightspeed','1'); } catch {}
-                            window._lightspeedDetected = true;
-                            mf.src = window.googleProxy(direct);
-                        }
-                    } catch {
-                        // network block — fall back to proxy
-                        try {
-                            const p = await fetch(window.googleProxy(direct), { cache: 'no-store' });
-                            if (p && p.ok) { mf.src = window.googleProxy(direct); try{localStorage.setItem('milkbox_lightspeed','1');}catch{} }
-                        } catch {}
-                    }
-                })();
-            }
+            // Scroll to Lune music player
+            document.getElementById('musicSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else if (section === 'tvshows') {
             show('moviesSection', false);
             show('tvShowsSection', true);
@@ -8089,35 +8063,6 @@ document.addEventListener('click', async (e) => {
     renderCollectionPage();
 });
 document.getElementById('closeSearchResults')?.addEventListener('click', closeCollectionView);
-document.getElementById('musicReloadBtn')?.addEventListener('click', () => {
-    const mf = document.getElementById('musicFrame');
-    if (!mf) return;
-    let isFiltered = false;
-    try { isFiltered = window._lightspeedDetected || localStorage.getItem('milkbox_lightspeed') === '1'; } catch {}
-    const direct = 'https://monochrome.tf';
-    // if filtered, reload via proxy; otherwise toggle to force reload
-    if (isFiltered && window.googleProxy) mf.src = window.googleProxy(direct);
-    else mf.src = mf.src;
-});
-document.getElementById('musicLogoPatch')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    const mf = document.getElementById('musicFrame');
-    if (mf) mf.src = 'https://monochrome.tf';
-});
-// Attempt to rewrite the Monochrome logo text inside the iframe when same-origin allows it (falls back to overlay patch)
-document.getElementById('musicFrame')?.addEventListener('load', () => {
-    try {
-        const mf = document.getElementById('musicFrame');
-        const doc = mf.contentDocument || mf.contentWindow?.document;
-        if (!doc) return;
-        const logoSpan = doc.querySelector('a.sidebar-logo-link span');
-        if (logoSpan && logoSpan.textContent.trim() === 'Monochrome') {
-            logoSpan.textContent = 'MILKBOX MUSIC';
-            const patch = document.getElementById('musicLogoPatch');
-            if (patch) patch.style.display = 'none';
-        }
-    } catch {}
-});
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn[data-collection-page]');
     if (!btn || btn.disabled) return;

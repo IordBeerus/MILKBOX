@@ -1,18 +1,1 @@
-{
-  "name": "milkbox",
-  "version": "1.0.0",
-  "private": true,
-  "packageManager": "pnpm@11.24.0",
-  "description": "MILKBOX static media library",
-  "scripts": {
-    "build": "node --check app.js && node --check server.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js",
-    "start": "node server.js",
-    "sync:provider-icons": "node sync-provider-icons.js"
-  },
-  "engines": {
-    "node": ">=20.19.0"
-  },
-  "dependencies": {
-    "youtubei.js": "^18.0.0"
-  }
-}
+{"name":"milkbox","version":"1.0.0","private":true,"description":"MILKBOX static media library","scripts":{"lint":"npm run build","dev":"node server.js","build":"node --check app.js \u0026\u0026 node --check server.js \u0026\u0026 node --check service-worker.js \u0026\u0026 node --check sync-provider-icons.js \u0026\u0026 node --check milkbox-player.js && node --check lune-player.js","start":"node server.js","sync:provider-icons":"node sync-provider-icons.js"},"engines":{"node":"\u003e\u003d20.19.0"},"dependencies":{"youtubei.js":"^18.0.0"}}
