@@ -1,1 +1,22 @@
-{"name":"milkbox","version":"1.0.0","private":true,"description":"MILKBOX static media library","scripts":{"lint":"npm run build","dev":"node server.js","build":"node --check app.js \u0026\u0026 node --check server.js \u0026\u0026 node --check service-worker.js \u0026\u0026 node --check sync-provider-icons.js \u0026\u0026 node --check milkbox-player.js && node --check lune-player.js","start":"node server.js","sync:provider-icons":"node sync-provider-icons.js"},"engines":{"node":"\u003e\u003d20.19.0"},"dependencies":{"youtubei.js":"^18.0.0"}}
+{
+  "name": "milkbox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MILKBOX static media library",
+  "scripts": {
+    "lint": "npm run build",
+    "dev": "node server.js",
+    "build": "node --check app.js && node --check server.js && node --check sync-github.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js && node --check musify-player.js",
+    "start": "node server.js",
+    "sync:provider-icons": "node sync-provider-icons.js",
+    "sync:github": "node sync-github.js",
+    "push": "node sync-github.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "jsmediatags": "^3.9.7",
+    "youtubei.js": "^18.0.0"
+  }
+}

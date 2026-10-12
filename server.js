@@ -237,6 +237,66 @@ async function downloadYouTube(req, res, requestPath, query) {
     return true;
 }
 
+let innertubeSingleton = null;
+async function getInnertube() {
+    if (!innertubeSingleton) innertubeSingleton = await Innertube.create();
+    return innertubeSingleton;
+}
+
+const trailerCache = new Map();
+
+async function proxyTrailerSearch(req, res, requestPath, query) {
+    if (requestPath !== '/api/trailer/search') return false;
+    const q = (query.get('q') || '').trim();
+    if (!q) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Missing query parameter q' }));
+        return true;
+    }
+    const cacheKey = q.toLowerCase();
+    if (trailerCache.has(cacheKey)) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+        res.end(JSON.stringify(trailerCache.get(cacheKey)));
+        return true;
+    }
+    try {
+        const yt = await getInnertube();
+        const search = await yt.search(q, { type: 'video' });
+        const first = search.videos?.[0];
+        if (first && first.id) {
+            const data = { key: first.id, title: first.title?.text || '' };
+            trailerCache.set(cacheKey, data);
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=86400' });
+            res.end(JSON.stringify(data));
+            return true;
+        }
+        res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'No video found' }));
+    } catch (err) {
+        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Search failed', message: err.message }));
+    }
+    return true;
+}
+
+const { syncToGitHub } = require('./sync-github.js');
+
+async function handleGitHubSync(req, res, requestPath) {
+    if (requestPath !== '/api/github/sync') return false;
+    try {
+        const result = syncToGitHub('Sync via MILKBOX API');
+        res.writeHead(result.success ? 200 : (result.requiresAuth ? 401 : 500), {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store'
+        });
+        res.end(JSON.stringify(result));
+    } catch (err) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'GitHub sync failed', message: err.message }));
+    }
+    return true;
+}
+
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
@@ -246,6 +306,8 @@ const server = http.createServer(async (req, res) => {
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     if (await downloadYouTube(req, res, requestPath, query)) return;
+    if (await proxyTrailerSearch(req, res, requestPath, query)) return;
+    if (await handleGitHubSync(req, res, requestPath)) return;
     if (requestPath.startsWith('/api/')) {
         res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Endpoint not found', path: requestPath }));

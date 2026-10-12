@@ -1,0 +1,2251 @@
+/* ==========================================================================
+   MUSIFY MUSIC PLAYER — Material You (M3) Design
+   Official Theme: Obsidian Blue, Cyan Accent & Material Design 3 Surfaces
+   Inspired by: https://github.com/gokadzev/Musify
+   ========================================================================== */
+
+:root {
+  --musify-bg: #111a24;
+  --musify-surface: #0e141b;
+  --musify-surface-container: #1a2028;
+  --musify-surface-high: #252b33;
+  --musify-surface-highest: #30363e;
+  --musify-primary: #a6c8ff;
+  --musify-on-primary: #003258;
+  --musify-primary-container: #00497d;
+  --musify-on-primary-container: #d1e4ff;
+  --musify-secondary: #b9c8da;
+  --musify-on-secondary: #24323f;
+  --musify-text-primary: #e1e2e8;
+  --musify-text-secondary: #c1c7d0;
+  --musify-text-muted: #8b919a;
+  --musify-outline: rgba(139, 145, 154, 0.24);
+  --musify-accent-glow: rgba(166, 200, 255, 0.25);
+  --musify-radius-lg: 28px;
+  --musify-radius-md: 20px;
+  --musify-radius-sm: 12px;
+}
+
+.musify-container {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  color: var(--musify-text-primary);
+  background: radial-gradient(circle at 50% 0%, #172433 0%, #111a24 60%, #0a0f15 100%);
+  border-radius: var(--musify-radius-lg);
+  border: 1px solid var(--musify-outline);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  position: relative;
+  margin-top: 10px;
+}
+
+/* Background animated glow */
+.musify-ambient-glow {
+  position: absolute;
+  top: -120px;
+  left: 25%;
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, var(--musify-accent-glow) 0%, transparent 70%);
+  filter: blur(90px);
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.55;
+  transition: all 0.8s ease;
+}
+
+/* Header */
+.musify-header {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--musify-outline);
+  background: rgba(14, 20, 27, 0.85);
+  backdrop-filter: blur(20px);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.musify-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-decoration: none;
+}
+
+.musify-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
+  object-fit: cover;
+}
+
+.musify-brand-info h2 {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin: 0;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.musify-brand-badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(166, 200, 255, 0.15);
+  color: var(--musify-primary);
+  border: 1px solid rgba(166, 200, 255, 0.3);
+  padding: 2px 8px;
+  border-radius: 20px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.musify-brand-info p {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 2px 0 0 0;
+}
+
+.musify-nav-tabs {
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px;
+  border-radius: 30px;
+  border: 1px solid var(--musify-outline);
+  gap: 4px;
+}
+
+.musify-tab-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-secondary);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 16px;
+  border-radius: 24px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.musify-tab-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.musify-tab-btn.active {
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+  font-weight: 700;
+  box-shadow: 0 4px 14px var(--musify-accent-glow);
+}
+
+/* Body */
+.musify-content-body {
+  position: relative;
+  z-index: 1;
+  padding: 24px 28px;
+  min-height: 600px;
+}
+
+/* VIEW: PLAYER */
+.musify-player-view {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 28px;
+}
+
+@media (max-width: 960px) {
+  .musify-player-view {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Now Playing Card (Material You) */
+.musify-now-card {
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+  border-radius: var(--musify-radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  position: relative;
+  overflow: hidden;
+}
+
+.musify-album-art-wrap {
+  width: 220px;
+  height: 220px;
+  border-radius: 24px;
+  position: relative;
+  margin-bottom: 20px;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.musify-album-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.musify-now-card:hover .musify-album-art {
+  transform: scale(1.03);
+}
+
+.musify-art-hover-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: rgba(14, 20, 27, 0.85);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+
+.musify-album-art-wrap:hover .musify-art-hover-badge {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.musify-quality-badge {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(14, 20, 27, 0.85);
+  backdrop-filter: blur(10px);
+  color: var(--musify-primary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(166, 200, 255, 0.35);
+}
+
+.musify-now-meta-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.musify-now-titles {
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-now-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 4px 0;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-now-artist {
+  font-size: 13px;
+  color: var(--musify-text-secondary);
+  margin: 0;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-info-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(166, 200, 255, 0.12);
+  border: 1px solid rgba(166, 200, 255, 0.25);
+  color: var(--musify-primary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.musify-info-pill-btn:hover {
+  background: rgba(166, 200, 255, 0.22);
+  border-color: var(--musify-primary);
+  transform: translateY(-1px);
+}
+
+/* Visualizer */
+.musify-canvas-wrap {
+  width: 100%;
+  height: 48px;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.musify-visualizer-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Scrubber */
+.musify-scrubber-wrap {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.musify-progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+
+.musify-progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--musify-primary);
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--musify-accent-glow);
+}
+
+.musify-progress-time {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--musify-text-muted);
+  margin-top: 6px;
+}
+
+/* Primary Controls */
+.musify-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  margin-bottom: 18px;
+}
+
+.musify-ctrl-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s cubic-bezier(0.2, 0, 0, 1);
+  position: relative;
+}
+
+.musify-ctrl-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.06);
+}
+
+.musify-ctrl-btn:active {
+  transform: scale(0.95);
+}
+
+.musify-ctrl-btn.active {
+  color: var(--musify-primary);
+  background: rgba(166, 200, 255, 0.18);
+  box-shadow: 0 0 14px var(--musify-accent-glow);
+}
+
+.musify-repeat-sub-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1;
+  background: var(--musify-primary);
+  color: #0b1320;
+  border-radius: 4px;
+  padding: 1px 3px;
+  pointer-events: none;
+  box-shadow: 0 0 6px var(--musify-accent-glow);
+}
+
+.musify-ctrl-btn.play-btn {
+  width: 58px;
+  height: 58px;
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+  box-shadow: 0 8px 24px var(--musify-accent-glow);
+  border-radius: 50%;
+}
+
+.musify-ctrl-btn.play-btn:hover {
+  transform: scale(1.06);
+  filter: brightness(1.1);
+}
+
+.musify-ctrl-btn.play-btn:active {
+  transform: scale(0.96);
+}
+
+/* Secondary controls */
+.musify-secondary-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 14px;
+  border-top: 1px solid var(--musify-outline);
+  gap: 12px;
+}
+
+.musify-sec-btn {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.musify-sec-btn:hover {
+  color: #fff;
+  border-color: var(--musify-primary);
+}
+
+.musify-sec-btn.active {
+  background: var(--musify-primary-container);
+  color: var(--musify-on-primary-container);
+  border-color: var(--musify-primary);
+}
+
+.musify-volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  max-width: 130px;
+}
+
+.musify-volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+  cursor: pointer;
+}
+
+.musify-volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--musify-primary);
+  cursor: pointer;
+}
+
+/* Right Column: Library & Search */
+.musify-library-card {
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+  border-radius: var(--musify-radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.musify-lib-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.musify-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 220px;
+}
+
+.musify-search-input {
+  width: 100%;
+  background: var(--musify-surface);
+  border: 1px solid var(--musify-outline);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  padding: 8px 14px 8px 36px;
+  border-radius: 20px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.musify-search-input:focus {
+  border-color: var(--musify-primary);
+}
+
+.musify-search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--musify-text-muted);
+  pointer-events: none;
+}
+
+.musify-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.musify-act-btn {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.musify-act-btn:hover {
+  background: var(--musify-surface-highest);
+  border-color: var(--musify-primary);
+  color: var(--musify-primary);
+}
+
+/* Category Filter Pills */
+.musify-categories-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+}
+
+.musify-categories-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.musify-cat-pill {
+  background: transparent;
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.musify-cat-pill:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.musify-cat-pill.active {
+  background: rgba(166, 200, 255, 0.16);
+  color: var(--musify-primary);
+  border-color: var(--musify-primary);
+}
+
+/* Track List */
+.musify-tracklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.musify-track-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.musify-track-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--musify-outline);
+}
+
+.musify-track-row.playing {
+  background: rgba(166, 200, 255, 0.12);
+  border-color: rgba(166, 200, 255, 0.35);
+}
+
+.musify-track-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-track-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.musify-track-names {
+  min-width: 0;
+  flex: 1;
+}
+
+.musify-track-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-track-row.playing .musify-track-title {
+  color: var(--musify-primary);
+}
+
+.musify-track-artist {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-track-extra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.musify-track-format-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--musify-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.musify-track-duration {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--musify-text-muted);
+}
+
+.musify-track-info-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.musify-track-info-btn:hover {
+  color: var(--musify-primary);
+  background: rgba(166, 200, 255, 0.15);
+}
+
+.musify-heart-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.2s;
+}
+
+.musify-heart-btn:hover, .musify-heart-btn.liked {
+  color: #e50914;
+}
+
+/* VIEW: EQUALIZER */
+.musify-eq-card {
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+  border-radius: var(--musify-radius-lg);
+  padding: 28px;
+}
+
+.musify-eq-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.musify-eq-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.musify-eq-preset-btn {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.musify-eq-preset-btn.active {
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+  font-weight: 700;
+}
+
+.musify-bands-wrap {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 240px;
+  padding: 16px 8px;
+  background: var(--musify-surface);
+  border-radius: 20px;
+  border: 1px solid var(--musify-outline);
+}
+
+.musify-band-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  flex: 1;
+}
+
+.musify-band-val {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--musify-primary);
+}
+
+.musify-band-slider {
+  -webkit-appearance: slider-vertical;
+  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 14px;
+  height: 160px;
+  accent-color: var(--musify-primary);
+  cursor: pointer;
+}
+
+.musify-band-freq {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--musify-text-muted);
+  margin-top: 6px;
+}
+
+/* VIEW: LYRICS */
+.musify-lyrics-view {
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+  border-radius: var(--musify-radius-lg);
+  padding: 24px;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.musify-lyrics-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--musify-outline);
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.musify-lyrics-track-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.musify-lyrics-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  object-fit: cover;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+
+.musify-lyrics-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.musify-lyrics-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(166, 200, 255, 0.15);
+  border: 1px solid rgba(166, 200, 255, 0.3);
+  color: var(--musify-primary);
+  text-transform: uppercase;
+  transition: all 0.25s ease;
+}
+
+.musify-lyrics-chip.synced {
+  background: rgba(52, 211, 153, 0.18);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+  box-shadow: 0 0 10px rgba(52, 211, 153, 0.2);
+}
+
+.musify-lyrics-chip.plain {
+  background: rgba(251, 191, 36, 0.18);
+  border-color: rgba(251, 191, 36, 0.4);
+  color: #fbbf24;
+}
+
+.musify-lyrics-chip.loading {
+  background: rgba(96, 165, 250, 0.18);
+  border-color: rgba(96, 165, 250, 0.4);
+  color: #60a5fa;
+  animation: musifyChipPulse 1.5s infinite;
+}
+
+@keyframes musifyChipPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(0.97); }
+}
+
+.musify-lyrics-artist {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 2px 0 0 0;
+}
+
+.musify-lyrics-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.musify-lyrics-act-btn {
+  background: var(--musify-surface);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.musify-lyrics-act-btn:hover {
+  background: var(--musify-surface-high);
+  color: var(--musify-primary);
+  border-color: rgba(166, 200, 255, 0.4);
+}
+
+.musify-lyrics-container {
+  max-width: 620px;
+  width: 100%;
+  max-height: 440px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  padding: 20px 0;
+}
+
+/* Empty State for Lyrics */
+.musify-lyrics-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--musify-text-secondary);
+}
+
+.musify-lyrics-empty-icon {
+  font-size: 44px;
+  margin-bottom: 12px;
+  opacity: 0.8;
+  animation: musifyFloat 3s ease-in-out infinite;
+}
+
+@keyframes musifyFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.musify-lyrics-empty h4 {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px 0;
+}
+
+.musify-lyrics-empty p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--musify-text-secondary);
+  max-width: 440px;
+  margin: 0 0 20px 0;
+}
+
+.musify-lyrics-empty-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* Loading State for Lyrics */
+.musify-lyrics-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px 20px;
+  color: var(--musify-text-secondary);
+  gap: 16px;
+}
+
+.musify-lyrics-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(166, 200, 255, 0.2);
+  border-top-color: var(--musify-primary);
+  border-radius: 50%;
+  animation: musifySpin 0.9s linear infinite;
+}
+
+@keyframes musifySpin {
+  to { transform: rotate(360deg); }
+}
+
+.musify-lyrics-loading p {
+  font-size: 13px;
+  margin: 0;
+  color: var(--musify-text-secondary);
+}
+
+.musify-lyric-line {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--musify-text-muted);
+  margin: 16px 0;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 6px 12px;
+  border-radius: 12px;
+}
+
+.musify-lyric-line:hover {
+  color: var(--musify-text-secondary);
+}
+
+.musify-lyric-line.active {
+  font-size: 24px;
+  font-weight: 800;
+  color: #fff;
+  transform: scale(1.04);
+  text-shadow: 0 4px 20px var(--musify-accent-glow);
+}
+
+/* ==========================================================================
+   AUDIO DETAILS & METADATA MODAL (MATERIAL YOU)
+   ========================================================================== */
+.musify-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(5, 10, 15, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: musifyFadeIn 0.2s ease;
+}
+
+@keyframes musifyFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.musify-modal-dialog {
+  background: var(--musify-surface);
+  border: 1px solid var(--musify-outline);
+  border-radius: 28px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  animation: musifyModalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes musifyModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.musify-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 26px;
+  border-bottom: 1px solid var(--musify-outline);
+  background: var(--musify-surface-container);
+}
+
+.musify-modal-chip {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(166, 200, 255, 0.16);
+  color: var(--musify-primary);
+  margin-bottom: 4px;
+}
+
+.musify-modal-header-info h3 {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0;
+  color: #fff;
+}
+
+.musify-modal-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.musify-modal-close-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+.musify-modal-body {
+  padding: 22px 26px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.musify-detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px;
+  border-radius: 20px;
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+}
+
+.musify-detail-art-wrap {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  border-radius: 16px;
+  overflow: hidden;
+  flex-shrink: 0;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.5);
+}
+
+.musify-detail-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.musify-art-source-pill {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+  right: 6px;
+  text-align: center;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: 6px;
+  background: rgba(10, 15, 20, 0.85);
+  backdrop-filter: blur(4px);
+  color: var(--musify-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-detail-primary {
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-detail-song-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0 0 4px 0;
+  word-break: break-word;
+}
+
+.musify-detail-song-artist {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--musify-primary);
+  margin: 0 0 2px 0;
+  word-break: break-word;
+}
+
+.musify-detail-song-album {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 0 0 10px 0;
+  word-break: break-word;
+}
+
+.musify-detail-quick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.musify-quick-tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: var(--musify-surface-high);
+  color: var(--musify-text-secondary);
+  border: 1px solid var(--musify-outline);
+}
+
+.musify-detail-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.2px;
+}
+
+.musify-props-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 580px) {
+  .musify-props-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.musify-prop-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--musify-surface-container);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.musify-prop-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(166, 200, 255, 0.12);
+  color: var(--musify-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.musify-prop-meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-prop-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--musify-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.musify-prop-val {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 2px;
+  word-break: break-word;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.musify-lyrics-preview-wrap {
+  background: var(--musify-surface-container);
+  border-radius: 16px;
+  border: 1px solid var(--musify-outline);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.musify-copy-lyrics-btn {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-primary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.musify-copy-lyrics-btn:hover {
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+}
+
+.musify-lyrics-preview-text {
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--musify-text-secondary);
+  white-space: pre-wrap;
+  font-family: inherit;
+  padding: 10px 12px;
+  background: var(--musify-surface);
+  border-radius: 10px;
+  border: 1px solid var(--musify-outline);
+}
+
+.musify-raw-tags-details {
+  background: var(--musify-surface-container);
+  border-radius: 14px;
+  border: 1px solid var(--musify-outline);
+  padding: 12px 16px;
+}
+
+.musify-raw-tags-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--musify-text-secondary);
+  user-select: none;
+}
+
+.musify-raw-tags-summary:hover {
+  color: #fff;
+}
+
+.musify-raw-count {
+  font-size: 10px;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: var(--musify-surface-high);
+  color: var(--musify-primary);
+}
+
+.musify-raw-table-wrap {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 10px;
+}
+
+.musify-raw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.musify-raw-table th {
+  text-align: left;
+  padding: 6px 10px;
+  color: var(--musify-text-muted);
+  border-bottom: 1px solid var(--musify-outline);
+  position: sticky;
+  top: 0;
+  background: var(--musify-surface-container);
+}
+
+.musify-raw-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--musify-text-primary);
+  word-break: break-all;
+}
+
+.musify-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 26px;
+  border-top: 1px solid var(--musify-outline);
+  background: var(--musify-surface-container);
+}
+
+.musify-modal-action-btn {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 18px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.musify-modal-action-btn.secondary {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-primary);
+}
+
+.musify-modal-action-btn.secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.musify-modal-action-btn.primary {
+  background: var(--musify-primary);
+  border: none;
+  color: var(--musify-on-primary);
+}
+
+.musify-modal-action-btn.primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.musify-modal-action-btn.danger {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  margin-right: auto;
+}
+
+.musify-modal-action-btn.danger:hover {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
+  transform: translateY(-1px);
+}
+
+/* Track Row Offline Saved Badge & Delete Button */
+.musify-saved-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+}
+
+.musify-track-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.musify-track-delete-btn:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+  transform: scale(1.1);
+}
+
+/* Category Pill Badge */
+.musify-cat-badge {
+  background: rgba(16, 185, 129, 0.22);
+  color: #10b981;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+/* Offline Saved Library Header Banner */
+.musify-offline-header-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: var(--musify-text-primary);
+  font-size: 12px;
+  animation: musifyFadeIn 0.3s ease;
+}
+
+.musify-offline-header-banner .meta-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.musify-offline-clear-btn {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #f87171;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.musify-offline-clear-btn:hover {
+  background: #ef4444;
+  color: #fff;
+}
+
+/* Offline Empty State */
+.musify-offline-empty-card {
+  text-align: center;
+  padding: 48px 24px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--musify-outline);
+  border-radius: 16px;
+  margin: 12px 0;
+  animation: musifyFadeIn 0.3s ease;
+}
+
+.musify-offline-empty-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.musify-offline-empty-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0 0 8px;
+}
+
+.musify-offline-empty-card p {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  max-width: 440px;
+  margin: 0 auto 16px;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   UP NEXT QUEUE VIEW & REORDERING STYLES
+   ========================================================================== */
+
+.musify-queue-counter-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(166, 200, 255, 0.2);
+  color: var(--musify-primary);
+  margin-left: 2px;
+}
+
+.musify-tab-btn.active .musify-queue-counter-pill {
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+}
+
+.musify-queue-card {
+  background: var(--musify-surface-container);
+  border: 1px solid var(--musify-outline);
+  border-radius: var(--musify-radius-lg);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.musify-queue-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.musify-queue-headings {
+  flex: 1;
+  min-width: 240px;
+}
+
+.musify-queue-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.musify-queue-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.musify-queue-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(166, 200, 255, 0.12);
+  color: var(--musify-primary);
+  border: 1px solid rgba(166, 200, 255, 0.28);
+  padding: 3px 10px;
+  border-radius: 14px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.musify-queue-desc {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.musify-queue-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.musify-q-btn {
+  background: var(--musify-surface-high);
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-primary);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.musify-q-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--musify-primary);
+  color: var(--musify-primary);
+  transform: translateY(-1px);
+}
+
+.musify-q-btn.danger:hover {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.4);
+  background: rgba(255, 107, 107, 0.12);
+}
+
+/* Now Playing in Queue */
+.musify-queue-now-playing-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.musify-queue-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.musify-queue-sec-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.musify-queue-sec-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--musify-text-muted);
+}
+
+.musify-queue-playing-tag {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(166, 200, 255, 0.18);
+  color: var(--musify-primary);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.musify-queue-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--musify-primary);
+  background: rgba(166, 200, 255, 0.12);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.musify-queue-reorder-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--musify-text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 3px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--musify-outline);
+}
+
+.musify-queue-now-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(166, 200, 255, 0.08);
+  border: 1px solid rgba(166, 200, 255, 0.28);
+  border-radius: 18px;
+  gap: 14px;
+}
+
+.musify-queue-now-art-box {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.musify-queue-now-art {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.musify-queue-bars-anim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.musify-queue-bars-anim.active {
+  opacity: 1;
+}
+
+.musify-queue-bars-anim span {
+  width: 3px;
+  height: 14px;
+  background: var(--musify-primary);
+  border-radius: 2px;
+  animation: musifyEqualize 0.8s infinite ease-in-out alternate;
+}
+
+.musify-queue-bars-anim span:nth-child(1) { animation-delay: 0.1s; height: 10px; }
+.musify-queue-bars-anim span:nth-child(2) { animation-delay: 0.3s; height: 18px; }
+.musify-queue-bars-anim span:nth-child(3) { animation-delay: 0.2s; height: 14px; }
+.musify-queue-bars-anim span:nth-child(4) { animation-delay: 0.4s; height: 12px; }
+
+@keyframes musifyEqualize {
+  0% { transform: scaleY(0.3); }
+  100% { transform: scaleY(1.1); }
+}
+
+.musify-queue-now-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-queue-now-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-now-artist {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 3px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-now-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.musify-queue-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--musify-text-secondary);
+}
+
+.musify-queue-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--musify-text-muted);
+}
+
+.musify-queue-now-play-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.musify-queue-now-play-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px var(--musify-accent-glow);
+}
+
+/* Upcoming Queue List */
+.musify-queue-upcoming-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.musify-queue-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.musify-queue-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 12px;
+  user-select: none;
+}
+
+.musify-queue-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--musify-outline);
+}
+
+.musify-queue-row.dragging {
+  opacity: 0.35;
+  border: 1px dashed var(--musify-primary);
+  background: rgba(166, 200, 255, 0.06);
+  transform: scale(0.99);
+}
+
+.musify-queue-row.drag-over {
+  border-top: 2px solid var(--musify-primary);
+  box-shadow: 0 -4px 14px rgba(166, 200, 255, 0.25);
+  background: rgba(166, 200, 255, 0.08);
+}
+
+.musify-queue-item-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-queue-drag-handle {
+  cursor: grab;
+  color: var(--musify-text-muted);
+  font-size: 16px;
+  padding: 4px 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.musify-queue-drag-handle:hover {
+  color: var(--musify-primary);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.musify-queue-drag-handle:active {
+  cursor: grabbing;
+}
+
+.musify-queue-pos {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--musify-text-muted);
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.musify-queue-thumb-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.musify-queue-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.musify-queue-play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.musify-queue-thumb-wrap:hover .musify-queue-play-overlay {
+  opacity: 1;
+}
+
+.musify-queue-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.musify-queue-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-artist {
+  font-size: 12px;
+  color: var(--musify-text-secondary);
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-item-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.musify-queue-reorder-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.musify-reorder-btn {
+  background: transparent;
+  border: 1px solid var(--musify-outline);
+  color: var(--musify-text-secondary);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.musify-reorder-btn:hover:not(:disabled) {
+  background: rgba(166, 200, 255, 0.15);
+  border-color: var(--musify-primary);
+  color: var(--musify-primary);
+  transform: translateY(-1px);
+}
+
+.musify-reorder-btn:disabled {
+  opacity: 0.22;
+  cursor: not-allowed;
+}
+
+.musify-queue-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.musify-queue-action-btn:hover {
+  color: var(--musify-primary);
+  background: rgba(166, 200, 255, 0.15);
+}
+
+.musify-queue-action-btn.remove:hover {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.15);
+}
+
+/* Empty Queue State */
+.musify-queue-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--musify-text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 18px;
+  border: 1px dashed var(--musify-outline);
+}
+
+.musify-queue-empty-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(166, 200, 255, 0.1);
+  color: var(--musify-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.musify-queue-empty h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+}
+
+.musify-queue-empty p {
+  font-size: 13px;
+  margin: 0;
+  max-width: 380px;
+}
+
+/* Tracklist + Queue Button */
+.musify-track-queue-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.musify-track-queue-btn:hover {
+  color: var(--musify-primary);
+  background: rgba(166, 200, 255, 0.15);
+}
+
+/* Picker List in Add Song Modal */
+.musify-queue-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.musify-queue-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--musify-outline);
+  transition: all 0.2s;
+  gap: 10px;
+}
+
+.musify-queue-picker-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(166, 200, 255, 0.3);
+}
+
+.musify-queue-picker-thumb {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.musify-queue-picker-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.musify-queue-picker-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-picker-artist {
+  font-size: 11px;
+  color: var(--musify-text-secondary);
+  margin: 2px 0 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.musify-queue-picker-btn {
+  background: rgba(166, 200, 255, 0.15);
+  border: 1px solid rgba(166, 200, 255, 0.3);
+  color: var(--musify-primary);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.musify-queue-picker-btn:hover {
+  background: var(--musify-primary);
+  color: var(--musify-on-primary);
+}
+
+

@@ -24,7 +24,7 @@
     <link rel="stylesheet" href="milkbox-player.css">
     <link rel="stylesheet" href="discord-button.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="lune-player.css">
+    <link rel="stylesheet" href="musify-player.css?v=milkify-audio-info-20261011">
 </head>
 <body id="siteBody">
     <nav class="navbar">
@@ -70,6 +70,7 @@
             <button class="btn-icon" id="settingsBtn" title="Settings" aria-label="Settings"><svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="#e3e3e3"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5v-27q0-6.5 1-13.5L78-585l110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5v27q0 6.5-2 13.5l103 78-110 190-118-50q-11 8-23 15t-24 12L590-80H370Zm70-80h79l14-106q31-8 57.5-23.5T639-327l99 41 39-68-86-65q5-14 7-29.5t2-31.5q0-16-2-31.5t-7-29.5l86-65-39-68-99 42q-22-23-48.5-38.5T533-694l-13-106h-79l-14 106q-31 8-57.5 23.5T321-633l-99-41-39 68 86 64q-5 15-7 30t-2 32q0 16 2 31t7 30l-86 65 39 68 99-42q22 23 48.5 38.5T427-266l13 106Zm42-180q-58 0-99-41t-41-99q0-58 41-99t99-41q58 0 99 41t41 99q0 58-41 99t-99 41Zm-2-80q25 0 42.5-17.5T440-480q0-25-17.5-42.5T380-540q-25 0-42.5 17.5T320-480q0 25 17.5 42.5T380-420Z"/></svg></button>
         </div>
     </nav>
+
     <div class="mobile-nav-panel" id="mobileNavPanel">
         <ul class="mobile-nav-links">
             <li><a href="#" class="mobile-nav-link active" data-section="home">Home</a></li>
@@ -94,15 +95,33 @@
         <img id="seasonalDecorationsImage" alt="">
     </div>
 
-    <!-- Hero Banner -->
+    <!-- Hero Banner with Netflix Redesign -->
     <div class="hero" id="heroSection">
+        <div class="hero-trailer-wrap" id="heroTrailerWrap"></div>
         <div class="hero-content">
-            <h2 class="hero-title" id="heroTitle">Welcome to MILKBOX</h2>
-            <p class="hero-desc" id="heroDesc">Your personal streaming platform. Add direct video URLs or upload TV episodes.</p>
             <img class="hero-logo" id="heroLogo" alt="Hero Logo" style="display:none">
+            <h2 class="hero-title" id="heroTitle">Welcome to MILKBOX</h2>
+            <div class="hero-meta-row" id="heroMetaRow">
+                <span class="hero-match" id="heroMatch">98% Match</span>
+                <span class="hero-year" id="heroYear">2026</span>
+                <span class="hero-age-rating" id="heroAgeBadge">TV-MA</span>
+                <span class="hero-duration" id="heroDuration">2h 15m</span>
+                <span class="hero-quality-badge" id="heroQuality">4K Ultra HD</span>
+                <span class="hero-genre-tags" id="heroGenreTags">Action • Sci-Fi • Drama</span>
+            </div>
+            <p class="hero-desc" id="heroDesc">Your personal streaming platform. Add direct video URLs or upload TV episodes.</p>
             <div class="hero-buttons">
                 <button class="btn-primary" id="heroPlayBtn"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z"/></svg> Play</button>
                 <button class="btn-secondary" id="heroInfoBtn"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> More Info</button>
+                <button class="btn-secondary hero-list-btn" id="heroListBtn" title="Add to My List"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg> My List</button>
+            </div>
+        </div>
+        <div class="hero-vignette-right">
+            <button class="hero-sound-btn" id="heroSoundBtn" title="Audio Preview" aria-label="Toggle Sound">
+                <svg id="heroSoundIcon" xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M560-131v-82q90-26 145-100t55-167q0-93-55-167T560-747v-82q124 28 202 125.5T840-480q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-320q46 14 73 53.5t27 86.5q0 47-27 86.5T560-320Z"/></svg>
+            </button>
+            <div class="hero-maturity-badge" id="heroMaturityBadge">
+                <span id="heroMaturityBadgeText">TV-MA</span>
             </div>
         </div>
         <div class="hero-fade"></div>
@@ -149,6 +168,23 @@
             </div>
             <div class="content-grid" id="searchResultsGrid" style="margin-top:14px"></div>
             <div class="pagination" id="searchResultsPager" style="display:none"></div>
+        </section>
+        <!-- Netflix Top 10 Today Row -->
+        <section class="content-section netflix-top10-section" id="top10Section">
+            <div class="section-title-wrap">
+                <h3 class="section-title">
+                    <span>Top 10 in MILKBOX Today</span>
+                    <span class="row-explore-more">Explore All ❯</span>
+                </h3>
+                <div class="row-indicator-bars" id="top10Indicators">
+                    <span class="ind-bar active"></span><span class="ind-bar"></span><span class="ind-bar"></span><span class="ind-bar"></span>
+                </div>
+            </div>
+            <div class="slider-container">
+                <button class="slider-btn slider-left" data-slider="top10Slider" aria-label="Scroll Top 10 left">❮</button>
+                <div class="slider top10-slider" id="top10Slider"></div>
+                <button class="slider-btn slider-right" data-slider="top10Slider" aria-label="Scroll Top 10 right">❯</button>
+            </div>
         </section>
         <section class="content-section" id="moviesSection">
             <h3 class="section-title">Movies</h3>
@@ -295,123 +331,126 @@
         </section>
 
         <section class="content-section live-section" id="musicSection" style="display:none">
-            <div id="lunePlayerContainer" class="lune-container">
-                <div class="lune-ambient-glow" id="luneAmbientGlow"></div>
+            <div id="musifyPlayerContainer" class="musify-container">
+                <div class="musify-ambient-glow" id="musifyAmbientGlow"></div>
                 
-                <!-- Lune Header -->
-                <header class="lune-header">
-                    <div class="lune-brand">
-                        <img src="/assets/lune-logo.svg" alt="Lune Logo" class="lune-logo-img">
-                        <div class="lune-brand-info">
-                            <h2>Lune <span class="lune-brand-badge">Material 3</span></h2>
-                            <p>Minimalist &amp; Elegant Music Player · 100% Offline &amp; Private</p>
+                <!-- Musify Header -->
+                <header class="musify-header">
+                    <div class="musify-brand">
+                        <img src="/SiteIcon.png" alt="MILKBOX" class="musify-logo-img" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';">
+                        <div class="musify-brand-info">
+                            <h2>Milkify <span class="musify-brand-badge">Material You</span></h2>
+                            <p>Unlock the full potential of music: Stream effortlessly with one app!</p>
                         </div>
                     </div>
 
-                    <div class="lune-nav-tabs">
-                        <button class="lune-tab-btn active" data-tab="player">
+                    <div class="musify-nav-tabs">
+                        <button class="musify-tab-btn active" data-tab="player">
                             <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>
                             Player
                         </button>
-                        <button class="lune-tab-btn" data-tab="eq">
+                        <button class="musify-tab-btn" data-tab="queue" id="musifyNavTabQueue" title="View & Reorder Up Next Queue">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M120-320v-80h320v80H120Zm0-160v-80h480v80H120Zm0-160v-80h480v80H120Zm520 480v-320l240 160-240 160Z"/></svg>
+                            Up Next <span class="musify-queue-counter-pill" id="musifyQueueCountNav">0</span>
+                        </button>
+                        <button class="musify-tab-btn" data-tab="eq">
                             <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-120v-240h80v80h320v80H520v80h-80Zm-320-80v-80h240v80H120Zm160-160v-80H120v-80h160v-80h80v240h-80Zm160-80v-80h400v80H440Zm160-160v-240h80v80h160v80H680v80h-80Zm-480-80v-80h400v80H120Z"/></svg>
                             10-Band EQ
                         </button>
-                        <button class="lune-tab-btn" data-tab="lyrics">
+                        <button class="musify-tab-btn" data-tab="lyrics">
                             <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M280-280h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80ZM160-120q-33 0-56.5-23.5T80-200v-560q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v560q0 33-23.5 56.5T800-120H160Z"/></svg>
                             Live Lyrics
                         </button>
-                        <button class="lune-tab-btn" data-tab="portal">
-                            <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-82q26-36 45-75t31-83H404q12 44 31 83t45 75Zm-104-16q-18-33-31.5-68.5T322-320H204q29 50 70 87.5t102 56.5Zm208 0q61-19 102-56.5t70-87.5H638q-9 38-22.5 73.5T584-178ZM170-400h136q-3-20-4.5-39.5T300-480q0-21 1.5-40.5T306-560H170q-5 20-7.5 39.5T160-480q0 21 2.5 40.5T170-400Zm216 0h188q3-20 4.5-39.5T580-480q0-21-1.5-40.5T574-560H386q-3 20-4.5-39.5T380-480q0 21 1.5-40.5T386-400Zm268 0h136q5-20 7.5-39.5T800-480q0-21-2.5-40.5T790-560H654q3 20 4.5-39.5T660-480q0 21-1.5-40.5T654-400Z"/></svg>
-                            Lune Portal
-                        </button>
-                    </div>
-
-                    <div class="lune-external-links">
-                        <a href="https://github.com/MrDemonc/Lune" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" title="View Lune on GitHub">
-                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                            GitHub
-                        </a>
-                        <a href="https://f-droid.org/packages/com.demonlab.lune/" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" title="Lune on F-Droid">
-                            F-Droid
-                        </a>
-                        <a href="https://github.com/MrDemonc/Lune/releases" target="_blank" rel="noopener noreferrer" class="lune-badge-btn primary" title="Download Android APK">
-                            Get App APK
-                        </a>
                     </div>
                 </header>
 
-                <div class="lune-content-body">
+                <div class="musify-content-body">
                     <!-- VIEW 1: PLAYER -->
-                    <div class="lune-view-panel" id="luneView_player">
-                        <div class="lune-player-view">
-                            <!-- Left: Dark Defocus Card -->
-                            <div class="lune-defocus-card">
-                                <div class="lune-album-art-wrap">
-                                    <img src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=400&q=80" alt="Album Cover" class="lune-album-art" id="luneAlbumArt">
-                                    <span class="lune-hifi-badge">HI-FI AUDIO</span>
+                    <div class="musify-view-panel" id="musifyView_player">
+                        <div class="musify-player-view">
+                            <!-- Left: Now Playing Card -->
+                            <div class="musify-now-card">
+                                <div class="musify-album-art-wrap" id="musifyAlbumArtWrap" title="Click to inspect audio metadata & view full artwork">
+                                    <img src="https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=400&q=80" alt="Album Cover" class="musify-album-art" id="musifyAlbumArt">
+                                    <span class="musify-quality-badge" id="musifyQualityBadge">320 KBPS</span>
+                                    <div class="musify-art-hover-badge">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z"/></svg>
+                                        <span>Audio Details</span>
+                                    </div>
                                 </div>
-                                <h3 class="lune-now-title" id="luneNowTitle">Lune Melancholy</h3>
-                                <p class="lune-now-artist" id="luneNowArtist">MrDemonc &amp; Lune Studio</p>
+                                <div class="musify-now-meta-row">
+                                    <div class="musify-now-titles">
+                                        <h3 class="musify-now-title" id="musifyNowTitle">Starlight Odyssey</h3>
+                                        <p class="musify-now-artist" id="musifyNowArtist">Musify Essentials</p>
+                                    </div>
+                                    <button class="musify-info-pill-btn" id="musifyNowInfoBtn" title="Inspect Audio File Metadata">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Z"/></svg>
+                                        <span>File Info</span>
+                                    </button>
+                                </div>
 
                                 <!-- Visualizer Canvas -->
-                                <div class="lune-canvas-wrap">
-                                    <canvas id="luneVisualizerCanvas" class="lune-visualizer-canvas" width="330" height="48"></canvas>
+                                <div class="musify-canvas-wrap">
+                                    <canvas id="musifyVisualizerCanvas" class="musify-visualizer-canvas" width="330" height="48"></canvas>
                                 </div>
 
                                 <!-- Scrubber -->
-                                <div class="lune-scrubber-wrap">
-                                    <input type="range" class="lune-progress-slider" id="luneProgressBar" min="0" max="100" value="0">
-                                    <div class="lune-progress-time">
-                                        <span id="luneTimeCurrent">00:00</span>
-                                        <span id="luneTimeTotal">02:45</span>
+                                <div class="musify-scrubber-wrap">
+                                    <input type="range" class="musify-progress-slider" id="musifyProgressBar" min="0" max="100" value="0">
+                                    <div class="musify-progress-time">
+                                        <span id="musifyTimeCurrent">00:00</span>
+                                        <span id="musifyTimeTotal">02:45</span>
                                     </div>
                                 </div>
 
                                 <!-- Playback Controls -->
-                                <div class="lune-controls-row">
-                                    <button class="lune-ctrl-btn" id="luneShuffleBtn" title="Shuffle">
+                                <div class="musify-controls-row">
+                                    <button class="musify-ctrl-btn" id="musifyShuffleBtn" title="Shuffle">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M560-160v-80h104L537-367l57-57 126 124v-100h80v240H560Zm-400 0v-80h136l424-424v104h80v-240H560v80h104L240-240H160v80Zm0-480v-80h136l88 88-57 57-67-65H160Z"/></svg>
                                     </button>
-                                    <button class="lune-ctrl-btn" id="lunePrevBtn" title="Previous Track">
+                                    <button class="musify-ctrl-btn" id="musifyPrevBtn" title="Previous Track">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M220-240v-480h80v480h-80Zm520 0L380-480l360-240v480Z"/></svg>
                                     </button>
-                                    <button class="lune-ctrl-btn play-btn" id="lunePlayBtn" title="Play">
+                                    <button class="musify-ctrl-btn play-btn" id="musifyPlayBtn" title="Play">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="30px" viewBox="0 -960 960 960" width="30px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
                                     </button>
-                                    <button class="lune-ctrl-btn" id="luneNextBtn" title="Next Track">
+                                    <button class="musify-ctrl-btn" id="musifyNextBtn" title="Next Track">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M660-240v-480h80v480h-80ZM220-240v-480l360 240-360 240Z"/></svg>
                                     </button>
-                                    <button class="lune-ctrl-btn" id="luneRepeatBtn" title="Repeat Mode">
+                                    <button class="musify-ctrl-btn" id="musifyRepeatBtn" title="Repeat Mode">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M280-80 120-240l160-160 56 58-64 62h408v-160h80v240H272l64 62-56 58Zm400-480L520-720l56-58 64 62H232v-240h-80v320h520l-64 62 56 58 160-160-160-160Z"/></svg>
                                     </button>
                                 </div>
 
                                 <!-- Secondary Controls -->
-                                <div class="lune-secondary-controls">
-                                    <button class="lune-sec-btn" id="luneSpeedBtn" title="Speed">1.0x</button>
-                                    <button class="lune-sec-btn" id="luneTimerBtn" title="Sleep Timer">Timer: Off</button>
-                                    <div class="lune-volume-wrap">
+                                <div class="musify-secondary-controls">
+                                    <button class="musify-sec-btn" id="musifyQueueBtn" title="View & Reorder Up Next Queue">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M120-320v-80h320v80H120Zm0-160v-80h480v80H120Zm0-160v-80h480v80H120Zm520 480v-320l240 160-240 160Z"/></svg>
+                                        Queue: <span id="musifyQueueCountSec">0</span>
+                                    </button>
+                                    <button class="musify-sec-btn" id="musifySpeedBtn" title="Speed">1.0x</button>
+                                    <button class="musify-sec-btn" id="musifyTimerBtn" title="Sleep Timer">Timer: Off</button>
+                                    <div class="musify-volume-wrap">
                                         <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M560-131v-82q90-26 145-100t55-167q0-93-55-167T560-747v-82q124 28 202 125.5T840-480q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-320q46 14 73 53.5t27 86.5q0 47-27 86.5T560-320Z"/></svg>
-                                        <input type="range" class="lune-volume-slider" id="luneVolumeSlider" min="0" max="1" step="0.05" value="0.9">
+                                        <input type="range" class="musify-volume-slider" id="musifyVolumeSlider" min="0" max="1" step="0.05" value="0.9">
                                     </div>
                                 </div>
                             </div>
 
                             <!-- Right: Music Library & Queue -->
-                            <div class="lune-library-card" id="luneLibraryCard">
-                                <div class="lune-lib-header">
-                                    <div class="lune-search-wrap">
-                                        <svg class="lune-search-icon" xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
-                                        <input type="text" class="lune-search-input" id="luneSearchInput" placeholder="Search track, artist, album...">
+                            <div class="musify-library-card" id="musifyLibraryCard">
+                                <div class="musify-lib-header">
+                                    <div class="musify-search-wrap">
+                                        <svg class="musify-search-icon" xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
+                                        <input type="text" class="musify-search-input" id="musifySearchInput" placeholder="Search songs, artists, albums...">
                                     </div>
-                                    <div class="lune-actions-row">
-                                        <label class="lune-act-btn" title="Play local MP3/audio files" style="cursor:pointer;">
+                                    <div class="musify-actions-row">
+                                        <label class="musify-act-btn" title="Upload local songs for offline listening" style="cursor:pointer;">
                                             <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM160-160q-33 0-56.5-23.5T80-240v-160h80v160h640v-160h80v160q0 33-23.5 56.5T800-160H160Z"/></svg>
-                                            + Upload Audio
-                                            <input type="file" id="luneFileInput" accept="audio/*" multiple style="display:none">
+                                            + Offline Audio
+                                            <input type="file" id="musifyFileInput" accept="audio/*" multiple style="display:none">
                                         </label>
-                                        <button class="lune-act-btn" id="luneAddUrlBtn" title="Add Audio Stream URL">
+                                        <button class="musify-act-btn" id="musifyAddUrlBtn" title="Add Online Stream or Radio URL">
                                             <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M440-280h80v-160h160v-80H520v-160h-80v160H280v80h160v160ZM200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v560q0 33-23.5 56.5T760-120H200Z"/></svg>
                                             Add Stream
                                         </button>
@@ -419,72 +458,292 @@
                                 </div>
 
                                 <!-- Category Filter Pills -->
-                                <div class="lune-categories-bar">
-                                    <button class="lune-cat-pill active" data-cat="all">All Tracks</button>
-                                    <button class="lune-cat-pill" data-cat="lofi">Lo-Fi Study</button>
-                                    <button class="lune-cat-pill" data-cat="chill">Chill Sessions</button>
-                                    <button class="lune-cat-pill" data-cat="ambient">Ambient</button>
-                                    <button class="lune-cat-pill" data-cat="favorites">Liked Songs</button>
-                                    <button class="lune-cat-pill" data-cat="uploads">My Files</button>
+                                <div class="musify-categories-bar">
+                                    <button class="musify-cat-pill active" data-cat="all">All Tracks</button>
+                                    <button class="musify-cat-pill" data-cat="trending">Trending</button>
+                                    <button class="musify-cat-pill" data-cat="synthwave">Synthwave</button>
+                                    <button class="musify-cat-pill" data-cat="lofi">Lo-Fi Study</button>
+                                    <button class="musify-cat-pill" data-cat="ambient">Ambient</button>
+                                    <button class="musify-cat-pill" data-cat="favorites">Favorites</button>
+                                    <button class="musify-cat-pill" data-cat="uploads">Offline Files</button>
                                 </div>
 
                                 <!-- Tracklist Items -->
-                                <div class="lune-tracklist" id="luneTracklist"></div>
+                                <div class="musify-tracklist" id="musifyTracklist"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: UP NEXT QUEUE -->
+                    <div class="musify-view-panel" id="musifyView_queue" style="display:none;">
+                        <div class="musify-queue-card">
+                            <!-- Queue Topbar -->
+                            <div class="musify-queue-topbar">
+                                <div class="musify-queue-headings">
+                                    <div class="musify-queue-title-row">
+                                        <h3 class="musify-queue-title">Up Next</h3>
+                                        <span class="musify-queue-chip" id="musifyQueueModeChip">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M120-320v-80h320v80H120Zm0-160v-80h480v80H120Zm0-160v-80h480v80H120Zm520 480v-320l240 160-240 160Z"/></svg>
+                                            <span id="musifyQueueModeText">Sequential Queue</span>
+                                        </span>
+                                    </div>
+                                    <p class="musify-queue-desc" id="musifyQueueSummaryText">Upcoming tracks in your playlist · Drag handle ⠿ or click ▲ ▼ to reorder playback</p>
+                                </div>
+                                <div class="musify-queue-toolbar">
+                                    <button type="button" class="musify-q-btn" id="musifyQueueShuffleBtn" title="Shuffle upcoming songs in queue">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M560-160v-80h104L537-367l57-57 126 124v-100h80v240H560Zm-400 0v-80h136l424-424v104h80v-240H560v80h104L240-240H160v80Zm0-480v-80h136l88 88-57 57-67-65H160Z"/></svg>
+                                        Shuffle
+                                    </button>
+                                    <button type="button" class="musify-q-btn" id="musifyQueueResetBtn" title="Reset queue to playlist original order">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-26 110-112.5 175T480-160Z"/></svg>
+                                        Reset
+                                    </button>
+                                    <button type="button" class="musify-q-btn" id="musifyQueueAddSongBtn" title="Add another song to the queue">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>
+                                        + Add Song
+                                    </button>
+                                    <button type="button" class="musify-q-btn danger" id="musifyQueueClearBtn" title="Clear upcoming tracks from queue">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T760-120H280Zm400-600H280v520h400v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
+                                        Clear
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Now Playing Section in Queue -->
+                            <div class="musify-queue-now-playing-wrap">
+                                <div class="musify-queue-section-header">
+                                    <span class="musify-queue-sec-label">NOW PLAYING</span>
+                                    <span class="musify-queue-playing-tag" id="musifyQueueNowStatus">Playing</span>
+                                </div>
+                                <div class="musify-queue-now-card">
+                                    <div class="musify-queue-now-art-box">
+                                        <img src="" id="musifyQueueNowArt" class="musify-queue-now-art" alt="Current Album">
+                                        <div class="musify-queue-bars-anim" id="musifyQueueBarsAnim">
+                                            <span></span><span></span><span></span><span></span>
+                                        </div>
+                                    </div>
+                                    <div class="musify-queue-now-details">
+                                        <h4 class="musify-queue-now-title" id="musifyQueueNowTitle">Song Title</h4>
+                                        <p class="musify-queue-now-artist" id="musifyQueueNowArtist">Artist · Album</p>
+                                    </div>
+                                    <div class="musify-queue-now-right">
+                                        <span class="musify-queue-badge" id="musifyQueueNowFormat">MP3</span>
+                                        <span class="musify-queue-time" id="musifyQueueNowDuration">00:00</span>
+                                        <button type="button" class="musify-queue-now-play-btn" id="musifyQueueNowPlayBtn" title="Play / Pause">
+                                            <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Upcoming Queue Section -->
+                            <div class="musify-queue-upcoming-wrap">
+                                <div class="musify-queue-section-header">
+                                    <div class="musify-queue-sec-left">
+                                        <span class="musify-queue-sec-label">UP NEXT IN PLAYLIST</span>
+                                        <span class="musify-queue-count-badge" id="musifyQueueCountLabel">0 tracks</span>
+                                    </div>
+                                    <div class="musify-queue-reorder-hint">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="currentColor"><path d="M360-160q-33 0-56.5-23.5T280-240q0-33 23.5-56.5T360-320q33 0 56.5 23.5T440-240q0 33-23.5 56.5T360-160Zm240 0q-33 0-56.5-23.5T520-240q0-33 23.5-56.5T600-320q33 0 56.5 23.5T680-240q0 33-23.5 56.5T600-160ZM360-400q-33 0-56.5-23.5T280-480q0-33 23.5-56.5T360-560q33 0 56.5 23.5T440-480q0 33-23.5 56.5T360-400Zm240 0q-33 0-56.5-23.5T520-480q0-33 23.5-56.5T600-560q33 0 56.5 23.5T680-480q0 33-23.5 56.5T600-400ZM360-640q-33 0-56.5-23.5T280-720q0-33 23.5-56.5T360-800q33 0 56.5 23.5T440-720q0 33-23.5 56.5T360-640Zm240 0q-33 0-56.5-23.5T520-720q0-33 23.5-56.5T600-800q33 0 56.5 23.5T680-720q0 33-23.5 56.5T600-640Z"/></svg>
+                                        <span>Drag handle <strong style="color:var(--musify-primary);">⠿</strong> or use <strong>▲ ▼</strong> to reorder</span>
+                                    </div>
+                                </div>
+
+                                <div class="musify-queue-list" id="musifyQueueList">
+                                    <!-- Dynamic Queue Items -->
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- VIEW 2: 10-BAND EQUALIZER -->
-                    <div class="lune-view-panel" id="luneView_eq" style="display:none;">
-                        <div class="lune-eq-view">
-                            <div class="lune-eq-card">
-                                <div class="lune-eq-topbar">
-                                    <div>
-                                        <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">10-Band Precision Equalizer</h3>
-                                        <p style="font-size:12px;color:var(--lune-text-secondary);margin:0;">Hardware-accelerated Web Audio biquad filtering with dynamic response</p>
-                                    </div>
-                                    <div class="lune-eq-presets">
-                                        <button class="lune-eq-preset-btn active" data-preset="flat">Flat</button>
-                                        <button class="lune-eq-preset-btn" data-preset="bass">Bass Boost</button>
-                                        <button class="lune-eq-preset-btn" data-preset="vocal">Vocal Booster</button>
-                                        <button class="lune-eq-preset-btn" data-preset="acoustic">Acoustic</button>
-                                        <button class="lune-eq-preset-btn" data-preset="electronic">Electronic</button>
-                                        <button class="lune-eq-preset-btn" data-preset="rock">Rock</button>
-                                        <button class="lune-eq-preset-btn" data-preset="pop">Pop</button>
-                                        <button class="lune-eq-preset-btn" data-preset="spatial">Spatial Audio</button>
-                                    </div>
+                    <div class="musify-view-panel" id="musifyView_eq" style="display:none;">
+                        <div class="musify-eq-card">
+                            <div class="musify-eq-topbar">
+                                <div>
+                                    <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">Musify Built-in Equalizer</h3>
+                                    <p style="font-size:12px;color:var(--musify-text-secondary);margin:0;">Hardware-accelerated 10-band audio processor with dynamic sound tuning</p>
                                 </div>
-
-                                <div class="lune-bands-wrap" id="luneBandsWrap"></div>
+                                <div class="musify-eq-presets">
+                                    <button class="musify-eq-preset-btn active" data-preset="flat">Flat</button>
+                                    <button class="musify-eq-preset-btn" data-preset="bass">Bass Boost</button>
+                                    <button class="musify-eq-preset-btn" data-preset="treble">Treble Boost</button>
+                                    <button class="musify-eq-preset-btn" data-preset="vocal">Vocal Booster</button>
+                                    <button class="musify-eq-preset-btn" data-preset="acoustic">Acoustic</button>
+                                    <button class="musify-eq-preset-btn" data-preset="electronic">Electronic</button>
+                                    <button class="musify-eq-preset-btn" data-preset="rock">Rock</button>
+                                    <button class="musify-eq-preset-btn" data-preset="hiphop">Hip-Hop</button>
+                                </div>
                             </div>
+
+                            <div class="musify-bands-wrap" id="musifyBandsWrap"></div>
                         </div>
                     </div>
 
                     <!-- VIEW 3: LIVE LYRICS -->
-                    <div class="lune-view-panel" id="luneView_lyrics" style="display:none;">
-                        <div class="lune-lyrics-view">
-                            <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">Synchronized Live Lyrics</h3>
-                            <p style="font-size:12px;color:var(--lune-text-secondary);margin:0 0 20px 0;">Time-synced lyrics with smooth scrolling · click any line to seek</p>
-                            <div class="lune-lyrics-container" id="luneLyricsContainer"></div>
+                    <div class="musify-view-panel" id="musifyView_lyrics" style="display:none;">
+                        <div class="musify-lyrics-view">
+                            <div class="musify-lyrics-header">
+                                <div class="musify-lyrics-track-info">
+                                    <img src="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=120&q=80" id="musifyLyricsTrackThumb" class="musify-lyrics-thumb" alt="Track Art">
+                                    <div>
+                                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                                            <h3 class="musify-lyrics-title" id="musifyLyricsTrackTitle">Live Lyrics</h3>
+                                            <span class="musify-lyrics-chip" id="musifyLyricsChip">Synchronized</span>
+                                        </div>
+                                        <p class="musify-lyrics-artist" id="musifyLyricsTrackArtist">Click any line to jump to that moment</p>
+                                    </div>
+                                </div>
+                                <div class="musify-lyrics-actions">
+                                    <button type="button" class="musify-lyrics-act-btn" id="musifyLyricsFetchBtn" title="Search & fetch live lyrics from online database (LRCLIB)">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
+                                        Fetch Lyrics
+                                    </button>
+                                    <label class="musify-lyrics-act-btn" title="Import a .LRC or .TXT file from your device" style="cursor:pointer;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M440-320v-326L336-542l-56-58 200-200 200 200-56 58-104-104v326h-80ZM160-160q-33 0-56.5-23.5T80-240v-160h80v160h640v-160h80v160q0 33-23.5 56.5T800-160H160Z"/></svg>
+                                        Import .LRC
+                                        <input type="file" id="musifyLyricsFileInput" accept=".lrc,.txt" style="display:none">
+                                    </label>
+                                    <button type="button" class="musify-lyrics-act-btn" id="musifyLyricsEditBtn" title="Add or edit lyrics manually">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M200-200h57l391-391-57-57-391 391v57Zm-80 80v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Z"/></svg>
+                                        Edit Lyrics
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="musify-lyrics-container" id="musifyLyricsContainer"></div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- VIEW 4: OFFICIAL LUNE PORTAL & RELEASES -->
-                    <div class="lune-view-panel" id="luneView_portal" style="display:none;">
-                        <div class="lune-portal-view">
-                            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-                                <div>
-                                    <h3 style="font-size:18px;font-weight:700;margin:0 0 4px 0;">Official Lune App &amp; Showcase</h3>
-                                    <p style="font-size:12px;color:var(--lune-text-secondary);margin:0;">Created by MrDemonc · GPL-3.0 Open Source</p>
+                <!-- Audio File Details & Metadata Modal (Material You / Milkify) -->
+                <div class="musify-modal-backdrop" id="musifyAudioDetailsModal" style="display:none;" aria-hidden="true">
+                    <div class="musify-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="musifyModalTitle">
+                        <div class="musify-modal-header">
+                            <div class="musify-modal-header-info">
+                                <span class="musify-modal-chip" id="musifyModalTagType">ID3v2.3 / Tag Metadata</span>
+                                <h3 id="musifyModalTitle">Audio File Details &amp; Tags</h3>
+                            </div>
+                            <button type="button" class="musify-modal-close-btn" id="musifyModalCloseBtn" aria-label="Close dialog" title="Close (ESC)">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="musify-modal-body">
+                            <!-- Hero Showcase: High-Res Album Art & Track Header -->
+                            <div class="musify-detail-hero">
+                                <div class="musify-detail-art-wrap">
+                                    <img src="" alt="Album Artwork" id="musifyModalArt" class="musify-detail-art">
+                                    <span class="musify-art-source-pill" id="musifyModalArtSource">Embedded Artwork</span>
                                 </div>
-                                <div style="display:flex;gap:8px;">
-                                    <a href="https://github.com/MrDemonc/Lune" target="_blank" rel="noopener noreferrer" class="lune-badge-btn" style="text-decoration:none;">View on GitHub ↗</a>
-                                    <a href="https://github.com/MrDemonc/Lune/releases/download/1.5.2/Lune-release.apk" target="_blank" rel="noopener noreferrer" class="lune-badge-btn primary" style="text-decoration:none;">Download Latest APK</a>
+                                <div class="musify-detail-primary">
+                                    <h4 class="musify-detail-song-title" id="musifyModalSongTitle">--</h4>
+                                    <p class="musify-detail-song-artist" id="musifyModalSongArtist">--</p>
+                                    <p class="musify-detail-song-album" id="musifyModalSongAlbum">--</p>
+                                    <div class="musify-detail-quick-tags" id="musifyModalQuickTags"></div>
                                 </div>
                             </div>
-                            <div class="lune-portal-frame-wrap">
-                                <iframe src="https://mrdemonc.github.io/Lune/" class="lune-portal-frame" title="Lune Official Website" allow="fullscreen" loading="lazy"></iframe>
+
+                            <!-- Audio & File Properties Grid -->
+                            <div class="musify-detail-section-title">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>
+                                Technical Audio &amp; File Details
                             </div>
+                            <div class="musify-props-grid" id="musifyPropsGrid"></div>
+
+                            <!-- Embedded Lyrics Section -->
+                            <div class="musify-lyrics-preview-wrap" id="musifyLyricsPreviewWrap" style="display:none;">
+                                <div class="musify-detail-section-title" style="justify-content:space-between;">
+                                    <div style="display:flex;align-items:center;gap:6px;">
+                                        <svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="currentColor"><path d="M280-280h400v-80H280v80Zm0-160h400v-80H280v80Zm0-160h400v-80H280v80ZM160-120q-33 0-56.5-23.5T80-200v-560q0-33 23.5-56.5T160-840h640q33 0 56.5 23.5T880-760v560q0 33-23.5 56.5T800-120H160Z"/></svg>
+                                        Embedded File Lyrics
+                                    </div>
+                                    <button type="button" class="musify-copy-lyrics-btn" id="musifyCopyLyricsBtn" title="Copy song lyrics">
+                                        Copy Lyrics
+                                    </button>
+                                </div>
+                                <div class="musify-lyrics-preview-text" id="musifyLyricsPreviewText"></div>
+                            </div>
+
+                            <!-- Full Raw Tag Metadata Inspector (Collapsible) -->
+                            <details class="musify-raw-tags-details" id="musifyRawTagsDetails">
+                                <summary class="musify-raw-tags-summary">
+                                    <span>All Raw ID3 / Tag Metadata</span>
+                                    <span class="musify-raw-count" id="musifyRawCount">0 tags</span>
+                                </summary>
+                                <div class="musify-raw-table-wrap">
+                                    <table class="musify-raw-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Tag Key / Frame</th>
+                                                <th>Extracted Value</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="musifyRawTableBody"></tbody>
+                                    </table>
+                                </div>
+                            </details>
+                        </div>
+
+                        <div class="musify-modal-footer">
+                            <button type="button" class="musify-modal-action-btn danger" id="musifyModalDeleteBtn" style="display:none;" title="Delete this song from saved offline storage">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="15px" viewBox="0 -960 960 960" width="15px" fill="currentColor"><path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T760-120H280Zm480-600H280v520h480v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/></svg>
+                                Delete Offline Song
+                            </button>
+                            <button type="button" class="musify-modal-action-btn secondary" id="musifyViewFullArtBtn">
+                                🔍 Full Artwork Image
+                            </button>
+                            <button type="button" class="musify-modal-action-btn primary" id="musifyModalPlayBtn">
+                                ▶ Play This Song
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Song to Queue Modal -->
+                <div class="musify-modal-backdrop" id="musifyAddQueueModal" style="display:none;" aria-hidden="true">
+                    <div class="musify-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="musifyAddQueueTitle" style="max-width: 540px;">
+                        <div class="musify-modal-header">
+                            <div class="musify-modal-header-info">
+                                <span class="musify-modal-chip">Music Library</span>
+                                <h3 id="musifyAddQueueTitle">Add Song to Up Next Queue</h3>
+                            </div>
+                            <button type="button" class="musify-modal-close-btn" id="musifyAddQueueCloseBtn" aria-label="Close dialog" title="Close (ESC)">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                            </button>
+                        </div>
+                        <div class="musify-modal-body" style="padding: 16px 20px;">
+                            <div class="musify-search-wrap" style="margin-bottom: 14px; width: 100%;">
+                                <svg class="musify-search-icon" xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg>
+                                <input type="text" class="musify-search-input" id="musifyAddQueueSearchInput" placeholder="Filter songs to queue...">
+                            </div>
+                            <div class="musify-queue-picker-list" id="musifyQueuePickerList">
+                                <!-- Dynamic Tracks to Queue -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit / Paste Lyrics Modal -->
+                <div class="musify-modal-backdrop" id="musifyLyricsEditorModal" style="display:none;" aria-hidden="true">
+                    <div class="musify-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="musifyLyricsEditorTitle" style="max-width: 580px;">
+                        <div class="musify-modal-header">
+                            <div class="musify-modal-header-info">
+                                <span class="musify-modal-chip">Live Lyrics Editor</span>
+                                <h3 id="musifyLyricsEditorTitle">Edit Song Lyrics</h3>
+                            </div>
+                            <button type="button" class="musify-modal-close-btn" id="musifyLyricsEditorCloseBtn" aria-label="Close dialog" title="Close (ESC)">
+                                <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+                            </button>
+                        </div>
+                        <div class="musify-modal-body" style="padding: 18px 24px;">
+                            <p style="font-size:12px;color:var(--musify-text-secondary);margin:0 0 12px 0;line-height:1.5;">
+                                Paste timestamped LRC lines (e.g. <code>[01:23.45] lyric text</code>) or standard plain lyrics. They will be synchronized live with your music and saved offline!
+                            </p>
+                            <textarea id="musifyLyricsEditTextarea" rows="12" style="width:100%;box-sizing:border-box;background:var(--musify-surface);border:1px solid var(--musify-outline);border-radius:12px;padding:12px;color:#fff;font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.6;resize:vertical;" placeholder="[00:12.34] First lyric line&#10;[00:16.80] Second lyric line..."></textarea>
+                        </div>
+                        <div class="musify-modal-footer">
+                            <button type="button" class="musify-modal-action-btn secondary" id="musifyLyricsEditorCancelBtn">Cancel</button>
+                            <button type="button" class="musify-modal-action-btn primary" id="musifyLyricsEditorSaveBtn">Save &amp; Sync Lyrics</button>
                         </div>
                     </div>
                 </div>
@@ -1175,8 +1434,37 @@
         </div>
     </footer>
 
+    <!-- Netflix Mobile Bottom Navigation -->
+    <nav class="netflix-mobile-nav" id="netflixMobileNav" aria-label="Mobile Navigation">
+        <button class="mobile-tab-btn active nav-link" data-section="home" title="Home">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
+            <span>Home</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="tvshows" title="TV Shows">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-120v-80q-33 0-56.5-23.5T80-280v-440q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v440q0 33-23.5 56.5T800-200v80h-40l-26-80H227l-27 80h-40Zm0-160h640v-440H160v440Zm320-220Z"/></svg>
+            <span>TV Shows</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="movies" title="Movies">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm240-200 240-120-240-120v240Z"/></svg>
+            <span>Movies</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="trending" title="New & Popular">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M382-80 154-308l57-57 171 171 367-367 57 57-424 424Z"/></svg>
+            <span>Hot &amp; New</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="music" title="Milkify Music">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>
+            <span>Music</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="mylist" title="My List">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M200-120v-640q0-33 23.5-56.5T280-840h400q33 0 56.5 23.5T760-760v640L480-240 200-120Z"/></svg>
+            <span>My List</span>
+        </button>
+    </nav>
+
+    <script src="jsmediatags.min.js"></script>
     <script src="milkbox-player.js?v=player-fix-20261009"></script>
-    <script src="lune-player.js"></script>
+    <script src="musify-player.js?v=milkify-audio-info-20261011"></script>
     <script src="app.js?v=player-fix-20261009"></script>
 </body>
 </html>

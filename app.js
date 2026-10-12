@@ -84,7 +84,7 @@ let uploadedUrlEps = [];
 let uploadedFileEps = [];
 let currentInfoItem = null;
 let currentInfoType = null;
-// LightSpeed / Chrome block bypass — proxy external API and media requests when filtered
+// LightSpeed / Chrome block bypass — proxy TMDB + GitHub when filtered
 (function(){
     const nativeFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     if (!nativeFetch) return;
@@ -387,8 +387,7 @@ async function autoLoadHostedLibrary() {
     try {
         await loadPopularContent(true);
     } catch (e) {
-        console.error('[MILKBOX] TMDB auto-load failed:', e);
-        if (typeof toast === 'function') toast('TMDB no acepta el token configurado.', 'error');
+        console.warn('[MILKBOX] TMDB auto-load skipped:', e.message || e);
     }
     if (movies.length + tvShows.length > before && typeof toast === 'function') toast('Library loaded!');
 }
@@ -401,10 +400,14 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 function toast(msg, type = '') {
     const t = document.getElementById('toast');
+    if (!t) return;
     t.textContent = msg;
     t.className = 'toast show' + (type ? ' ' + type : '');
     setTimeout(() => t.className = 'toast', 3000);
 }
+const showToast = (msg, type = '') => toast(msg, type);
+window.showToast = showToast;
+window.toast = toast;
 
 function getVideoSource(item) {
     if (!item) return '';
@@ -1074,26 +1077,41 @@ function createCard(item, type) {
     const mins = rtMins || hashMins;
     const rtLabel = `${mins}m`;
     const typeLabel = effType === 'tv' ? 'TV Show' : 'Movie';
+    const matchPct = (()=>{ let h=0; const s=String(item.id||item.title||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 94 + (h%6); })();
+    const certBadge = effType === 'tv' ? 'TV-MA' : '16+';
+    const genresList = genArr(item.genre).slice(0, 3).join(' • ');
+
     card.innerHTML = `
-        <div class="card-badge ${badgeCls}">${mcBadge}</div>
         ${imgHTML}
         <div class="card-actions">
-            <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Zm80-280Zm0 134 210-134-210-134v268Z"/></svg></button>
-            <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '+'}</button>
-            <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="M440-280h80v-240h-80v240Zm68.5-331.5Q520-623 520-640t-11.5-28.5Q497-680 480-680t-28.5 11.5Q440-657 440-640t11.5 28.5Q463-600 480-600t28.5-11.5ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>
+            <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
+            <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
+            <button class="card-action-btn" data-action="like" title="I like this"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L792-174q-12 28-39 45t-33 9Zm-360-80h360l60-150v-80H516l54-216-170 170v276Zm0 0v-276 276Zm-80-440v520H160v-520h120Z"/></svg></button>
+            <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M480-360 280-560l56-56 144 144 144-144 56 56-200 200Z"/></svg></button>
         </div>
         <div class="card-info">
             <div class="card-title">${safeTitle}</div>
             <div class="card-meta">
+                <span class="card-match">${matchPct}% Match</span>
+                <span class="card-cert">${certBadge}</span>
                 <span class="card-year-runtime">${item.year || '2026'} <span class="dot">•</span> ${rtLabel}</span>
-                <span class="card-type-pill">${typeLabel}</span>
             </div>
+            ${genresList ? `<div style="font-size:10.5px;color:#a0a0aa;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${genresList}</div>` : ''}
         </div>
     `;
     card.addEventListener('click', (e) => {
         const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
         if (action === 'play') playItem(item, effType);
         else if (action === 'list') toggleMyList(item, effType);
+        else if (action === 'like') {
+            e.stopPropagation();
+            const btn = e.target.closest('[data-action="like"]');
+            if (btn) {
+                btn.style.color = '#ffb6d8';
+                btn.style.borderColor = '#ffb6d8';
+                toast(`Liked "${item.title}"`);
+            }
+        }
         else if (action === 'info') showInfo(item, effType);
         else if (!action) showInfo(item, effType);
     });
@@ -2211,11 +2229,339 @@ function showMovieHero() {
 let heroTimer = null;
 let heroQueue = [];
 let heroIndex = 0;
+let currentHeroItemId = null;
+let currentHeroTrailerKey = null;
+let heroTrailerAdvanceTimer = null;
+let heroTrailerDurationTimer = null;
+let heroTrailerEndHandled = false;
+let heroTrailerMsgListenerBound = false;
 
-function renderHeroItem() {
+// ==================== NETFLIX HERO TRAILER PLAYBACK ====================
+let heroTrailerToken = 0;
+let heroTrailerTimer = null;
+let heroTrailerMuted = true;
+const heroTrailerCache = new Map();
+
+async function fetchItemTrailerKey(item) {
+    if (!item) return null;
+    const cacheKey = String(item.id || item.tmdbId || item.title || '').toLowerCase();
+    if (heroTrailerCache.has(cacheKey)) return heroTrailerCache.get(cacheKey);
+
+    // 1. Direct trailer property if already set
+    if (item.trailerKey) {
+        heroTrailerCache.set(cacheKey, item.trailerKey);
+        return item.trailerKey;
+    }
+    if (item.trailerUrl) {
+        try {
+            const u = new URL(item.trailerUrl);
+            const v = u.searchParams.get('v') || u.pathname.split('/').pop();
+            if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) {
+                item.trailerKey = v;
+                heroTrailerCache.set(cacheKey, v);
+                return v;
+            }
+        } catch {}
+    }
+
+    // 2. TMDB videos if tmdbId is present
+    if (item.tmdbId) {
+        try {
+            const kind = (item.type === 'tv' || item.episodes) ? 'tv' : 'movie';
+            const data = await tmdbJson(`/${kind}/${encodeURIComponent(item.tmdbId)}/videos`);
+            const videos = (data && data.results) || [];
+            const yt = videos.filter(v => (v.site || '').toLowerCase() === 'youtube' && v.key);
+            const pick = yt.find(v => v.type === 'Trailer' && v.official) ||
+                         yt.find(v => v.type === 'Trailer') ||
+                         yt.find(v => v.type === 'Teaser') ||
+                         yt[0];
+            if (pick && pick.key) {
+                item.trailerKey = pick.key;
+                heroTrailerCache.set(cacheKey, pick.key);
+                return pick.key;
+            }
+        } catch (e) {
+            /* continue to search fallback */
+        }
+    }
+
+    // 3. Fallback: Search via backend /api/trailer/search
+    try {
+        const queryTerm = `${item.title || ''} official trailer`;
+        const res = await fetch(`/api/trailer/search?q=${encodeURIComponent(queryTerm)}`);
+        if (res.ok) {
+            const d = await res.json();
+            if (d && d.key) {
+                item.trailerKey = d.key;
+                heroTrailerCache.set(cacheKey, d.key);
+                return d.key;
+            }
+        }
+    } catch (e) {}
+
+    return null;
+}
+
+function sendHeroTrailerCommand(func, args = []) {
+    const iframe = document.getElementById('heroTrailerIframe');
+    if (!iframe || !iframe.contentWindow) return;
+    try {
+        iframe.contentWindow.postMessage(JSON.stringify({
+            event: 'command',
+            func: func,
+            args: args
+        }), '*');
+    } catch {}
+}
+
+function updateHeroSoundButtonUI() {
+    const soundBtn = document.getElementById('heroSoundBtn');
+    if (!soundBtn) return;
+    if (heroTrailerMuted) {
+        soundBtn.classList.add('muted');
+        soundBtn.title = 'Audio Muted (Click to Unmute)';
+        soundBtn.setAttribute('aria-label', 'Unmute audio');
+        soundBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="m792-56-56-56-80-80-480-480-56-56 56-56 672 672-56 56ZM280-360H120v-240h160l200-200v206L324-438l-44 78Zm200 40v-86L384-502l96 96v46Zm194-194-56-56q20-22 31-49.5t11-58.5q0-31-11-58.5T618-728l56-56q36 39 56 89.5T750-580q0 61-20 111.5T674-374Z"/></svg>';
+    } else {
+        soundBtn.classList.remove('muted');
+        soundBtn.title = 'Audio Playing (Click to Mute)';
+        soundBtn.setAttribute('aria-label', 'Mute audio');
+        soundBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="currentColor"><path d="M560-131v-82q90-26 145-100t55-167q0-93-55-167T560-747v-82q124 28 202 125.5T840-480q0 127-78 224.5T560-131ZM120-360v-240h160l200-200v640L280-360H120Zm440 40v-320q46 14 73 53.5t27 86.5q0 47-27 86.5T560-320Z"/></svg>';
+    }
+}
+
+function clearHeroAdvanceTimers() {
+    if (heroTrailerAdvanceTimer) {
+        clearTimeout(heroTrailerAdvanceTimer);
+        heroTrailerAdvanceTimer = null;
+    }
+    if (heroTrailerDurationTimer) {
+        clearTimeout(heroTrailerDurationTimer);
+        heroTrailerDurationTimer = null;
+    }
+}
+
+function advanceHeroToNextTitle() {
+    clearHeroAdvanceTimers();
+    if (!heroQueue || !heroQueue.length) return;
+
+    // Do not auto-advance if user has opened a player modal or is in a section without hero
+    const playerModal = document.getElementById('playerModal');
+    if (playerModal && playerModal.classList.contains('active')) return;
+    if (['providers', 'manga', 'music'].includes(currentSection)) return;
+
+    heroIndex = (heroIndex + 1) % heroQueue.length;
+    renderHeroItem(true);
+}
+
+function onHeroTrailerEnded() {
+    if (heroTrailerEndHandled) return;
+    heroTrailerEndHandled = true;
+    clearHeroAdvanceTimers();
+
+    const wrap = document.getElementById('heroTrailerWrap');
+    if (wrap) wrap.classList.remove('active');
+
+    // Smooth Netflix-style transition to next title after trailer finishes
+    heroTrailerAdvanceTimer = setTimeout(() => {
+        advanceHeroToNextTitle();
+    }, 1200);
+}
+
+function setupHeroTrailerMessageListener() {
+    if (heroTrailerMsgListenerBound) return;
+    heroTrailerMsgListenerBound = true;
+
+    window.addEventListener('message', (e) => {
+        const iframe = document.getElementById('heroTrailerIframe');
+        if (!iframe || !iframe.contentWindow) return;
+        if (e.source !== iframe.contentWindow) return;
+
+        try {
+            let msg = e.data;
+            if (typeof msg === 'string') {
+                try { msg = JSON.parse(msg); } catch { return; }
+            }
+            if (!msg || typeof msg !== 'object') return;
+
+            // YouTube delivers duration in infoDelivery; arm fallback duration timer
+            if (msg.info && typeof msg.info.duration === 'number' && msg.info.duration > 3) {
+                if (!heroTrailerDurationTimer && !heroTrailerEndHandled) {
+                    const durMs = Math.round((msg.info.duration + 1.5) * 1000);
+                    heroTrailerDurationTimer = setTimeout(() => {
+                        onHeroTrailerEnded();
+                    }, durMs);
+                }
+            }
+
+            // YouTube ended state (0 is YT.PlayerState.ENDED)
+            const isEnded = (msg.event === 'onStateChange' && msg.info === 0) ||
+                            (msg.info && msg.info.playerState === 0) ||
+                            (msg.event === 'infoDelivery' && msg.info && msg.info.playerState === 0);
+
+            if (isEnded) {
+                onHeroTrailerEnded();
+            }
+        } catch {}
+    });
+}
+setupHeroTrailerMessageListener();
+
+function stopHeroTrailer() {
+    clearHeroAdvanceTimers();
+    if (heroTrailerTimer) {
+        clearTimeout(heroTrailerTimer);
+        heroTrailerTimer = null;
+    }
+    heroTrailerToken++;
+    currentHeroTrailerKey = null;
+    heroTrailerEndHandled = false;
+    const wrap = document.getElementById('heroTrailerWrap');
+    if (wrap) {
+        wrap.classList.remove('active');
+        wrap.innerHTML = '';
+    }
+}
+
+function pauseHeroTrailer() {
+    clearHeroAdvanceTimers();
+    if (heroTrailerTimer) {
+        clearTimeout(heroTrailerTimer);
+        heroTrailerTimer = null;
+    }
+    sendHeroTrailerCommand('pauseVideo');
+    const wrap = document.getElementById('heroTrailerWrap');
+    if (wrap) wrap.classList.remove('active');
+}
+
+function resumeHeroTrailer() {
+    const wrap = document.getElementById('heroTrailerWrap');
+    const iframe = document.getElementById('heroTrailerIframe');
+    if (wrap && iframe && currentHeroTrailerKey) {
+        wrap.classList.add('active');
+        sendHeroTrailerCommand('playVideo');
+        if (!heroTrailerMuted) {
+            sendHeroTrailerCommand('unMute');
+            sendHeroTrailerCommand('setVolume', [70]);
+        }
+    } else if (heroQueue && heroQueue.length) {
+        const featured = heroQueue[heroIndex % heroQueue.length];
+        if (featured) playHeroTrailerForItem(featured);
+    }
+}
+
+function playHeroTrailerForItem(featured, force = false) {
+    if (!featured) {
+        stopHeroTrailer();
+        return;
+    }
+    const wrap = document.getElementById('heroTrailerWrap');
+    const existingIframe = document.getElementById('heroTrailerIframe');
+
+    // If trailer is already active for this exact item and force is not requested, keep playing without reloading
+    if (!force && existingIframe && currentHeroTrailerKey && wrap && wrap.classList.contains('active')) {
+        sendHeroTrailerCommand('playVideo');
+        return;
+    }
+
+    clearHeroAdvanceTimers();
+    heroTrailerEndHandled = false;
+
+    if (heroTrailerTimer) {
+        clearTimeout(heroTrailerTimer);
+        heroTrailerTimer = null;
+    }
+    const token = ++heroTrailerToken;
+
+    // Show high-res backdrop poster image first, then start trailer smoothly like Netflix
+    heroTrailerTimer = setTimeout(async () => {
+        if (token !== heroTrailerToken) return;
+        const key = await fetchItemTrailerKey(featured);
+        if (token !== heroTrailerToken) return;
+
+        if (!key) {
+            // No trailer found: show poster for 25s, then advance to next title
+            clearHeroAdvanceTimers();
+            heroTrailerAdvanceTimer = setTimeout(() => {
+                advanceHeroToNextTitle();
+            }, 25000);
+            return;
+        }
+
+        const currentWrap = document.getElementById('heroTrailerWrap');
+        if (!currentWrap) return;
+
+        // If the same key is already in the player iframe, simply unpause
+        if (currentHeroTrailerKey === key && document.getElementById('heroTrailerIframe')) {
+            currentWrap.classList.add('active');
+            sendHeroTrailerCommand('playVideo');
+            return;
+        }
+
+        currentHeroTrailerKey = key;
+        const muteFlag = heroTrailerMuted ? 1 : 0;
+        const originParam = encodeURIComponent(window.location.origin || 'http://localhost:3000');
+        // No loop=1 so the trailer plays completely until it ends and fires ended event
+        const iframeSrc = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(key)}?autoplay=1&mute=${muteFlag}&controls=0&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&origin=${originParam}`;
+
+        currentWrap.innerHTML = `
+            <div class="hero-trailer-player">
+                <iframe id="heroTrailerIframe" src="${iframeSrc}" title="Trailer" allow="autoplay; encrypted-media" frameborder="0"></iframe>
+            </div>
+        `;
+
+        const iframe = document.getElementById('heroTrailerIframe');
+        if (iframe) {
+            iframe.onload = () => {
+                if (token === heroTrailerToken) {
+                    currentWrap.classList.add('active');
+                    // Instruct YouTube embed to emit event messages to parent
+                    try {
+                        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
+                        iframe.contentWindow.postMessage(JSON.stringify({
+                            event: 'command',
+                            func: 'addEventListener',
+                            args: ['onStateChange']
+                        }), '*');
+                    } catch {}
+
+                    if (!heroTrailerMuted) {
+                        sendHeroTrailerCommand('unMute');
+                        sendHeroTrailerCommand('setVolume', [70]);
+                    } else {
+                        sendHeroTrailerCommand('mute');
+                    }
+                }
+            };
+            setTimeout(() => {
+                if (token === heroTrailerToken && !currentWrap.classList.contains('active')) {
+                    currentWrap.classList.add('active');
+                }
+            }, 1000);
+        }
+    }, 1200);
+}
+
+function renderHeroItem(force = false) {
     const queue = heroQueue;
-    if (!queue.length) return;
+    if (!queue.length) {
+        currentHeroItemId = null;
+        stopHeroTrailer();
+        return;
+    }
     const featured = queue[heroIndex % queue.length];
+    if (!featured) return;
+
+    const featuredId = String(featured.id || featured.tmdbId || featured.title || '');
+    // If the hero display is already showing this item, do not re-render DOM or restart trailer
+    if (!force && currentHeroItemId === featuredId) {
+        resumeHeroTrailer();
+        return;
+    }
+    currentHeroItemId = featuredId;
+    clearHeroAdvanceTimers();
+    heroTrailerEndHandled = false;
+
     const heroLogo = document.getElementById('heroLogo');
     const heroTitle = document.getElementById('heroTitle');
     heroTitle.textContent = featured.title;
@@ -2231,6 +2577,75 @@ function renderHeroItem() {
     }
     document.getElementById('heroPlayBtn').onclick = () => playItem(featured, featured.type || 'movie');
     document.getElementById('heroInfoBtn').onclick = () => showInfo(featured, featured.type || 'movie');
+
+    // Start background trailer playback for this featured item
+    playHeroTrailerForItem(featured, force);
+
+    // Netflix Billboard Metadata Strip
+    const brandTypeEl = document.getElementById('heroBrandType');
+    if (brandTypeEl) brandTypeEl.textContent = (featured.type === 'tv' || featured.episodes) ? 'SERIES' : 'FILM';
+
+    const matchEl = document.getElementById('heroMatch');
+    if (matchEl) {
+        const hashMatch = (() => { let h = 0; const s = String(featured.id || featured.title || ''); for(let i=0; i<s.length; i++) h = (h*31 + s.charCodeAt(i)) >>> 0; return 94 + (h % 6); })();
+        matchEl.textContent = `${hashMatch}% Match`;
+    }
+
+    const yearEl = document.getElementById('heroYear');
+    if (yearEl) yearEl.textContent = featured.year || '2026';
+
+    const ageRating = featured.type === 'tv' ? 'TV-MA' : 'PG-13';
+    const ageEl = document.getElementById('heroAgeBadge');
+    if (ageEl) ageEl.textContent = ageRating;
+    const ageMaturityEl = document.getElementById('heroMaturityBadgeText');
+    if (ageMaturityEl) ageMaturityEl.textContent = ageRating;
+
+    const durEl = document.getElementById('heroDuration');
+    if (durEl) {
+        const rtMins = parseRuntimeMins(featured.runtime || featured.duration);
+        durEl.textContent = featured.type === 'tv' ? 'Series' : (rtMins ? `${rtMins}m` : '2h 15m');
+    }
+
+    const qualEl = document.getElementById('heroQuality');
+    if (qualEl) qualEl.textContent = '4K Ultra HD';
+
+    const genreTagsEl = document.getElementById('heroGenreTags');
+    if (genreTagsEl) genreTagsEl.textContent = g.length ? g.slice(0, 3).join(' • ') : 'Action • Sci-Fi • Drama';
+
+    const heroListBtn = document.getElementById('heroListBtn');
+    if (heroListBtn) {
+        const inList = myList.some(m => m.id === featured.id);
+        heroListBtn.innerHTML = inList
+            ? '<svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg> In List'
+            : '<svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg> My List';
+        heroListBtn.onclick = (e) => {
+            e.stopPropagation();
+            toggleMyList(featured, featured.type || 'movie');
+            const nowInList = myList.some(m => m.id === featured.id);
+            heroListBtn.innerHTML = nowInList
+                ? '<svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg> In List'
+                : '<svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg> My List';
+        };
+    }
+
+    const soundBtn = document.getElementById('heroSoundBtn');
+    if (soundBtn && !soundBtn._bound) {
+        soundBtn._bound = true;
+        soundBtn.onclick = () => {
+            heroTrailerMuted = !heroTrailerMuted;
+            updateHeroSoundButtonUI();
+            if (heroTrailerMuted) {
+                sendHeroTrailerCommand('mute');
+                toast('Ambient audio muted');
+            } else {
+                sendHeroTrailerCommand('unMute');
+                sendHeroTrailerCommand('setVolume', [70]);
+                toast('Ambient audio enabled');
+            }
+        };
+    }
+    updateHeroSoundButtonUI();
+
     // Show the featured movie's own logo (if set) on the hero's large image; keep title text at the bottom
     if (featured.logo) {
         heroLogo.onerror = () => { heroLogo.onerror = null; applyHeroLogo(); };
@@ -2262,6 +2677,12 @@ function renderHeroItem() {
 }
 
 function updateHero() {
+    // Disable any recurring auto-cycle timer so hero and trailer never auto-reload periodically
+    if (heroTimer) {
+        clearInterval(heroTimer);
+        heroTimer = null;
+    }
+
     // Interleave movies and tvShows so TV banners show regularly instead of
     // only after every movie has cycled. Anime stays on the Anime tab only.
     const inter = [];
@@ -2274,22 +2695,23 @@ function updateHero() {
     }
     if (inter.length > 0) {
         heroQueue = inter;
-        if (!heroTimer) {
-            heroIndex = Math.floor(Math.random() * heroQueue.length);
-            heroTimer = setInterval(() => {
-                if (heroQueue.length > 0) {
-                    heroIndex = (heroIndex + 1) % heroQueue.length;
-                    renderHeroItem();
-                }
-            }, 8000);
+        // If current displayed hero item is already in heroQueue, preserve it so it doesn't swap or reload
+        if (currentHeroItemId) {
+            const existingIdx = heroQueue.findIndex(item => String(item.id || item.tmdbId || item.title || '') === currentHeroItemId);
+            if (existingIdx !== -1) {
+                heroIndex = existingIdx;
+            } else {
+                heroIndex = Math.max(0, Math.min(heroIndex, heroQueue.length - 1));
+            }
         } else {
-            heroIndex = ((heroIndex % heroQueue.length) + heroQueue.length) % heroQueue.length;
+            heroIndex = Math.floor(Math.random() * heroQueue.length);
         }
         renderHeroItem();
     } else {
-        if (heroTimer) { clearInterval(heroTimer); heroTimer = null; }
+        currentHeroItemId = null;
         heroQueue = [];
         heroIndex = 0;
+        stopHeroTrailer();
         const heroLogo = document.getElementById('heroLogo');
         const heroTitle = document.getElementById('heroTitle');
         heroTitle.textContent = 'Welcome to MILKBOX';
@@ -3359,6 +3781,7 @@ function renderPlay() {
 }
 
 function playItem(item, type) {
+    pauseHeroTrailer();
     const modal = document.getElementById('playerModal');
     const frame = document.getElementById('playerFrame');
     const title = document.getElementById('playerTitle');
@@ -4186,16 +4609,23 @@ const TMDB_GENRE_MAP = {
 
 async function tmdbJson(path) {
     if (Date.now() < tmdbUnavailableUntil) {
-        throw new Error(tmdbUnavailableReason);
+        throw new Error(tmdbUnavailableReason || 'TMDB service temporarily unavailable');
     }
     const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
     const tmdbUrl = `${TMDB_BASE.replace(/\/$/, '')}${normalizedPath}${normalizedPath.includes('?') ? '&' : '?'}language=en-US`;
-    const res = await fetch(tmdbUrl, { headers: { 'accept': 'application/json' } });
-    if (!res.ok) {
-        const responseBody = await res.text();
+    let res;
+    try {
+        res = await fetch(tmdbUrl, { headers: { 'accept': 'application/json' } });
+    } catch (fetchErr) {
+        tmdbUnavailableUntil = Date.now() + 60000;
+        tmdbUnavailableReason = `Network error contacting TMDB: ${fetchErr.message}`;
+        throw new Error(tmdbUnavailableReason);
+    }
+    const responseBody = await res.text();
+    if (!res.ok || /^\s*<(?:!doctype|html|head|body|script)/i.test(responseBody)) {
         let detail = '';
-        if (responseBody && /^\s*<(?:!doctype|html|head|body|script)/i.test(responseBody)) {
-            detail = 'TMDB endpoint unavailable or blocked';
+        if (/^\s*<(?:!doctype|html|head|body|script)/i.test(responseBody)) {
+            detail = 'TMDB endpoint unavailable or returned HTML';
         } else {
             try {
                 const body = JSON.parse(responseBody);
@@ -4203,16 +4633,20 @@ async function tmdbJson(path) {
             } catch {}
             if (!detail) detail = responseBody.trim().replace(/\s+/g, ' ').slice(0, 240);
         }
-        if (res.status === 404) detail = detail || 'Not found (check the ID, or type a title to search)';
+        if (res.status === 404) detail = detail || 'Not found';
         if (res.status === 503) detail = detail || 'TMDB is not configured on the server';
-        const error = new Error(`TMDB HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
-        if ([401, 403, 503].includes(res.status)) {
-            tmdbUnavailableUntil = Date.now() + 60000;
-            tmdbUnavailableReason = error.message;
-        }
+        const error = new Error(`TMDB HTTP ${res.status || 503}${detail ? `: ${detail}` : ''}`);
+        tmdbUnavailableUntil = Date.now() + 60000;
+        tmdbUnavailableReason = error.message;
         throw error;
     }
-    return res.json();
+    try {
+        return JSON.parse(responseBody);
+    } catch (parseErr) {
+        tmdbUnavailableUntil = Date.now() + 60000;
+        tmdbUnavailableReason = 'TMDB returned invalid JSON';
+        throw new Error(tmdbUnavailableReason);
+    }
 }
 
 async function checkCatalogAvailability() {
@@ -4645,6 +5079,7 @@ async function loadPopularContent(auto) {
     // Auto-load on page open: if the library already fills storage there's nothing
     // more that can be kept — skip the fetch so reloading stays fast.
     if (auto && libraryBytes() > STORAGE_BUDGET) return;
+    if (auto && Date.now() < tmdbUnavailableUntil) return;
     const existing = movies.length + tvShows.length;
     if (!auto && existing > 0 && !confirm(`Load a big TMDB library — the most popular movies, shows & anime of every genre plus the IMDb-style top-rated titles? Your existing ${existing} item(s) are kept and duplicates are skipped.`)) return;
     try {
@@ -4696,8 +5131,12 @@ async function loadPopularContent(auto) {
             if (!auto) toast('Nothing new to add — your library already has these.', 'error');
         }
     } catch (err) {
-        console.error('[MILKBOX] TMDB library load failed:', err);
-        if (typeof toast === 'function') toast(`TMDB error: ${err.message || err}`, 'error');
+        if (!auto) {
+            console.error('[MILKBOX] TMDB library load failed:', err);
+            if (typeof toast === 'function') toast(`TMDB error: ${err.message || err}`, 'error');
+        } else {
+            console.warn('[MILKBOX] TMDB auto-load skipped or unavailable:', err.message || err);
+        }
     }
 }
 
@@ -5119,28 +5558,53 @@ async function runSearch(query, page = 1) {
     }
 }
 
+function debounce(func, delay = 400) {
+    let timeoutId = null;
+    const debounced = function (...args) {
+        if (timeoutId) clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => {
+            timeoutId = null;
+            func.apply(this, args);
+        }, delay);
+    };
+    debounced.cancel = function () {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+            timeoutId = null;
+        }
+    };
+    return debounced;
+}
+
 const searchInput = document.getElementById('searchInput');
 const searchButton = document.getElementById('searchBtn');
+
+const debouncedRunSearch = debounce((query) => {
+    runSearch(query, 1);
+}, 400);
+
 searchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
-    clearTimeout(searchTimer);
     if (!query) {
+        debouncedRunSearch.cancel();
         searchRequestId++;
         searchQuery = '';
         hideSearchResults();
         return;
     }
-    searchTimer = setTimeout(() => runSearch(query, 1), 350);
+    debouncedRunSearch(query);
 });
 searchInput.addEventListener('keydown', (e) => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    clearTimeout(searchTimer);
-    runSearch(searchInput.value, 1);
+    debouncedRunSearch.cancel();
+    const query = searchInput.value.trim();
+    if (query) runSearch(query, 1);
 });
 searchButton.addEventListener('click', () => {
-    clearTimeout(searchTimer);
-    if (searchInput.value.trim()) runSearch(searchInput.value, 1);
+    debouncedRunSearch.cancel();
+    const query = searchInput.value.trim();
+    if (query) runSearch(query, 1);
     else searchInput.focus();
 });
 
@@ -6815,6 +7279,43 @@ function renderAnime() {
     renderCatalogGrid('animeMovie');
     renderCatalogGrid('animeTv');
 }
+
+function renderTop10Row() {
+    const slider = document.getElementById('top10Slider');
+    const sec = document.getElementById('top10Section');
+    if (!slider || !sec) return;
+    if (currentSection !== 'home') {
+        sec.style.display = 'none';
+        return;
+    }
+    sec.style.display = '';
+    slider.innerHTML = '';
+    const pool = [];
+    const validMovies = movies.filter(completeItem);
+    const validTv = tvShows.filter(completeItem);
+    const n = Math.max(validMovies.length, validTv.length);
+    for (let i = 0; i < n; i++) {
+        if (i < validMovies.length) pool.push(validMovies[i]);
+        if (i < validTv.length) pool.push(validTv[i]);
+    }
+    const top10 = pool.slice(0, 10);
+    if (!top10.length) {
+        sec.style.display = 'none';
+        return;
+    }
+    top10.forEach((item, idx) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'top10-card-wrap';
+        const num = document.createElement('div');
+        num.className = 'top10-rank-num';
+        num.textContent = idx + 1;
+        const card = createCard(item, item.type || 'movie');
+        wrap.appendChild(num);
+        wrap.appendChild(card);
+        slider.appendChild(wrap);
+    });
+}
+
 function handleNavClick(link, e) {
         if (e) {
             e.preventDefault();
@@ -6823,12 +7324,15 @@ function handleNavClick(link, e) {
         try {
             window.history.pushState(null, '', window.location.pathname);
         } catch (_) {}
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.querySelectorAll('.mobile-nav-link').forEach(l => l.classList.remove('active'));
-        link.classList.add('active');
         const section = link.dataset.section;
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
+        document.querySelectorAll('.mobile-nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
+        document.querySelectorAll('.mobile-tab-btn').forEach(l => l.classList.toggle('active', l.dataset.section === section));
         updateNavDropdownLabel(section);
         currentSection = section;
+        if (['providers', 'manga', 'music'].includes(section)) {
+            stopHeroTrailer();
+        }
         document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
         if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
             document.body.classList.add(section + '-active');
@@ -6840,6 +7344,8 @@ function handleNavClick(link, e) {
         show('providersSection', section==='providers');
         show('collectionsSection', section==='home');
         show('musicSection', section==='music');
+        show('top10Section', section === 'home');
+        if (section === 'home') renderTop10Row();
         show('freeSection', false);
         if (section === 'anime') {
             document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
@@ -6965,7 +7471,7 @@ function handleNavClick(link, e) {
             show('mangaSection', false);
             show('musicSection', true);
             document.getElementById('heroSection').style.display = 'none';
-            // Scroll to Lune music player
+            // Scroll to Musify music player
             document.getElementById('musicSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } else if (section === 'tvshows') {
             show('moviesSection', false);
@@ -7045,6 +7551,7 @@ function applyHomeFilter() {
         }
         try { renderGenreRows(); } catch(e){ console.error(e); }
         try { renderHomeDiscovery(); } catch(e){ console.error(e); }
+        try { renderTop10Row(); } catch(e){ console.error(e); }
     } catch(e){ console.error('applyHomeFilter', e); }
     try { renderCollections(); } catch {}
     document.querySelectorAll('.home-pill').forEach(b=> b.classList.toggle('active', b.dataset.filter===homeFilter));
@@ -7680,12 +8187,18 @@ document.getElementById('closePlayer').addEventListener('click', () => {
     const pf = document.getElementById('playerFrame');
     if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
     document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
+    if (heroQueue && heroQueue.length && !['providers', 'manga', 'music'].includes(currentSection)) {
+        resumeHeroTrailer();
+    }
 });
 document.getElementById('playerModal').addEventListener('click', (e) => {
     if (e.target.id === 'playerModal') {
         const pf = document.getElementById('playerFrame');
         if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
         document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
+        if (heroQueue && heroQueue.length && !['providers', 'manga', 'music'].includes(currentSection)) {
+            resumeHeroTrailer();
+        }
     }
 });
 const epToggle = document.getElementById('episodeToggleBtn');
@@ -7896,6 +8409,23 @@ document.addEventListener('click', (e) => {
 window.addEventListener('scroll', () => {
     document.querySelector('.navbar').classList.toggle('scrolled', window.scrollY > 50);
 });
+
+// Pause hero trailer video when hero scrolls out of view
+if (typeof IntersectionObserver !== 'undefined') {
+    const heroEl = document.getElementById('heroSection');
+    if (heroEl) {
+        const heroObs = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    sendHeroTrailerCommand('playVideo');
+                } else {
+                    sendHeroTrailerCommand('pauseVideo');
+                }
+            });
+        }, { threshold: 0.15 });
+        heroObs.observe(heroEl);
+    }
+}
 
 // ==================== FOOTER LINKS ====================
 document.getElementById('footerHelp').addEventListener('click', (e) => { e.preventDefault(); toast('Help: Add direct video URLs, upload TV episodes, and click Play to watch!'); });
