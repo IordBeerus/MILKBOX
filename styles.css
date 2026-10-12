@@ -6139,6 +6139,8 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 .card {
     min-width: 210px;
     max-width: 210px;
+    aspect-ratio: 2 / 3;
+    height: auto;
     border-radius: 8px;
     background: #181822;
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -6146,6 +6148,8 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     position: relative;
     flex-shrink: 0;
     cursor: pointer;
+    display: flex;
+    flex-direction: column;
     transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.3s;
 }
 .card:hover {
@@ -6154,16 +6158,42 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     border-color: rgba(255, 182, 216, 0.4);
     box-shadow: 0 20px 45px rgba(0, 0, 0, 0.92), 0 0 24px rgba(255, 182, 216, 0.22);
 }
-.card-img {
-    width: 100%;
-    height: 315px;
-    object-fit: cover;
+.card-img,
+.card-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 2 / 3;
+    object-fit: cover !important;
     display: block;
-    border-radius: 8px;
+    border-radius: 0 !important;
     background: #181822;
+    flex: 1 1 100%;
 }
 .card-badge {
     display: none !important;
+}
+/* Ensure cards in all grids and sliders wrap tightly without stretching dead bottom gaps */
+.content-grid .card,
+.catalog-grid .slider .card,
+.top10-explore-item .card,
+#homeGenres .slider .card,
+#homeGenres .content-grid .card {
+    aspect-ratio: 2 / 3 !important;
+    height: auto !important;
+    align-self: start !important;
+}
+.content-grid .card .card-img,
+.catalog-grid .slider .card .card-img,
+.top10-explore-item .card .card-img,
+#homeGenres .slider .card .card-img,
+#homeGenres .content-grid .card .card-img,
+.content-grid .card .card-placeholder,
+.catalog-grid .slider .card .card-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 2 / 3 !important;
+    object-fit: cover !important;
+    border-radius: 0 !important;
 }
 .card-actions {
     position: absolute;
