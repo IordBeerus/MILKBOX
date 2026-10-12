@@ -5417,7 +5417,7 @@ body.light-mode .collection-tab.active { color: #fff; }
 .anime-right{
   background:rgba(20,22,28,0.98); border:1px solid rgba(255,255,255,0.06);
   border-radius:16px; overflow:hidden; display:flex; flex-direction:column;
-  min-height:520px; max-height:720px;
+  min-height:360px; max-height:calc(100vh - 120px);
   box-shadow:0 12px 40px rgba(0,0,0,0.45);
 }
 .anime-right-head{ padding:12px 12px 10px; border-bottom:1px solid rgba(255,255,255,0.06); background:rgba(255,255,255,0.02); }
@@ -5463,7 +5463,7 @@ body.light-mode .collection-tab.active { color: #fff; }
   width:32px; border-radius:9px; border:1px solid rgba(255,255,255,0.08);
   background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; font-size:16px;
 }
-.anime-episode-list{ overflow:auto; padding:8px; display:grid; gap:6px; }
+.anime-episode-list{ overflow:auto; padding:8px; display:grid; gap:6px; flex:1; min-height:0; }
 .anime-episode-list.grid{ grid-template-columns:repeat(5,1fr); gap:8px; }
 .anime-ep{
   display:flex; align-items:center; gap:10px;
