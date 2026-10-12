@@ -1672,24 +1672,24 @@ body.light-mode .manga-drawer-item.active { background: #ffeaf3; color: #d6336c;
 }
 #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
 #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-#tvShowsSection.catalog-grid .slider .card-img,
-#tvShowsSection.catalog-grid .slider .card-placeholder,
-#streamingSection .content-grid .card-img,
-#streamingSection .content-grid .card-placeholder,
-#freeSection .content-grid .card-img,
-#freeSection .content-grid .card-placeholder,
-#trendingSection .content-grid .card-img,
-#trendingSection .content-grid .card-placeholder,
-#trendingGrid .card-img,
-#trendingGrid .card-placeholder,
-#theatersSection .content-grid .card-img,
-#theatersSection .content-grid .card-placeholder,
-#popularSection .content-grid .card-img,
-#popularSection .content-grid .card-placeholder,
-#searchResultsSection .content-grid .card-img,
-#searchResultsSection .content-grid .card-placeholder,
-#homeGenres .content-grid .card-img,
-#homeGenres .content-grid .card-placeholder { height: 400px !important; }
+#tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+#tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+#streamingSection .content-grid .card:not(.card-landscape) .card-img,
+#streamingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#freeSection .content-grid .card:not(.card-landscape) .card-img,
+#freeSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#trendingSection .content-grid .card:not(.card-landscape) .card-img,
+#trendingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#trendingGrid .card:not(.card-landscape) .card-img,
+#trendingGrid .card:not(.card-landscape) .card-placeholder,
+#theatersSection .content-grid .card:not(.card-landscape) .card-img,
+#theatersSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#popularSection .content-grid .card:not(.card-landscape) .card-img,
+#popularSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#searchResultsSection .content-grid .card:not(.card-landscape) .card-img,
+#searchResultsSection .content-grid .card:not(.card-landscape) .card-placeholder,
+#homeGenres .content-grid .card:not(.card-landscape) .card-img,
+#homeGenres .content-grid .card:not(.card-landscape) .card-placeholder { height: 400px !important; }
 
 /* Anime + Trending — bigger images (like Home) */
 body.anime-active #moviesSection.catalog-grid .slider,
@@ -1711,25 +1711,25 @@ body.trending-active #trendingGrid .card {
 }
 body.anime-active #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
 body.anime-active #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-body.anime-active #tvShowsSection.catalog-grid .slider .card-img,
-body.anime-active #tvShowsSection.catalog-grid .slider .card-placeholder,
-body.anime-active #homeGenres .content-grid .card-img,
-body.anime-active #homeGenres .content-grid .card-placeholder,
-body.trending-active #trendingSection .content-grid .card-img,
-body.trending-active #trendingSection .content-grid .card-placeholder,
-body.trending-active #trendingGrid .card-img,
-body.trending-active #trendingGrid .card-placeholder { height: 400px !important; }
+body.anime-active #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+body.anime-active #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+body.anime-active #homeGenres .content-grid .card:not(.card-landscape) .card-img,
+body.anime-active #homeGenres .content-grid .card:not(.card-landscape) .card-placeholder,
+body.trending-active #trendingSection .content-grid .card:not(.card-landscape) .card-img,
+body.trending-active #trendingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+body.trending-active #trendingGrid .card:not(.card-landscape) .card-img,
+body.trending-active #trendingGrid .card:not(.card-landscape) .card-placeholder { height: 400px !important; }
 
 /* Genres — smaller cards */
 #homeGenres .content-grid {
-    grid-template-columns: repeat(auto-fill, 180px) !important;
-    gap: 14px !important;
+    grid-template-columns: repeat(auto-fill, 260px) !important;
+    gap: 20px !important;
 }
-#homeGenres .content-grid .card {
+#homeGenres .content-grid .card:not(.card-landscape) {
     max-width: 170px !important;
 }
-#homeGenres .content-grid .card-img,
-#homeGenres .content-grid .card-placeholder { height: 250px !important; }
+#homeGenres .content-grid .card:not(.card-landscape) .card-img,
+#homeGenres .content-grid .card:not(.card-landscape) .card-placeholder { height: 250px !important; }
 
 /* Collections (Home) — wide cinematic like reference */
 #collectionsSection .content-grid {

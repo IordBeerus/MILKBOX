@@ -1327,7 +1327,7 @@ function renderSlider(containerId, items, type, pagerId, pageKey = containerId) 
         if (pager) pager.style.display = 'none';
         return;
     }
-    const isLandscape = containerId === 'moviesSlider' || pageKey === 'movies';
+    const isLandscape = containerId === 'moviesSlider' || pageKey === 'movies' || pageKey === 'myList';
     const pageSize = isLandscape ? 15 : SLIDER_PAGE_SIZE;
     const total = Math.ceil(items.length / pageSize);
     const page = Math.min(Math.max(1, sliderState[pageKey]?.page || 1), total);
@@ -1421,7 +1421,7 @@ function renderCatalogGrid(section, source) {
     const pager = document.getElementById(cfg.pager);
     if (!slider) return;
     const items = cfg.items;
-    const isLandscape = cfg.pkey === 'movies';
+    const isLandscape = ['movies', 'tvshows', 'animeMovie', 'animeTv'].includes(cfg.pkey);
     if (!items.length) {
         if (isLibraryLoading || (section.startsWith('anime') && animeLive.loading)) {
             renderSkeletonGrid(slider, isLandscape ? 15 : CATALOG_PER_PAGE, isLandscape);
@@ -2168,7 +2168,7 @@ function renderGenreRows() {
             grid.innerHTML = '';
             slice.forEach(it => {
                 const type = it.type === 'tv' ? 'tv' : 'movie';
-                grid.appendChild(createCard(it, type));
+                grid.appendChild(createCard(it, type, true));
             });
         });
         try { observeContentSections(); } catch (_) {}
@@ -2204,7 +2204,7 @@ function renderGenreRows() {
         const page = Math.min(Math.max(1, genrePage[key] || 1), total);
         const start = (page - 1) * GENRE_PER_PAGE;
         const slice = items.slice(start, start + GENRE_PER_PAGE);
-        renderCardCollection(grid, slice, 'mixed', false);
+        renderCardCollection(grid, slice, 'mixed', true);
     });
     try { observeContentSections(); } catch (_) {}
 }
@@ -5766,7 +5766,7 @@ function renderSearchResults(items) {
         grid.innerHTML = '<p style="color:#999;padding:40px 0;text-align:center;width:100%">No results found.</p>';
         return;
     }
-    items.forEach(item => grid.appendChild(createCard(item, item.type)));
+    items.forEach(item => grid.appendChild(createCard(item, item.type, true)));
     // Fetch brand logos for these results in the background so clicking a card shows
     // its logo in the info modal right away.
     enrichSearchLogos(items).catch(() => {});
@@ -6582,7 +6582,7 @@ async function fetchLive(paths, type, key) {
     const grid = gridId && document.getElementById(gridId);
     const pager = pagerId && document.getElementById(pagerId);
     if (grid && (!liveState[key].items.length || grid.querySelector('.live-loading') || grid.textContent.includes('Loading'))) {
-        renderSkeletonGrid(grid, LIVE_PER_PAGE, false);
+        renderSkeletonGrid(grid, LIVE_PER_PAGE, true);
     }
     try {
         await tmdbEnsureConfig();
@@ -6614,7 +6614,7 @@ function renderLiveGrid(key, grid, pager) {
     st.page = page;
     const start = (page - 1) * LIVE_PER_PAGE;
     const slice = st.items.slice(start, start + LIVE_PER_PAGE);
-    renderCardCollection(grid, slice, 'mixed', false);
+    renderCardCollection(grid, slice, 'mixed', true);
     if (pager) {
         pager.style.display = '';
         let html = `<button class="pager-btn pager-nav" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
@@ -6635,14 +6635,14 @@ function renderLiveTab(section) {
         const st = liveState.trending;
         if (st.items.length) renderLiveGrid('trending');
         else {
-            renderSkeletonGrid('trendingGrid', LIVE_PER_PAGE, false);
+            renderSkeletonGrid('trendingGrid', LIVE_PER_PAGE, true);
             if (!liveFed.trending) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/trending/all/week?page=${i + 1}`), 'all', 'trending');
         }
     } else if (section === 'streaming') {
         const st = liveState.streaming;
         if (st.items.length) renderLiveGrid('streaming');
         else if (!liveFed.streaming && !activeProvider) {
-            renderSkeletonGrid('streamingGrid', LIVE_PER_PAGE, false);
+            renderSkeletonGrid('streamingGrid', LIVE_PER_PAGE, true);
             const base = '/discover/movie?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
             const mov = Array.from({ length: LIVE_PAGES }, (_, i) => `${base}&page=${i + 1}`);
             const baseTv = '/discover/tv?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
@@ -6676,7 +6676,7 @@ function renderLiveTab(section) {
         const st = liveState.free;
         if (st.items.length) renderLiveGrid('free');
         else if (!liveFed.free) {
-            renderSkeletonGrid('freeGrid', LIVE_PER_PAGE, false);
+            renderSkeletonGrid('freeGrid', LIVE_PER_PAGE, true);
             const movieBase = '/discover/movie?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
             const tvBase = '/discover/tv?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
             const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `${movieBase}&page=${i + 1}`);
@@ -6706,14 +6706,14 @@ function renderLiveTab(section) {
         const st = liveState.theaters;
         if (st.items.length) renderLiveGrid('theaters');
         else {
-            renderSkeletonGrid('theatersGrid', LIVE_PER_PAGE, false);
+            renderSkeletonGrid('theatersGrid', LIVE_PER_PAGE, true);
             if (!liveFed.theaters) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/movie/now_playing?page=${i + 1}`), 'movie', 'theaters');
         }
     } else if (section === 'popular') {
         const st = liveState.popular;
         if (st.items.length) renderLiveGrid('popular');
         else if (!liveFed.popular) {
-            renderSkeletonGrid('popularGrid', LIVE_PER_PAGE, false);
+            renderSkeletonGrid('popularGrid', LIVE_PER_PAGE, true);
             // Most popular movies, TV shows, and anime of all time (TMDB discover, popularity order).
             const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/movie?sort_by=popularity.desc&page=${i + 1}`);
             const tvPaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/tv?sort_by=popularity.desc&page=${i + 1}`);
@@ -7502,7 +7502,7 @@ async function loadAnimeLive() {
     animeLive.loading = true;
     if (currentSection === 'anime') {
         renderSkeletonGrid('moviesSlider', 15, true);
-        renderSkeletonGrid('tvShowsSlider', 14, false);
+        renderSkeletonGrid('tvShowsSlider', 14, true);
     }
     try {
         await tmdbEnsureConfig();
