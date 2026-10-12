@@ -1052,53 +1052,88 @@ function scanMovieQualities(noRender) {
     return changed;
 }
 
-function createCard(item, type) {
+function createCard(item, type, isLandscape = false) {
     const card = document.createElement('div');
-    card.className = 'card';
+    card.className = isLandscape ? 'card card-landscape' : 'card';
     card.dataset.id = item.id;
     const effType = (type === 'movie' || type === 'tv') ? type : (item.type || 'movie');
     const inList = myList.some(m => m.id === item.id);
     const genre = genArr(item.genre)[0] || 'action';
     const safeTitle = escapeHtml(item.title);
     const safePoster = escapeHtml(item.poster || '');
-    let imgHTML = '';
-    if (item.poster) {
-        imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`;
-    }
-    imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
-    // TV shows (and anime shows) are always HD. Movies use their saved quality
-    // (assigned by scanMovieQualities), falling back to a hash-based tier.
-    const mcBadge = effType === 'tv' || item.type === 'tv'
-        ? 'HD'
-        : (item.quality === 'CAM' || item.quality === 'HDCAM' || item.quality === 'HD' ? item.quality : qualityFor(item.tmdbId || item.id));
-    const badgeCls = mcBadge === 'CAM' ? 'cam' : mcBadge === 'HDCAM' ? 'hdcam' : 'hd';
-    const rtMins = parseRuntimeMins(item.runtime || item.duration);
-    const hashMins = (()=>{ let h=0; const s=String(item.id||item.title||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 88 + (h%58); })();
-    const mins = rtMins || hashMins;
-    const rtLabel = `${mins}m`;
-    const typeLabel = effType === 'tv' ? 'TV Show' : 'Movie';
-    const matchPct = (()=>{ let h=0; const s=String(item.id||item.title||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 94 + (h%6); })();
-    const certBadge = effType === 'tv' ? 'TV-MA' : '16+';
-    const genresList = genArr(item.genre).slice(0, 3).join(' • ');
+    const safeBackdrop = escapeHtml(item.backdrop || item.poster || '');
 
-    card.innerHTML = `
-        ${imgHTML}
-        <div class="card-actions">
-            <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
-            <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
-            <button class="card-action-btn" data-action="like" title="I like this"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L792-174q-12 28-39 45t-33 9Zm-360-80h360l60-150v-80H516l54-216-170 170v276Zm0 0v-276 276Zm-80-440v520H160v-520h120Z"/></svg></button>
-            <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M480-360 280-560l56-56 144 144 144-144 56 56-200 200Z"/></svg></button>
-        </div>
-        <div class="card-info">
-            <div class="card-title">${safeTitle}</div>
-            <div class="card-meta">
-                <span class="card-match">${matchPct}% Match</span>
-                <span class="card-cert">${certBadge}</span>
-                <span class="card-year-runtime">${item.year || '2026'} <span class="dot">•</span> ${rtLabel}</span>
+    if (isLandscape) {
+        let ratingNum = '7.5';
+        if (item.rating) {
+            const num = parseFloat(item.rating);
+            ratingNum = !isNaN(num) ? num.toFixed(1) : String(item.rating);
+        }
+        const yearVal = item.year || '2026';
+        const kindLabel = effType === 'tv' ? 'TV Show' : 'Movie';
+
+        let imgHTML = '';
+        if (safeBackdrop) {
+            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="if(this.src!=='${safePoster}'&&'${safePoster}'){this.src='${safePoster}';}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">`;
+        }
+        imgHTML += `<div class="card-placeholder" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
+
+        card.innerHTML = `
+            <div class="card-media">
+                ${imgHTML}
+                <div class="card-actions">
+                    <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
+                    <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
+                    <button class="card-action-btn" data-action="like" title="I like this"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L792-174q-12 28-39 45t-33 9Zm-360-80h360l60-150v-80H516l54-216-170 170v276Zm0 0v-276 276Zm-80-440v520H160v-520h120Z"/></svg></button>
+                    <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M480-360 280-560l56-56 144 144 144-144 56 56-200 200Z"/></svg></button>
+                </div>
             </div>
-            ${genresList ? `<div style="font-size:10.5px;color:#a0a0aa;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${genresList}</div>` : ''}
-        </div>
-    `;
+            <div class="card-details">
+                <div class="card-title">${safeTitle}</div>
+                <div class="card-sub">
+                    <span class="card-star">★</span>
+                    <span class="card-rating-num">${ratingNum}</span>
+                    <span class="card-sep">·</span>
+                    <span class="card-year-val">${yearVal}</span>
+                    <span class="card-sep">·</span>
+                    <span class="card-kind-val">${kindLabel}</span>
+                </div>
+            </div>
+        `;
+    } else {
+        let imgHTML = '';
+        if (item.poster) {
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`;
+        }
+        imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
+        const rtMins = parseRuntimeMins(item.runtime || item.duration);
+        const hashMins = (()=>{ let h=0; const s=String(item.id||item.title||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 88 + (h%58); })();
+        const mins = rtMins || hashMins;
+        const rtLabel = `${mins}m`;
+        const matchPct = (()=>{ let h=0; const s=String(item.id||item.title||''); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return 94 + (h%6); })();
+        const certBadge = effType === 'tv' ? 'TV-MA' : '16+';
+        const genresList = genArr(item.genre).slice(0, 3).join(' • ');
+
+        card.innerHTML = `
+            ${imgHTML}
+            <div class="card-actions">
+                <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
+                <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
+                <button class="card-action-btn" data-action="like" title="I like this"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M720-120H280v-520l280-280 50 50q7 7 11.5 19t4.5 23v14l-44 174h258q32 0 56 24t24 56v80q0 7-2 15t-4 15L792-174q-12 28-39 45t-33 9Zm-360-80h360l60-150v-80H516l54-216-170 170v276Zm0 0v-276 276Zm-80-440v520H160v-520h120Z"/></svg></button>
+                <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M480-360 280-560l56-56 144 144 144-144 56 56-200 200Z"/></svg></button>
+            </div>
+            <div class="card-info">
+                <div class="card-title">${safeTitle}</div>
+                <div class="card-meta">
+                    <span class="card-match">${matchPct}% Match</span>
+                    <span class="card-cert">${certBadge}</span>
+                    <span class="card-year-runtime">${item.year || '2026'} <span class="dot">•</span> ${rtLabel}</span>
+                </div>
+                ${genresList ? `<div style="font-size:10.5px;color:#a0a0aa;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${genresList}</div>` : ''}
+            </div>
+        `;
+    }
+
     card.addEventListener('click', (e) => {
         const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
         if (action === 'play') playItem(item, effType);
@@ -1136,13 +1171,15 @@ function renderSlider(containerId, items, type, pagerId, pageKey = containerId) 
         if (pager) pager.style.display = 'none';
         return;
     }
-    const total = Math.ceil(items.length / SLIDER_PAGE_SIZE);
+    const isLandscape = containerId === 'moviesSlider' || pageKey === 'movies';
+    const pageSize = isLandscape ? 15 : SLIDER_PAGE_SIZE;
+    const total = Math.ceil(items.length / pageSize);
     const page = Math.min(Math.max(1, sliderState[pageKey]?.page || 1), total);
-    const start = (page - 1) * SLIDER_PAGE_SIZE;
+    const start = (page - 1) * pageSize;
     sliderState[pageKey] = { items, type, page, containerId, pagerId };
     const frag = document.createDocumentFragment();
-    for (let i = start; i < Math.min(start + SLIDER_PAGE_SIZE, items.length); i++) {
-        frag.appendChild(createCard(items[i], type));
+    for (let i = start; i < Math.min(start + pageSize, items.length); i++) {
+        frag.appendChild(createCard(items[i], type, isLandscape));
     }
     slider.appendChild(frag);
     if (pager) {
@@ -1233,12 +1270,14 @@ function renderCatalogGrid(section, source) {
         if (pager) pager.style.display = 'none';
         return;
     }
-    const total = Math.ceil(items.length / CATALOG_PER_PAGE);
+    const isLandscape = cfg.pkey === 'movies';
+    const perPage = isLandscape ? 15 : CATALOG_PER_PAGE;
+    const total = Math.ceil(items.length / perPage);
     const page = Math.min(Math.max(1, catalogPage[cfg.pkey]), total);
     catalogPage[cfg.pkey] = page;
-    const start = (page - 1) * CATALOG_PER_PAGE;
-    const slice = items.slice(start, start + CATALOG_PER_PAGE);
-    slice.forEach(item => slider.appendChild(createCard(item, cfg.type)));
+    const start = (page - 1) * perPage;
+    const slice = items.slice(start, start + perPage);
+    slice.forEach(item => slider.appendChild(createCard(item, cfg.type, isLandscape)));
     if (pager) {
         pager.style.display = '';
         let html = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
@@ -1264,7 +1303,7 @@ document.addEventListener('click', (e) => {
     const page = parseInt(btn.dataset.page, 10);
     if (isNaN(page)) return;
     catalogPage[key] = page;
-    renderCatalogGrid(key);
+    renderCatalogGrid(key, currentSection === 'home' ? 'home' : '');
 });
 
 // Genre category rows for the Home page (only genres with enough content are shown).

@@ -1670,8 +1670,8 @@ body.light-mode .manga-drawer-item.active { background: #ffeaf3; color: #d6336c;
     max-width: 250px !important;
     width: 100% !important;
 }
-#moviesSection.catalog-grid .slider .card-img,
-#moviesSection.catalog-grid .slider .card-placeholder,
+#moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+#moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
 #tvShowsSection.catalog-grid .slider .card-img,
 #tvShowsSection.catalog-grid .slider .card-placeholder,
 #streamingSection .content-grid .card-img,
@@ -1709,8 +1709,8 @@ body.trending-active #trendingGrid .card {
     max-width: 250px !important;
     width: 100% !important;
 }
-body.anime-active #moviesSection.catalog-grid .slider .card-img,
-body.anime-active #moviesSection.catalog-grid .slider .card-placeholder,
+body.anime-active #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+body.anime-active #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
 body.anime-active #tvShowsSection.catalog-grid .slider .card-img,
 body.anime-active #tvShowsSection.catalog-grid .slider .card-placeholder,
 body.anime-active #homeGenres .content-grid .card-img,
@@ -4875,8 +4875,8 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
         gap: 12px !important;
     }
-    #moviesSection.catalog-grid .slider .card-img,
-    #moviesSection.catalog-grid .slider .card-placeholder,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
     #tvShowsSection.catalog-grid .slider .card-img,
     #tvShowsSection.catalog-grid .slider .card-placeholder,
     #streamingSection .content-grid .card-img,
@@ -4910,8 +4910,8 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)) !important;
         gap: 10px !important;
     }
-    #moviesSection.catalog-grid .slider .card-img,
-    #moviesSection.catalog-grid .slider .card-placeholder,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
     #tvShowsSection.catalog-grid .slider .card-img,
     #tvShowsSection.catalog-grid .slider .card-placeholder,
     #streamingSection .content-grid .card-img,
@@ -4984,8 +4984,8 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     #searchResultsSection .content-grid,
     #homeGenres .content-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important; gap: 14px !important; }
     #homeGenres .slider { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 12px !important; }
-    #moviesSection.catalog-grid .slider .card-img,
-    #moviesSection.catalog-grid .slider .card-placeholder,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
     #tvShowsSection.catalog-grid .slider .card-img,
     #tvShowsSection.catalog-grid .slider .card-placeholder,
     #streamingSection .content-grid .card-img,
@@ -5687,8 +5687,8 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     #searchResultsSection .content-grid .card-placeholder,
     #homeGenres .content-grid .card-img,
     #homeGenres .content-grid .card-placeholder,
-    #moviesSection.catalog-grid .slider .card-img,
-    #moviesSection.catalog-grid .slider .card-placeholder,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
     #tvShowsSection.catalog-grid .slider .card-img,
     #tvShowsSection.catalog-grid .slider .card-placeholder,
     #homeGenres .slider .card-img,
@@ -6179,27 +6179,223 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     display: none !important;
 }
 /* Ensure cards in all grids and sliders wrap tightly without stretching dead bottom gaps */
-.content-grid .card,
-.catalog-grid .slider .card,
-.top10-explore-item .card,
-#homeGenres .slider .card,
-#homeGenres .content-grid .card {
+.content-grid .card:not(.card-landscape),
+.catalog-grid .slider .card:not(.card-landscape),
+.top10-explore-item .card:not(.card-landscape),
+#homeGenres .slider .card:not(.card-landscape),
+#homeGenres .content-grid .card:not(.card-landscape) {
     aspect-ratio: 2 / 3 !important;
     height: auto !important;
     align-self: start !important;
 }
-.content-grid .card .card-img,
-.catalog-grid .slider .card .card-img,
-.top10-explore-item .card .card-img,
-#homeGenres .slider .card .card-img,
-#homeGenres .content-grid .card .card-img,
-.content-grid .card .card-placeholder,
-.catalog-grid .slider .card .card-placeholder {
+.content-grid .card:not(.card-landscape) .card-img,
+.catalog-grid .slider .card:not(.card-landscape) .card-img,
+.top10-explore-item .card:not(.card-landscape) .card-img,
+#homeGenres .slider .card:not(.card-landscape) .card-img,
+#homeGenres .content-grid .card:not(.card-landscape) .card-img,
+.content-grid .card:not(.card-landscape) .card-placeholder,
+.catalog-grid .slider .card:not(.card-landscape) .card-placeholder {
     width: 100% !important;
     height: 100% !important;
     aspect-ratio: 2 / 3 !important;
     object-fit: cover !important;
     border-radius: 0 !important;
+}
+
+/* ==================== MOVIES WIDESCREEN LANDSCAPE LAYOUT ==================== */
+#moviesSection .slider-container .slider-btn {
+    display: none !important;
+}
+
+#moviesSection.catalog-grid .slider,
+#moviesSection .slider {
+    display: grid !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    gap: 16px !important;
+    padding: 10px 0 24px !important;
+    overflow: visible !important;
+}
+
+@media (max-width: 1400px) {
+    #moviesSection.catalog-grid .slider,
+    #moviesSection .slider {
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+        gap: 14px !important;
+    }
+}
+
+@media (max-width: 1050px) {
+    #moviesSection.catalog-grid .slider,
+    #moviesSection .slider {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+}
+
+@media (max-width: 720px) {
+    #moviesSection.catalog-grid .slider,
+    #moviesSection .slider {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+}
+
+@media (max-width: 440px) {
+    #moviesSection.catalog-grid .slider,
+    #moviesSection .slider {
+        grid-template-columns: 1fr !important;
+        gap: 12px !important;
+    }
+}
+
+/* Card Landscape Component (16:9 widescreen with title & rating below) */
+#moviesSection.catalog-grid .slider .card.card-landscape,
+#moviesSection .slider .card.card-landscape,
+body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape,
+.card.card-landscape {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    cursor: pointer;
+    display: flex !important;
+    flex-direction: column !important;
+    transform: none !important;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+#moviesSection.catalog-grid .slider .card.card-landscape:hover,
+#moviesSection .slider .card.card-landscape:hover,
+body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover,
+.card.card-landscape:hover {
+    transform: translateY(-4px) !important;
+    box-shadow: none !important;
+}
+
+.card.card-landscape .card-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #181822;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.25s ease;
+}
+
+.card.card-landscape:hover .card-media {
+    transform: scale(1.03);
+    border-color: rgba(255, 182, 216, 0.45);
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 182, 216, 0.2);
+}
+
+#moviesSection.catalog-grid .slider .card.card-landscape .card-img,
+#moviesSection.catalog-grid .slider .card.card-landscape .card-placeholder,
+#moviesSection .slider .card.card-landscape .card-img,
+#moviesSection .slider .card.card-landscape .card-placeholder,
+body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card-img,
+body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card-placeholder,
+.card.card-landscape .card-img,
+.card.card-landscape .card-backdrop-img,
+.card.card-landscape .card-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: 16 / 9 !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 0 !important;
+    flex: none !important;
+}
+
+.card.card-landscape .card-actions {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: rgba(10, 10, 14, 0.55);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    transform: none;
+    bottom: 0;
+    transition: opacity 0.22s ease;
+    z-index: 10;
+}
+
+.card.card-landscape:hover .card-actions {
+    opacity: 1;
+}
+
+.card.card-landscape .card-details {
+    padding: 8px 2px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.card.card-landscape .card-title {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.25;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.2px;
+    transition: color 0.15s ease;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+}
+
+.card.card-landscape:hover .card-title {
+    color: #ffb6d8;
+}
+
+.card.card-landscape .card-sub {
+    display: flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 500;
+    color: #94a3b8;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card.card-landscape .card-star {
+    color: #e50914;
+    font-size: 13px;
+    margin-right: 4px;
+    line-height: 1;
+    display: inline-block;
+}
+
+.card.card-landscape .card-rating-num {
+    color: #e2e8f0;
+    font-weight: 600;
+}
+
+.card.card-landscape .card-sep {
+    color: #64748b;
+    margin: 0 5px;
+    font-weight: 700;
+}
+
+.card.card-landscape .card-year-val,
+.card.card-landscape .card-kind-val {
+    color: #94a3b8;
 }
 .card-actions {
     position: absolute;
