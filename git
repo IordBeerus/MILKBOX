@@ -2,5 +2,5 @@ git init
 git add .
 git commit -m "MILKBOX"
 git branch -M main
-git remote add origin https://github.com/lordbeerus/MILKBOX.git
+git remote add origin https://github.com/IordBeerus/MILKBOX.git
 git push -u origin main
