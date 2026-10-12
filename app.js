@@ -7280,6 +7280,40 @@ function renderAnime() {
     renderCatalogGrid('animeTv');
 }
 
+function getTop10Items() {
+    const pool = [];
+    const validMovies = movies.filter(completeItem);
+    const validTv = tvShows.filter(completeItem);
+    const n = Math.max(validMovies.length, validTv.length);
+    for (let i = 0; i < n; i++) {
+        if (i < validMovies.length) pool.push(validMovies[i]);
+        if (i < validTv.length) pool.push(validTv[i]);
+    }
+    return pool.slice(0, 10);
+}
+
+function openTop10ExploreModal() {
+    const modal = document.getElementById('top10ExploreModal');
+    const grid = document.getElementById('top10ExploreGrid');
+    if (!modal || !grid) return;
+    const items = getTop10Items();
+    grid.innerHTML = '';
+    items.forEach((item, idx) => {
+        const itemWrap = document.createElement('div');
+        itemWrap.className = 'top10-explore-item';
+        
+        const rankBadge = document.createElement('div');
+        rankBadge.className = 'top10-explore-rank';
+        rankBadge.textContent = `#${idx + 1}`;
+        
+        const card = createCard(item, item.type || 'movie');
+        itemWrap.appendChild(rankBadge);
+        itemWrap.appendChild(card);
+        grid.appendChild(itemWrap);
+    });
+    modal.classList.add('active');
+}
+
 function renderTop10Row() {
     const slider = document.getElementById('top10Slider');
     const sec = document.getElementById('top10Section');
@@ -7290,15 +7324,7 @@ function renderTop10Row() {
     }
     sec.style.display = '';
     slider.innerHTML = '';
-    const pool = [];
-    const validMovies = movies.filter(completeItem);
-    const validTv = tvShows.filter(completeItem);
-    const n = Math.max(validMovies.length, validTv.length);
-    for (let i = 0; i < n; i++) {
-        if (i < validMovies.length) pool.push(validMovies[i]);
-        if (i < validTv.length) pool.push(validTv[i]);
-    }
-    const top10 = pool.slice(0, 10);
+    const top10 = getTop10Items();
     if (!top10.length) {
         sec.style.display = 'none';
         return;
@@ -7314,6 +7340,18 @@ function renderTop10Row() {
         wrap.appendChild(card);
         slider.appendChild(wrap);
     });
+
+    // Update Netflix-style indicator bars on scroll
+    const updateIndicators = () => {
+        const bars = document.querySelectorAll('#top10Indicators .ind-bar');
+        if (!bars.length) return;
+        const maxScroll = slider.scrollWidth - slider.clientWidth;
+        const ratio = maxScroll > 0 ? Math.min(1, Math.max(0, slider.scrollLeft / maxScroll)) : 0;
+        const activeIdx = Math.min(bars.length - 1, Math.floor(ratio * bars.length));
+        bars.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+    };
+    slider.onscroll = updateIndicators;
+    updateIndicators();
 }
 
 function handleNavClick(link, e) {
@@ -8405,10 +8443,34 @@ document.addEventListener('click', (e) => {
     if (slider) slider.scrollBy({ left: btn.classList.contains('slider-left') ? -600 : 600, behavior: 'smooth' });
 });
 
-// ==================== SCROLL NAVBAR ====================
-window.addEventListener('scroll', () => {
-    document.querySelector('.navbar').classList.toggle('scrolled', window.scrollY > 50);
+// ==================== TOP 10 EXPLORE ALL ====================
+document.addEventListener('click', (e) => {
+    const exploreBtn = e.target.closest('#exploreAllTop10Btn, .row-explore-more');
+    if (exploreBtn) {
+        e.preventDefault();
+        openTop10ExploreModal();
+        return;
+    }
+    const closeBtn = e.target.closest('#closeTop10Explore');
+    if (closeBtn) {
+        const modal = document.getElementById('top10ExploreModal');
+        if (modal) modal.classList.remove('active');
+        return;
+    }
 });
+
+// ==================== SCROLL NAVBAR ====================
+let scrollTicking = false;
+window.addEventListener('scroll', () => {
+    if (!scrollTicking) {
+        window.requestAnimationFrame(() => {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) navbar.classList.toggle('scrolled', window.scrollY > 50);
+            scrollTicking = false;
+        });
+        scrollTicking = true;
+    }
+}, { passive: true });
 
 // Pause hero trailer video when hero scrolls out of view
 if (typeof IntersectionObserver !== 'undefined') {

@@ -174,7 +174,7 @@
             <div class="section-title-wrap">
                 <h3 class="section-title">
                     <span>Top 10 in MILKBOX Today</span>
-                    <span class="row-explore-more">Explore All ❯</span>
+                    <button class="row-explore-more" id="exploreAllTop10Btn" type="button" aria-label="Explore All Top 10 titles">Explore All ❯</button>
                 </h3>
                 <div class="row-indicator-bars" id="top10Indicators">
                     <span class="ind-bar active"></span><span class="ind-bar"></span><span class="ind-bar"></span><span class="ind-bar"></span>
@@ -1230,6 +1230,19 @@
                 <button class="manga-drawer-close" id="mangaDrawerClose">&times;</button>
             </div>
             <div class="manga-drawer-list" id="mangaChapterList"></div>
+        </div>
+    </div>
+
+    <!-- Top 10 Explore All Modal -->
+    <div class="modal" id="top10ExploreModal">
+        <div class="modal-content top10-explore-content">
+            <span class="close-modal" id="closeTop10Explore">&times;</span>
+            <div class="top10-explore-header">
+                <div class="top10-explore-badge">TOP 10</div>
+                <h2 class="modal-title" style="margin:0">Top 10 in MILKBOX Today</h2>
+            </div>
+            <p class="top10-explore-desc">The 10 most popular movies and shows streaming right now. Tap any title to watch or view details.</p>
+            <div class="top10-explore-grid" id="top10ExploreGrid"></div>
         </div>
     </div>
 

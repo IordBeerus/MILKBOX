@@ -6033,14 +6033,25 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     font-size: 12px;
     font-weight: 700;
     color: #ffb6d8;
-    opacity: 0;
-    transform: translateX(-8px);
+    background: transparent;
+    border: none;
+    padding: 2px 6px;
+    font-family: inherit;
+    cursor: pointer;
+    opacity: 0.75;
+    transform: translateX(-4px);
     transition: all 0.25s cubic-bezier(0.2,0.8,0.2,1);
+    display: inline-flex;
+    align-items: center;
+    border-radius: 4px;
 }
+.row-explore-more:hover,
 .section-title:hover .row-explore-more,
 .content-section:hover .row-explore-more {
     opacity: 1;
     transform: translateX(0);
+    background: rgba(255, 182, 216, 0.15);
+    text-shadow: 0 0 10px rgba(255, 182, 216, 0.6);
 }
 .row-indicator-bars {
     display: flex;
@@ -6264,6 +6275,86 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 }
 .top10-card-wrap .card {
     z-index: 3;
+}
+
+/* Top 10 Explore All Modal */
+.top10-explore-content {
+    max-width: 1100px;
+    width: 92%;
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 30px;
+    background: #14141e;
+    border: 1px solid rgba(255, 182, 216, 0.2);
+    border-radius: 16px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9);
+}
+.top10-explore-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 8px;
+}
+.top10-explore-badge {
+    background: #e50914;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(229, 9, 20, 0.5);
+}
+.top10-explore-desc {
+    color: #a0a0b0;
+    font-size: 14px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+.top10-explore-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 22px 18px;
+}
+.top10-explore-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.top10-explore-rank {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    background: rgba(14, 14, 20, 0.85);
+    border: 1.5px solid #ffb6d8;
+    color: #ffb6d8;
+    font-size: 12px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+.top10-explore-item .card {
+    min-width: 100%;
+    max-width: 100%;
+}
+
+/* Performance Optimizations to Eliminate Scroll & Hover Lag */
+.slider, .content-grid, .top10-slider, .catalog-grid {
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+    contain: content;
+}
+.card, .top10-card-wrap {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+.hero-background-media, .hero-background-img, .hero-background-video {
+    transform: translateZ(0);
+    backface-visibility: hidden;
 }
 
 /* 8. Netflix Mobile Floating Bottom Navigation */
