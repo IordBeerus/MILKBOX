@@ -6245,19 +6245,21 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     font-size: 160px;
     font-weight: 900;
     line-height: 0.8;
-    -webkit-text-stroke: 4px #50505a;
-    color: #0d0d14;
+    -webkit-text-stroke: 5px #ffffff;
+    color: #14141e;
     letter-spacing: -6px;
     margin-right: -36px;
     z-index: 2;
     user-select: none;
     pointer-events: none;
     transition: all 0.3s cubic-bezier(0.2,0.8,0.2,1);
-    text-shadow: 0 8px 24px rgba(0,0,0,0.9);
+    text-shadow: 0 4px 16px rgba(0,0,0,0.9), 0 0 30px rgba(255,255,255,0.25);
+    filter: drop-shadow(0 6px 12px rgba(0,0,0,0.8));
 }
 .top10-card-wrap:hover .top10-rank-num {
-    -webkit-text-stroke: 4px #ffb6d8;
-    filter: drop-shadow(0 0 20px rgba(255,182,216,0.5));
+    -webkit-text-stroke: 5px #ffb6d8;
+    color: #201322;
+    filter: drop-shadow(0 0 24px rgba(255,182,216,0.7));
     transform: scale(1.05) translateY(-4px);
 }
 .top10-card-wrap .card {
