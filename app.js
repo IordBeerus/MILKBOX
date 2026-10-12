@@ -1146,6 +1146,17 @@ function initCardLogoObserver() {
     }, { rootMargin: '120px 0px' });
 }
 
+function renderCardCollection(container, items, type = 'movie', isLandscape = false) {
+    if (!container) return;
+    container.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (const item of items || []) {
+        const resolvedType = (type === 'movie' || type === 'tv') ? type : (item?.type || 'movie');
+        frag.appendChild(createCard(item, resolvedType, isLandscape));
+    }
+    container.appendChild(frag);
+}
+
 function createCard(item, type, isLandscape = false) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'card card-landscape' : 'card';
@@ -1305,8 +1316,9 @@ function renderSlider(containerId, items, type, pagerId, pageKey = containerId) 
     const start = (page - 1) * pageSize;
     sliderState[pageKey] = { items, type, page, containerId, pagerId };
     const frag = document.createDocumentFragment();
-    for (let i = start; i < Math.min(start + pageSize, items.length); i++) {
-        frag.appendChild(createCard(items[i], type, isLandscape));
+    const pageItems = items.slice(start, Math.min(start + pageSize, items.length));
+    for (const item of pageItems) {
+        frag.appendChild(createCard(item, type, isLandscape));
     }
     slider.appendChild(frag);
     if (pager) {
@@ -1410,7 +1422,7 @@ function renderCatalogGrid(section, source) {
     catalogPage[cfg.pkey] = page;
     const start = (page - 1) * perPage;
     const slice = items.slice(start, start + perPage);
-    slice.forEach(item => slider.appendChild(createCard(item, cfg.type, isLandscape)));
+    renderCardCollection(slider, slice, cfg.type, isLandscape);
     if (pager) {
         pager.style.display = '';
         let html = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
@@ -6545,8 +6557,7 @@ function renderLiveGrid(key, grid, pager) {
     st.page = page;
     const start = (page - 1) * LIVE_PER_PAGE;
     const slice = st.items.slice(start, start + LIVE_PER_PAGE);
-    grid.innerHTML = '';
-    slice.forEach(item => grid.appendChild(createCard(item, item.type === 'tv' ? 'tv' : 'mixed')));
+    renderCardCollection(grid, slice, 'mixed', false);
     if (pager) {
         pager.style.display = '';
         let html = `<button class="pager-btn pager-nav" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
