@@ -6397,6 +6397,114 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
 .card.card-landscape .card-kind-val {
     color: #94a3b8;
 }
+
+/* ==================== CARD MOVIE LOGO & BADGE ==================== */
+.card-media-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(10, 10, 16, 0.85) 0%, rgba(10, 10, 16, 0.25) 45%, transparent 75%);
+    pointer-events: none;
+    z-index: 2;
+    border-radius: inherit;
+}
+
+.card-movie-logo {
+    position: absolute;
+    bottom: 8px;
+    left: 10px;
+    max-width: 65%;
+    max-height: 38px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    object-position: left bottom;
+    z-index: 4;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 12px rgba(0, 0, 0, 0.7));
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+.card.card-landscape:hover .card-movie-logo {
+    transform: scale(0.96) translateY(-2px);
+    opacity: 0.35;
+}
+
+.card-movie-logo-portrait {
+    position: absolute;
+    bottom: 12px;
+    left: 10px;
+    max-width: 75%;
+    max-height: 42px;
+    z-index: 3;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.95));
+}
+
+.card:hover .card-movie-logo-portrait {
+    opacity: 0.25;
+}
+
+.card-badge-tag {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 7px 3px 6px;
+    border-radius: 4px;
+    background: rgba(10, 10, 16, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f1f5f9;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    line-height: 1;
+    z-index: 4;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.card-badge-tag.is-movie {
+    color: #ffb6d8;
+    border-color: rgba(255, 182, 216, 0.3);
+    background: rgba(20, 12, 18, 0.82);
+}
+
+.card-badge-tag.is-movie .movie-logo-icon {
+    color: #ff85be;
+    fill: currentColor;
+}
+
+.card-badge-tag.is-tv {
+    color: #93c5fd;
+    border-color: rgba(147, 197, 253, 0.3);
+    background: rgba(12, 18, 28, 0.82);
+}
+
+.card-badge-tag.is-tv .movie-logo-icon {
+    color: #60a5fa;
+    fill: currentColor;
+}
+
+.card:hover .card-badge-tag {
+    opacity: 0.85;
+}
+
+.movie-logo-icon {
+    display: inline-block;
+    vertical-align: -1px;
+    fill: currentColor;
+    flex-shrink: 0;
+}
+
+.card-sub .movie-logo-icon {
+    margin-right: 3px;
+    color: #ffb6d8;
+    opacity: 0.9;
+}
 .card-actions {
     position: absolute;
     bottom: 58px;

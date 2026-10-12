@@ -1063,6 +1063,11 @@ function createCard(item, type, isLandscape = false) {
     const safePoster = escapeHtml(item.poster || '');
     const safeBackdrop = escapeHtml(item.backdrop || item.poster || '');
 
+    const isMovie = effType === 'movie';
+    const movieSvg = `<svg class="movie-logo-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>`;
+    const tvSvg = `<svg class="movie-logo-icon" viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 1.99-.9 1.99-2L23 5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>`;
+    const safeLogo = escapeHtml(item.logo || '');
+
     if (isLandscape) {
         let ratingNum = '7.5';
         if (item.rating) {
@@ -1078,9 +1083,19 @@ function createCard(item, type, isLandscape = false) {
         }
         imgHTML += `<div class="card-placeholder" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
 
+        const logoHTML = safeLogo
+            ? `<img class="card-movie-logo" src="${safeLogo}" alt="${safeTitle} Logo" loading="lazy" decoding="async" onerror="this.style.display='none'">`
+            : `<img class="card-movie-logo" src="" alt="${safeTitle} Logo" style="display:none" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
+
         card.innerHTML = `
             <div class="card-media">
                 ${imgHTML}
+                <div class="card-media-scrim"></div>
+                <div class="card-badge-tag ${isMovie ? 'is-movie' : 'is-tv'}">
+                    ${isMovie ? movieSvg : tvSvg}
+                    <span>${isMovie ? 'MOVIE' : 'SERIES'}</span>
+                </div>
+                ${logoHTML}
                 <div class="card-actions">
                     <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
                     <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
@@ -1096,14 +1111,14 @@ function createCard(item, type, isLandscape = false) {
                     <span class="card-sep">·</span>
                     <span class="card-year-val">${yearVal}</span>
                     <span class="card-sep">·</span>
-                    <span class="card-kind-val">${kindLabel}</span>
+                    <span class="card-kind-val">${isMovie ? movieSvg : tvSvg} ${kindLabel}</span>
                 </div>
             </div>
         `;
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="if(this.src!=='${safePoster}'&&'${safePoster}'){this.src='${safePoster}';}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -1114,8 +1129,17 @@ function createCard(item, type, isLandscape = false) {
         const certBadge = effType === 'tv' ? 'TV-MA' : '16+';
         const genresList = genArr(item.genre).slice(0, 3).join(' • ');
 
+        const portraitLogoHTML = safeLogo
+            ? `<img class="card-movie-logo card-movie-logo-portrait" src="${safeLogo}" alt="${safeTitle} Logo" loading="lazy" decoding="async" onerror="this.style.display='none'">`
+            : '';
+
         card.innerHTML = `
             ${imgHTML}
+            <div class="card-badge-tag ${isMovie ? 'is-movie' : 'is-tv'}">
+                ${isMovie ? movieSvg : tvSvg}
+                <span>${isMovie ? 'MOVIE' : 'SERIES'}</span>
+            </div>
+            ${portraitLogoHTML}
             <div class="card-actions">
                 <button class="card-action-btn play-btn" data-action="play" title="Play"><svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg></button>
                 <button class="card-action-btn" data-action="list" title="${inList ? 'Remove from My List' : 'Add to My List'}">${inList ? '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>' : '<svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M440-440H200v-80h240v-240h80v240h240v80H520v240h-80v-240Z"/></svg>'}</button>
@@ -1132,6 +1156,18 @@ function createCard(item, type, isLandscape = false) {
                 ${genresList ? `<div style="font-size:10.5px;color:#a0a0aa;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${genresList}</div>` : ''}
             </div>
         `;
+    }
+
+    if (!item.logo && item.tmdbId) {
+        fetchItemLogo(item).then((res) => {
+            if (res && res.logo) {
+                const logoImg = card.querySelector('.card-movie-logo');
+                if (logoImg) {
+                    logoImg.src = res.logo;
+                    logoImg.style.display = 'block';
+                }
+            }
+        }).catch(() => {});
     }
 
     card.addEventListener('click', (e) => {
