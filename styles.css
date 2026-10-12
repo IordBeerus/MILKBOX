@@ -967,6 +967,29 @@ body.light-mode .home-genre-link span { background: #eee; color: #555; }
 .content-section {
     padding: 20px 0 10px 40px;
 }
+
+/* Content Section Viewport Fade-In Animation */
+html.has-section-observer .content-section {
+    opacity: 0;
+    transform: translateY(22px);
+    transition: opacity 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+html.has-section-observer .content-section.is-visible {
+    opacity: 1;
+    transform: none;
+    will-change: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html.has-section-observer .content-section {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+        will-change: auto !important;
+    }
+}
 .section-title {
     font-size: 26px;
     font-weight: 800;

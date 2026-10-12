@@ -1977,6 +1977,7 @@ function renderGenreRows() {
     });
     container.innerHTML = html;
     toRender.forEach(({ key, items }) => renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key));
+    try { observeContentSections(); } catch (_) {}
 }
 
 function renderHomeDiscovery() {
@@ -7564,6 +7565,7 @@ function handleNavClick(link, e) {
             renderTvShows();
             renderGenreRows();
         }
+        try { observeContentSections(); } catch (_) {}
         const mpanel = document.getElementById('mobileNavPanel');
         if (mpanel) mpanel.classList.remove('open');
 }
@@ -7592,6 +7594,7 @@ function applyHomeFilter() {
         try { renderTop10Row(); } catch(e){ console.error(e); }
     } catch(e){ console.error('applyHomeFilter', e); }
     try { renderCollections(); } catch {}
+    try { observeContentSections(); } catch (_) {}
     document.querySelectorAll('.home-pill').forEach(b=> b.classList.toggle('active', b.dataset.filter===homeFilter));
 }
 document.addEventListener('click', (e)=>{
@@ -8489,6 +8492,78 @@ if (typeof IntersectionObserver !== 'undefined') {
     }
 }
 
+// ==================== CONTENT SECTION INTERSECTION OBSERVER ====================
+let contentSectionObserver = null;
+let contentSectionMutationObserver = null;
+
+function initContentSectionObserver() {
+    if (typeof IntersectionObserver === 'undefined') {
+        document.querySelectorAll('.content-section').forEach(el => el.classList.add('is-visible'));
+        return;
+    }
+
+    document.documentElement.classList.add('has-section-observer');
+
+    if (!contentSectionObserver) {
+        contentSectionObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, {
+            root: null,
+            rootMargin: '0px 0px -30px 0px',
+            threshold: 0.05
+        });
+    }
+
+    observeContentSections();
+
+    // Observe dynamically created sections (such as genre rows)
+    if (!contentSectionMutationObserver && typeof MutationObserver !== 'undefined') {
+        contentSectionMutationObserver = new MutationObserver((mutations) => {
+            let hasNewSections = false;
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList') {
+                    for (const node of mutation.addedNodes) {
+                        if (node.nodeType === 1) {
+                            if (node.classList && node.classList.contains('content-section')) {
+                                hasNewSections = true;
+                                break;
+                            }
+                            if (node.querySelector && node.querySelector('.content-section')) {
+                                hasNewSections = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (hasNewSections) break;
+            }
+            if (hasNewSections) {
+                observeContentSections();
+            }
+        });
+
+        contentSectionMutationObserver.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    }
+}
+
+function observeContentSections() {
+    if (!contentSectionObserver) return;
+    const sections = document.querySelectorAll('.content-section');
+    sections.forEach(sec => {
+        if (!sec.classList.contains('is-visible')) {
+            contentSectionObserver.observe(sec);
+        }
+    });
+}
+
 // ==================== FOOTER LINKS ====================
 document.getElementById('footerHelp').addEventListener('click', (e) => { e.preventDefault(); toast('Help: Add direct video URLs, upload TV episodes, and click Play to watch!'); });
 document.getElementById('footerTerms').addEventListener('click', (e) => { e.preventDefault(); toast('For personal use only. MILKBOX is a personal media organizer.'); });
@@ -8533,6 +8608,7 @@ function initAll() {
     try { if (!localAnimeExists()) loadAnimeLive(); } catch (e) { console.error('preload anime error:', e); }
     try { autoLoadHostedLibrary(); } catch (e) { console.error('autoLoadHostedLibrary error:', e); }
     try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
+    try { initContentSectionObserver(); } catch (e) { console.error('initContentSectionObserver error:', e); }
 }
 initAll();
 checkCatalogAvailability();
