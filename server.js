@@ -314,6 +314,23 @@ const server = http.createServer(async (req, res) => {
         return;
     }
     const requestedFile = requestPath === '/' ? '/index.html' : requestPath;
+    const normalizedRelative = path.normalize(requestedFile).replace(/^(\.\.[\/\\])+/, '');
+    const basename = path.basename(normalizedRelative);
+
+    // Block sensitive files (.env, .git, config secrets, server scripts, etc.)
+    const isSensitive = 
+        basename.startsWith('.') ||
+        basename.endsWith('.env') ||
+        basename === 'sync-github.js' ||
+        basename === 'render.yaml' ||
+        normalizedRelative.includes('/.');
+
+    if (isSensitive) {
+        res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Access forbidden' }));
+        return;
+    }
+
     const filePath = path.resolve(root, `.${requestedFile}`);
 
     if (!filePath.startsWith(`${root}${path.sep}`)) {

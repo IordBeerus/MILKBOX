@@ -83,7 +83,10 @@ function syncToGitHub(customMessage) {
         if (pushOutput) console.log(pushOutput);
         return { success: true, message: 'Successfully synced with GitHub' };
     } catch (err) {
-        const errMsg = err.stderr || err.message || String(err);
+        let errMsg = err.stderr || err.message || String(err);
+        if (GITHUB_TOKEN) {
+            errMsg = errMsg.split(GITHUB_TOKEN).join('***');
+        }
         if (errMsg.includes('could not read Username') || errMsg.includes('Authentication failed') || errMsg.includes('Permission to')) {
             console.warn('[Git Sync] Notice: GitHub authentication required to push.');
             console.warn('[Git Sync] To enable automatic push, set GITHUB_TOKEN in your environment or .env file.');
