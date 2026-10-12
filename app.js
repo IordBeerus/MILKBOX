@@ -1,9 +1,21 @@
 // ==================== DATA STORE ====================
 const HOSTED_LIBRARY_URL = '/library.json';
-let movies = JSON.parse(localStorage.getItem('sf_movies')) || [];
-let tvShows = JSON.parse(localStorage.getItem('sf_tvshows')) || [];
-let myList = JSON.parse(localStorage.getItem('sf_mylist')) || [];
-let settings = JSON.parse(localStorage.getItem('sf_settings')) || {
+function safeReadJson(key, fallback) {
+    try {
+        const raw = localStorage.getItem(key);
+        if (raw === null || raw === undefined || raw === '') return fallback;
+        const parsed = JSON.parse(raw);
+        return parsed === null || parsed === undefined ? fallback : parsed;
+    } catch {
+        return fallback;
+    }
+}
+function safeWriteJson(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch {}
+}
+const defaultSettings = {
     cloakTitle: '',
     cloakFavicon: '',
     cloakLogoText: 'MILKBOX',
@@ -21,8 +33,14 @@ let settings = JSON.parse(localStorage.getItem('sf_settings')) || {
     heroLogoData: '',
     showCollections: true
 };
-let customThemes = JSON.parse(localStorage.getItem('sf_custom_themes')) || [];
-function saveCustomThemes() { localStorage.setItem('sf_custom_themes', JSON.stringify(customThemes)); }
+let movies = safeReadJson('sf_movies', []);
+let tvShows = safeReadJson('sf_tvshows', []);
+let myList = safeReadJson('sf_mylist', []);
+let settings = safeReadJson('sf_settings', defaultSettings);
+if (!settings || typeof settings !== 'object') settings = { ...defaultSettings };
+settings = { ...defaultSettings, ...settings };
+let customThemes = safeReadJson('sf_custom_themes', []);
+function saveCustomThemes() { safeWriteJson('sf_custom_themes', customThemes); }
 
 // IndexedDB storage for uploaded background files (large videos/images can't fit in localStorage).
 let _bgDb = null;
@@ -1840,8 +1858,8 @@ const COLLECTION_DEFS = [
     { label: 'Pokémon', keys: ['pokemon', 'pikachu', 'pokémon'] },
     { label: 'Dragon Ball', keys: ['dragon ball'] },
 ];
-let customCollections = (()=>{ try { return JSON.parse(localStorage.getItem('milkbox_custom_collections')||'[]'); } catch { return []; } })();
-function saveCustomCollections(){ try { localStorage.setItem('milkbox_custom_collections', JSON.stringify(customCollections)); } catch {} }
+let customCollections = safeReadJson('milkbox_custom_collections', []);
+function saveCustomCollections(){ safeWriteJson('milkbox_custom_collections', customCollections); }
 function collectionForTitle(title) {
     const t = String(title || '').toLowerCase();
     for (const def of COLLECTION_DEFS) {
@@ -2080,7 +2098,9 @@ document.getElementById('saveCustomCollectionBtn')?.addEventListener('click', ()
 document.getElementById('createCollectionModal')?.addEventListener('click', (e) => { if (e.target.id === 'createCollectionModal') closeCreateCollectionModal(); });
 
 const animeGenrePage = {};
+const genrePage = {};
 const ANIME_GENRE_PER_PAGE = 14;
+const GENRE_PER_PAGE = 14;
 function renderGenreRows() {
     const container = document.getElementById('homeGenres');
     if (!container) return;
@@ -2151,16 +2171,41 @@ function renderGenreRows() {
                 grid.appendChild(createCard(it, type));
             });
         });
+        try { observeContentSections(); } catch (_) {}
         return;
     }
     [...known, ...other].forEach((key) => {
         const items = genreIndex.get(key);
         toRender.push({ key, items });
         const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-        html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="slider-container"><div class="slider" id="genreSlider-${key}"></div></div><div class="pagination" id="genrePager-${key}"></div></section>`;
+        const total = Math.ceil((items || []).length / GENRE_PER_PAGE) || 1;
+        const page = Math.min(Math.max(1, genrePage[key] || 1), total);
+        genrePage[key] = page;
+        const start = (page - 1) * GENRE_PER_PAGE;
+        const slice = items.slice(start, start + GENRE_PER_PAGE);
+        const pagerHtml = () => {
+            if (total <= 1) return '';
+            const WIN = 5;
+            let s = Math.max(1, page - 2);
+            let e = Math.min(total, s + WIN - 1);
+            s = Math.max(1, e - WIN + 1);
+            let h = `<button class="pager-btn pager-nav" data-genrepage="${key}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button>`;
+            for (let i = s; i <= e; i++) h += `<button class="pager-btn ${i === page ? 'current' : ''}" data-genrepage="${key}" data-page="${i}">${i}</button>`;
+            h += `<button class="pager-btn pager-nav" data-genrepage="${key}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
+            return h;
+        };
+        html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="content-grid" id="genreGrid-${key}"></div><div class="pagination" id="genrePager-${key}" style="${total <= 1 ? 'display:none' : ''}">${pagerHtml()}</div></section>`;
     });
     container.innerHTML = html;
-    toRender.forEach(({ key, items }) => renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key));
+    toRender.forEach(({ key, items }) => {
+        const grid = document.getElementById(`genreGrid-${key}`);
+        if (!grid) return;
+        const total = Math.ceil((items || []).length / GENRE_PER_PAGE) || 1;
+        const page = Math.min(Math.max(1, genrePage[key] || 1), total);
+        const start = (page - 1) * GENRE_PER_PAGE;
+        const slice = items.slice(start, start + GENRE_PER_PAGE);
+        renderCardCollection(grid, slice, 'mixed', false);
+    });
     try { observeContentSections(); } catch (_) {}
 }
 
@@ -2262,6 +2307,18 @@ document.addEventListener('click', (e) => {
     const page = parseInt(btn.dataset.page, 10);
     if (isNaN(page) || !key) return;
     animeGenrePage[key] = page;
+    renderGenreRows();
+    const sec = document.getElementById(`genreSection-${key}`);
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pager-btn[data-genrepage]');
+    if (!btn) return;
+    const key = btn.dataset.genrepage;
+    const page = parseInt(btn.dataset.page, 10);
+    if (isNaN(page) || !key) return;
+    genrePage[key] = page;
     renderGenreRows();
     const sec = document.getElementById(`genreSection-${key}`);
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
