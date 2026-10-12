@@ -354,42 +354,49 @@ function compactLibraryDescriptions() {
     return changed;
 }
 
+let isLibraryLoading = !(movies.length || tvShows.length);
+
 // Auto-loads the full library on every open so the Load Library button isn't needed:
 // first tries the hosted JSON, then always auto-runs the TMDB genre loader to top up any missing titles.
 async function autoLoadHostedLibrary() {
     let loaded = false;
-    if (HOSTED_LIBRARY_URL) {
-        try {
-            const res = await fetch(HOSTED_LIBRARY_URL, { cache: 'no-store' });
-            if (res.ok) {
-                const data = await res.json();
-                const m = Array.isArray(data.movies) ? data.movies.filter(x => x && x.title) : [];
-                const t = Array.isArray(data.tvshows) ? data.tvshows.filter(x => x && x.title) : [];
-                if (m.length || t.length) {
-                    const hadNoData = !(movies.length || tvShows.length);
-                    if (hadNoData) {
-                        movies = m;
-                        tvShows = t;
-                        saveData();
-                        refreshCurrent();
-                        loaded = true;
-                        enrichMissingLogos().catch(() => {});
+    try {
+        if (HOSTED_LIBRARY_URL) {
+            try {
+                const res = await fetch(HOSTED_LIBRARY_URL, { cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    const m = Array.isArray(data.movies) ? data.movies.filter(x => x && x.title) : [];
+                    const t = Array.isArray(data.tvshows) ? data.tvshows.filter(x => x && x.title) : [];
+                    if (m.length || t.length) {
+                        const hadNoData = !(movies.length || tvShows.length);
+                        if (hadNoData) {
+                            movies = m;
+                            tvShows = t;
+                            saveData();
+                            refreshCurrent();
+                            loaded = true;
+                            enrichMissingLogos().catch(() => {});
+                        }
                     }
                 }
-            }
-        } catch (e) { /* fall through to TMDB auto-load */ }
+            } catch (e) { /* fall through to TMDB auto-load */ }
+        }
+        // Free up storage by compacting old long TMDB descriptions (idempotent; only
+        // touches auto-loaded titles) so the top-up below can keep even more titles.
+        try { compactLibraryDescriptions(); } catch (e) { /* non-fatal */ }
+        // Always auto-load popular TMDB library on open — no button press needed (adds only missing titles, skips dupes)
+        const before = movies.length + tvShows.length;
+        try {
+            await loadPopularContent(true);
+        } catch (e) {
+            console.warn('[MILKBOX] TMDB auto-load skipped:', e.message || e);
+        }
+        if (movies.length + tvShows.length > before && typeof toast === 'function') toast('Library loaded!');
+    } finally {
+        isLibraryLoading = false;
+        try { refreshCurrent(); } catch (_) {}
     }
-    // Free up storage by compacting old long TMDB descriptions (idempotent; only
-    // touches auto-loaded titles) so the top-up below can keep even more titles.
-    try { compactLibraryDescriptions(); } catch (e) { /* non-fatal */ }
-    // Always auto-load popular TMDB library on open — no button press needed (adds only missing titles, skips dupes)
-    const before = movies.length + tvShows.length;
-    try {
-        await loadPopularContent(true);
-    } catch (e) {
-        console.warn('[MILKBOX] TMDB auto-load skipped:', e.message || e);
-    }
-    if (movies.length + tvShows.length > before && typeof toast === 'function') toast('Library loaded!');
 }
 
 function generateId() {
@@ -1052,10 +1059,98 @@ function scanMovieQualities(noRender) {
     return changed;
 }
 
+// ==================== SKELETON LOADER HELPERS ====================
+function createSkeletonCard(isLandscape = false) {
+    const card = document.createElement('div');
+    card.className = isLandscape ? 'skeleton-card skeleton-landscape' : 'skeleton-card';
+    if (isLandscape) {
+        card.innerHTML = `
+            <div class="skeleton-media">
+                <div class="skeleton-shimmer"></div>
+                <div class="skeleton-badge"></div>
+            </div>
+            <div class="skeleton-details">
+                <div class="skeleton-line title"><div class="skeleton-shimmer"></div></div>
+                <div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div>
+            </div>
+        `;
+    } else {
+        card.innerHTML = `
+            <div class="skeleton-shimmer"></div>
+            <div class="skeleton-badge"></div>
+        `;
+    }
+    return card;
+}
+
+function renderSkeletonGrid(containerOrId, count = 10, isLandscape = false) {
+    const el = typeof containerOrId === 'string' ? document.getElementById(containerOrId) : containerOrId;
+    if (!el) return;
+    el.innerHTML = '';
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+        frag.appendChild(createSkeletonCard(isLandscape));
+    }
+    el.appendChild(frag);
+}
+
+// Throttled lazy logo queue to prevent network storms and render thread blockage
+const logoFetchQueue = [];
+let logoFetchRunning = 0;
+const MAX_CONCURRENT_LOGO_FETCHES = 2;
+
+function queueLogoFetch(item, cardEl) {
+    if (!item || !item.tmdbId || item.logo || item._logoFetching) return;
+    item._logoFetching = true;
+    logoFetchQueue.push({ item, cardEl });
+    processLogoQueue();
+}
+
+function processLogoQueue() {
+    if (logoFetchRunning >= MAX_CONCURRENT_LOGO_FETCHES || !logoFetchQueue.length) return;
+    const task = logoFetchQueue.shift();
+    if (!task) return;
+    logoFetchRunning++;
+    fetchItemLogo(task.item)
+        .then((res) => {
+            if (res && res.logo && task.cardEl) {
+                const logoImg = task.cardEl.querySelector('.card-movie-logo');
+                if (logoImg) {
+                    logoImg.src = res.logo;
+                    logoImg.style.display = 'block';
+                }
+            }
+        })
+        .catch(() => {})
+        .finally(() => {
+            logoFetchRunning--;
+            setTimeout(processLogoQueue, 60);
+        });
+}
+
+let cardLogoObserver = null;
+function initCardLogoObserver() {
+    if (typeof IntersectionObserver === 'undefined') return;
+    if (cardLogoObserver) return;
+    cardLogoObserver = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const card = entry.target;
+                obs.unobserve(card);
+                const item = card._itemRef;
+                if (item && !item.logo && item.tmdbId) {
+                    queueLogoFetch(item, card);
+                }
+            }
+        });
+    }, { rootMargin: '120px 0px' });
+}
+
 function createCard(item, type, isLandscape = false) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'card card-landscape' : 'card';
     card.dataset.id = item.id;
+    card._itemRef = item;
     const effType = (type === 'movie' || type === 'tv') ? type : (item.type || 'movie');
     const inList = myList.some(m => m.id === item.id);
     const genre = genArr(item.genre)[0] || 'action';
@@ -1159,15 +1254,11 @@ function createCard(item, type, isLandscape = false) {
     }
 
     if (!item.logo && item.tmdbId) {
-        fetchItemLogo(item).then((res) => {
-            if (res && res.logo) {
-                const logoImg = card.querySelector('.card-movie-logo');
-                if (logoImg) {
-                    logoImg.src = res.logo;
-                    logoImg.style.display = 'block';
-                }
-            }
-        }).catch(() => {});
+        if (cardLogoObserver) {
+            cardLogoObserver.observe(card);
+        } else {
+            queueLogoFetch(item, card);
+        }
     }
 
     card.addEventListener('click', (e) => {
@@ -1300,13 +1391,19 @@ function renderCatalogGrid(section, source) {
     const pager = document.getElementById(cfg.pager);
     if (!slider) return;
     const items = cfg.items;
-    slider.innerHTML = '';
+    const isLandscape = cfg.pkey === 'movies';
     if (!items.length) {
+        if (isLibraryLoading || (section.startsWith('anime') && animeLive.loading)) {
+            renderSkeletonGrid(slider, isLandscape ? 15 : CATALOG_PER_PAGE, isLandscape);
+            if (pager) pager.style.display = 'none';
+            return;
+        }
+        slider.innerHTML = '';
         renderSlider(cfg.slider, items, cfg.type);
         if (pager) pager.style.display = 'none';
         return;
     }
-    const isLandscape = cfg.pkey === 'movies';
+    slider.innerHTML = '';
     const perPage = isLandscape ? 15 : CATALOG_PER_PAGE;
     const total = Math.ceil(items.length / perPage);
     const page = Math.min(Math.max(1, catalogPage[cfg.pkey]), total);
@@ -6412,9 +6509,12 @@ function mergeLiveInterleaved(groups) {
 async function fetchLive(paths, type, key) {
     if (liveFed[key]) return;
     liveFed[key] = 1;
-const [gridId, pagerId] = liveGridIds(key);
+    const [gridId, pagerId] = liveGridIds(key);
     const grid = gridId && document.getElementById(gridId);
     const pager = pagerId && document.getElementById(pagerId);
+    if (grid && (!liveState[key].items.length || grid.querySelector('.live-loading') || grid.textContent.includes('Loading'))) {
+        renderSkeletonGrid(grid, LIVE_PER_PAGE, false);
+    }
     try {
         await tmdbEnsureConfig();
         const pages = await fetchBatched(paths, 5);
@@ -6466,11 +6566,15 @@ function renderLiveTab(section) {
     if (section === 'trending') {
         const st = liveState.trending;
         if (st.items.length) renderLiveGrid('trending');
-        else if (!liveFed.trending) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/trending/all/week?page=${i + 1}`), 'all', 'trending');
+        else {
+            renderSkeletonGrid('trendingGrid', LIVE_PER_PAGE, false);
+            if (!liveFed.trending) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/trending/all/week?page=${i + 1}`), 'all', 'trending');
+        }
     } else if (section === 'streaming') {
         const st = liveState.streaming;
         if (st.items.length) renderLiveGrid('streaming');
         else if (!liveFed.streaming && !activeProvider) {
+            renderSkeletonGrid('streamingGrid', LIVE_PER_PAGE, false);
             const base = '/discover/movie?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
             const mov = Array.from({ length: LIVE_PAGES }, (_, i) => `${base}&page=${i + 1}`);
             const baseTv = '/discover/tv?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
@@ -6504,6 +6608,7 @@ function renderLiveTab(section) {
         const st = liveState.free;
         if (st.items.length) renderLiveGrid('free');
         else if (!liveFed.free) {
+            renderSkeletonGrid('freeGrid', LIVE_PER_PAGE, false);
             const movieBase = '/discover/movie?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
             const tvBase = '/discover/tv?with_watch_monetization_types=free|ads&watch_region=US&sort_by=popularity.desc';
             const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `${movieBase}&page=${i + 1}`);
@@ -6532,11 +6637,15 @@ function renderLiveTab(section) {
     } else if (section === 'theaters') {
         const st = liveState.theaters;
         if (st.items.length) renderLiveGrid('theaters');
-        else if (!liveFed.theaters) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/movie/now_playing?page=${i + 1}`), 'movie', 'theaters');
+        else {
+            renderSkeletonGrid('theatersGrid', LIVE_PER_PAGE, false);
+            if (!liveFed.theaters) fetchLive(Array.from({ length: LIVE_PAGES }, (_, i) => `/movie/now_playing?page=${i + 1}`), 'movie', 'theaters');
+        }
     } else if (section === 'popular') {
         const st = liveState.popular;
         if (st.items.length) renderLiveGrid('popular');
         else if (!liveFed.popular) {
+            renderSkeletonGrid('popularGrid', LIVE_PER_PAGE, false);
             // Most popular movies, TV shows, and anime of all time (TMDB discover, popularity order).
             const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/movie?sort_by=popularity.desc&page=${i + 1}`);
             const tvPaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/tv?sort_by=popularity.desc&page=${i + 1}`);
@@ -7323,6 +7432,10 @@ async function loadAnimeLive() {
     }
     if (animeLive.fed) return;
     animeLive.loading = true;
+    if (currentSection === 'anime') {
+        renderSkeletonGrid('moviesSlider', 15, true);
+        renderSkeletonGrid('tvShowsSlider', 14, false);
+    }
     try {
         await tmdbEnsureConfig();
         const movPaths = Array.from({ length: 15 }, (_, i) => `/discover/movie?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
@@ -8683,6 +8796,7 @@ function initAll() {
     try { if (!localAnimeExists()) loadAnimeLive(); } catch (e) { console.error('preload anime error:', e); }
     try { autoLoadHostedLibrary(); } catch (e) { console.error('autoLoadHostedLibrary error:', e); }
     try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
+    try { initCardLogoObserver(); } catch (e) { console.error('initCardLogoObserver error:', e); }
     try { initContentSectionObserver(); } catch (e) { console.error('initContentSectionObserver error:', e); }
 }
 initAll();

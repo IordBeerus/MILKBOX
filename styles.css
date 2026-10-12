@@ -1987,13 +1987,18 @@ body.light-mode .slider-btn {
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     position: relative;
     background: #1a1a1a;
     flex-shrink: 0;
 }
 .card:hover {
-    transform: translateY(-4px) scale(1.02);
+    transform: translateY(-4px) scale(1.02) translateZ(0);
     z-index: 5;
     box-shadow: 0 12px 32px rgba(0,0,0,0.65);
 }
@@ -6265,15 +6270,19 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape,
     cursor: pointer;
     display: flex !important;
     flex-direction: column !important;
-    transform: none !important;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #moviesSection.catalog-grid .slider .card.card-landscape:hover,
 #moviesSection .slider .card.card-landscape:hover,
 body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover,
 .card.card-landscape:hover {
-    transform: translateY(-4px) !important;
+    transform: translateY(-4px) translateZ(0) !important;
     box-shadow: none !important;
 }
 
@@ -6286,15 +6295,20 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover
     background: #181822;
     border: 1px solid rgba(255, 255, 255, 0.08);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
-                border-color 0.25s ease;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.24s ease,
+                border-color 0.22s ease;
 }
 
 .card.card-landscape:hover .card-media {
-    transform: scale(1.03);
+    transform: scale(1.025) translateZ(0);
     border-color: rgba(255, 182, 216, 0.45);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.85), 0 0 20px rgba(255, 182, 216, 0.2);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 182, 216, 0.15);
 }
 
 #moviesSection.catalog-grid .slider .card.card-landscape .card-img,
@@ -6314,6 +6328,7 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     display: block !important;
     border-radius: 0 !important;
     flex: none !important;
+    transform: translateZ(0);
 }
 
 .card.card-landscape .card-actions {
@@ -6323,18 +6338,18 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: rgba(10, 10, 14, 0.55);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: rgba(10, 10, 16, 0.76);
     opacity: 0;
     transform: none;
     bottom: 0;
-    transition: opacity 0.22s ease;
+    transition: opacity 0.2s ease;
     z-index: 10;
+    pointer-events: none;
 }
 
 .card.card-landscape:hover .card-actions {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .card.card-landscape .card-details {
@@ -6413,15 +6428,15 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     bottom: 8px;
     left: 10px;
     max-width: 65%;
-    max-height: 38px;
+    max-height: 36px;
     width: auto;
     height: auto;
     object-fit: contain;
     object-position: left bottom;
     z-index: 4;
     pointer-events: none;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 12px rgba(0, 0, 0, 0.7));
-    transition: transform 0.25s ease, opacity 0.25s ease;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.9));
+    transition: transform 0.22s ease, opacity 0.22s ease;
 }
 
 .card.card-landscape:hover .card-movie-logo {
@@ -6436,7 +6451,7 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     max-width: 75%;
     max-height: 42px;
     z-index: 3;
-    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.95));
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
 }
 
 .card:hover .card-movie-logo-portrait {
@@ -6452,25 +6467,23 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     gap: 4px;
     padding: 3px 7px 3px 6px;
     border-radius: 4px;
-    background: rgba(10, 10, 16, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(14, 14, 22, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     color: #f1f5f9;
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.6px;
     line-height: 1;
     z-index: 4;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     pointer-events: none;
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.2s ease;
 }
 
 .card-badge-tag.is-movie {
     color: #ffb6d8;
     border-color: rgba(255, 182, 216, 0.3);
-    background: rgba(20, 12, 18, 0.82);
+    background: rgba(22, 14, 20, 0.92);
 }
 
 .card-badge-tag.is-movie .movie-logo-icon {
@@ -6481,7 +6494,7 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
 .card-badge-tag.is-tv {
     color: #93c5fd;
     border-color: rgba(147, 197, 253, 0.3);
-    background: rgba(12, 18, 28, 0.82);
+    background: rgba(14, 20, 30, 0.92);
 }
 
 .card-badge-tag.is-tv .movie-logo-icon {
@@ -6504,6 +6517,108 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     margin-right: 3px;
     color: #ffb6d8;
     opacity: 0.9;
+}
+
+/* ==================== SKELETON LOADER ==================== */
+@keyframes skeletonShimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.skeleton-card {
+    position: relative;
+    border-radius: 8px;
+    background: #14141c;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+    user-select: none;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transform: translateZ(0);
+}
+
+.skeleton-card.skeleton-landscape {
+    width: 100%;
+    aspect-ratio: auto;
+    background: transparent;
+    border: none;
+    min-width: 0;
+}
+
+.skeleton-card.skeleton-landscape .skeleton-media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #181824;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.skeleton-card:not(.skeleton-landscape) {
+    aspect-ratio: 2 / 3 !important;
+    width: 100%;
+    height: auto !important;
+    min-width: 150px;
+    border-radius: 10px;
+    background: #181824;
+}
+
+.skeleton-shimmer {
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.03) 30%,
+        rgba(255, 182, 216, 0.09) 50%,
+        rgba(255, 255, 255, 0.03) 70%,
+        rgba(255, 255, 255, 0) 100%
+    );
+    animation: skeletonShimmer 1.7s infinite cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+}
+
+.skeleton-details {
+    padding: 8px 2px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.skeleton-line {
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+    background: #1f1f2e;
+}
+
+.skeleton-line.title {
+    height: 14px;
+    width: 75%;
+}
+
+.skeleton-line.sub {
+    height: 11px;
+    width: 48%;
+}
+
+.skeleton-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    width: 46px;
+    height: 18px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+    z-index: 2;
 }
 .card-actions {
     position: absolute;
