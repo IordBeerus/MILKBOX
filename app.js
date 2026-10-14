@@ -762,6 +762,7 @@ function applyBackground() {
     const overlay = document.getElementById('bgOverlay');
     const body = document.getElementById('siteBody');
     if (!overlay || !body) return;
+    body.dataset.theme = settings.activeTheme || '';
     const seasonalDecorations = document.getElementById('seasonalDecorations');
     const seasonalDecorationsImage = document.getElementById('seasonalDecorationsImage');
     const seasonalDecorationImages = {
@@ -891,8 +892,12 @@ function getSeasonalThemeName() {
 
 function applySeasonalThemeIfNeeded() {
     const seasonalTheme = getSeasonalThemeName();
-    if (!seasonalTheme) return;
     const currentlySelected = settings.activeTheme || '';
+    if (currentlySelected === 'halloween' && !settings.bgImage) {
+        applyTheme('halloween');
+        return;
+    }
+    if (!seasonalTheme) return;
     const shouldAutoApply = !currentlySelected || currentlySelected === 'default';
     if (shouldAutoApply) {
         applyTheme(seasonalTheme);
@@ -908,7 +913,7 @@ function applyTheme(themeName) {
         forest:   { bgColor: '#0a1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         ocean:    { bgColor: '#0a1a2e', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         sunset:   { bgColor: '#2e1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
-        halloween:{ bgColor: '#1b0d16', bgImage: '', bgOpacity: 30, bgBlur: 0 },
+        halloween:{ bgColor: '#100d15', bgImage: 'assets/theme-art/halloween-pumpkin.jpg', bgOpacity: 28, bgBlur: 1 },
         christmas:{ bgColor: '#091f1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         newyear:  { bgColor: '#0c122b', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         dracula:  { bgColor: '#282a36', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -3024,26 +3029,35 @@ function renderHeroItem(force = false) {
     }
     updateHeroSoundButtonUI();
 
-    // Show the featured movie's own logo (if set) on the hero's large image; keep title text at the bottom
-    if (featured.logo) {
-        heroLogo.onerror = () => { heroLogo.onerror = null; applyHeroLogo(); };
-        heroLogo.src = hiRes(featured.logo);
+    const showFeaturedLogo = (logoUrl) => {
+        heroLogo.onload = () => {
+            if (currentHeroItemId === featuredId) heroTitle.style.display = 'none';
+        };
+        heroLogo.onerror = () => {
+            heroLogo.onload = null;
+            heroLogo.onerror = null;
+            heroLogo.style.display = 'none';
+            if (currentHeroItemId === featuredId) heroTitle.style.display = '';
+        };
+        heroTitle.style.display = 'none';
+        heroLogo.src = hiRes(logoUrl);
         heroLogo.style.display = 'block';
-        heroTitle.style.display = '';
-    } else {
-        heroLogo.onerror = () => { heroLogo.style.display = 'none'; };
+    };
+    const showFeaturedTitle = () => {
+        heroLogo.onload = null;
+        heroLogo.onerror = null;
         heroLogo.removeAttribute('src');
         heroLogo.style.display = 'none';
-        applyHeroLogo();
-        // Auto-fetch a TMDB brand logo for this title (non-blocking) so banners
-        // show a logo even if it wasn't loaded with the library.
-        if (featured.tmdbId && !featured.logo) fetchItemLogo(featured).then(() => {
-            const hl = document.getElementById('heroLogo');
-            if (featured.logo && featureQueueContains(featured)) {
-                hl.onerror = () => { hl.onerror = null; applyHeroLogo(); };
-                hl.src = hiRes(featured.logo);
-                hl.style.display = 'block';
-            }
+        heroTitle.style.display = '';
+    };
+
+    if (featured.logo) {
+        showFeaturedLogo(featured.logo);
+    } else {
+        showFeaturedTitle();
+        // Fetch a TMDB logo when it was not included with the library item.
+        if (featured.tmdbId) fetchItemLogo(featured).then(() => {
+            if (featured.logo && featureQueueContains(featured)) showFeaturedLogo(featured.logo);
         }).catch(() => {});
     }
     // Subtle fade/slide transition, Netflix-style
