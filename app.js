@@ -8612,6 +8612,7 @@ let _animeFocus = false;
 let _animeCcOn = true;
 let _animeAutoPlayOn = true;
 let _animeGridMode = false;
+let _animeGridUserToggled = false;
 let _animeSeasons = [];
 let _animeCurrentSeason = 1;
 
@@ -8645,9 +8646,12 @@ function enterAnimeTheater(item){
   if (right) right.classList.toggle('anime-movie-mode', isMovie);
   if (rightTitle) rightTitle.textContent = isMovie ? 'Servers' : 'Episodes';
   renderAnimeTheaterLeft(item);
-    loadAnimeTheaterDetails(item);
+  loadAnimeTheaterDetails(item);
   renderAnimeTheaterBreadcrumb(item);
   syncAnimeControlsUI();
+  _animeGridUserToggled = false;
+  const initialEpCount = (item.episodes && item.episodes.length) || item.episodeCount || item.number_of_episodes || 0;
+  _animeGridMode = initialEpCount >= 50;
   _animeEpAll = []; _animeEpRangeStart = 0; _animeEpFilter = '';
   const findRow = document.getElementById('animeFindRow');
   if (findRow) findRow.style.display = 'none';
@@ -8696,6 +8700,10 @@ async function loadAnimeTheaterDetails(item) {
         const updated = { ...item, runtime: runtime || item.runtime, status: details.status || item.status, releaseDate: details.release_date || details.first_air_date || item.releaseDate, episodeCount: details.number_of_episodes || item.episodeCount };
         playContext.item = updated;
         renderAnimeTheaterLeft(updated);
+        if ((details.number_of_episodes >= 50 || (updated.episodeCount && updated.episodeCount >= 50)) && !_animeGridUserToggled) {
+            _animeGridMode = true;
+            renderAnimeEpisodeListDOM();
+        }
     } catch {}
 }
 function exitAnimeTheater(){
@@ -8903,28 +8911,102 @@ function _filteredAnimeEps(){
     return n.includes(q) || title.includes(q);
   });
 }
+function renderAnimeRangePopup() {
+  const popup = document.getElementById('animeRangePopup');
+  if (!popup) return;
+  const filtered = _filteredAnimeEps();
+  const total = filtered.length;
+  const pages = Math.max(1, Math.ceil(total / _animeRangeSize));
+  if (pages <= 1) {
+    popup.style.display = 'none';
+    return;
+  }
+  let html = `<div class="anime-range-popup-header"><span>Jump to Range</span><button type="button" class="anime-range-popup-close" id="animeRangePopupClose">×</button></div><div class="anime-range-popup-grid">`;
+  for (let p = 0; p < pages; p++) {
+    const rStart = p * _animeRangeSize;
+    const rEnd = Math.min(total, rStart + _animeRangeSize);
+    const isCur = rStart === _animeEpRangeStart;
+    const sStr = String(rStart + 1).padStart(3, '0');
+    const eStr = String(rEnd).padStart(3, '0');
+    html += `<button type="button" class="anime-range-chip${isCur ? ' active' : ''}" data-start="${rStart}">${sStr} - ${eStr}</button>`;
+  }
+  html += `</div>`;
+  popup.innerHTML = html;
+  popup.style.display = 'block';
+  popup.querySelectorAll('.anime-range-chip').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      _animeEpRangeStart = parseInt(btn.dataset.start, 10) || 0;
+      popup.style.display = 'none';
+      renderAnimeEpisodeListDOM();
+    });
+  });
+  document.getElementById('animeRangePopupClose')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    popup.style.display = 'none';
+  });
+}
+
 function renderAnimeEpisodeListDOM(){
   const list = document.getElementById('animeEpisodeList');
   const sel = document.getElementById('animeRangeSelect');
+  const right = document.getElementById('animeRight');
+  const layoutBtn = document.getElementById('animeLayoutBtn');
+  const titleEl = document.getElementById('animeRightTitle');
   if (!list) return;
   // TV-only: movies use server panel, never the grid/list (anime TV only)
-  const right = document.getElementById('animeRight');
   const isMovieDom = right && right.classList.contains('anime-movie-mode');
   const isMovieCtx = !!(playContext && playContext.type === 'movie');
   if (isMovieCtx || isMovieDom) return;
   const filtered = _filteredAnimeEps();
   const total = filtered.length;
-  if (!total){ list.innerHTML = `<div style="padding:18px;color:#888;text-align:center;font-size:13px">No episodes found</div>`; if (sel) sel.innerHTML = '—'; return; }
+
+  // Detect long-running anime with 50+ episodes
+  const isLongRunning = total >= 50 || (_animeEpAll && _animeEpAll.length >= 50) || ((playContext?.item?.episodeCount || 0) >= 50);
+
+  // Automatically activate 5-column grid layout for 50+ episodes (unless user manually toggled)
+  if (isLongRunning && !_animeGridUserToggled) {
+    _animeGridMode = true;
+  }
+
+  const isGrid = _animeGridMode;
+  list.classList.toggle('grid', isGrid);
+  list.classList.toggle('grid-5-col', isGrid);
+  if (right) right.classList.toggle('anime-long-running', isLongRunning);
+  if (layoutBtn) {
+    layoutBtn.classList.toggle('active', isGrid);
+    layoutBtn.title = isGrid ? 'Switch to detailed list' : 'Switch to 5-column grid';
+  }
+
+  if (titleEl) {
+    if (isLongRunning && total > 0) {
+      titleEl.innerHTML = `Episodes <span class="anime-ep-count-pill">${total} eps</span>`;
+    } else {
+      titleEl.textContent = 'Episodes';
+    }
+  }
+
+  if (!total){
+    list.innerHTML = `<div style="padding:18px;color:#888;text-align:center;font-size:13px">No episodes found</div>`;
+    if (sel) sel.innerHTML = '—';
+    const popup = document.getElementById('animeRangePopup');
+    if (popup) popup.style.display = 'none';
+    return;
+  }
   if (_animeEpRangeStart >= total) _animeEpRangeStart = Math.max(0, Math.floor((total-1)/_animeRangeSize)*_animeRangeSize);
   const end = Math.min(total, _animeEpRangeStart + _animeRangeSize);
   const start = _animeEpRangeStart + 1;
-  if (sel) sel.innerHTML = `${String(start).padStart(3,'0')}-${String(end).padStart(3,'0')} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9 12 15 18 9"/></svg>`;
+  if (sel) {
+    sel.innerHTML = `${String(start).padStart(3,'0')}-${String(end).padStart(3,'0')} <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9 12 15 18 9"/></svg>`;
+    sel.title = 'Select episode range';
+  }
   const curEp = playContext ? (playContext.episode || 1) : 1;
-  const isGrid = _animeGridMode;
   list.innerHTML = filtered.slice(_animeEpRangeStart, end).map(ep => {
     const active = ep.num === curEp ? ' active' : '';
     const label = ep.title ? escapeHtml(ep.title) : `Episode ${ep.num}`;
-    return `<button class="anime-ep${active}" data-ep="${ep.num}" title="${label}"><span class="anime-ep-num">${ep.num}</span>${isGrid ? '' : `<span class="anime-ep-title">${label}</span>`}</button>`;
+    const digits = String(ep.num).length;
+    const digitClass = digits >= 4 ? ' digits-4' : (digits === 3 ? ' digits-3' : '');
+    return `<button type="button" class="anime-ep${active}${digitClass}" data-ep="${ep.num}" title="${label}" aria-label="Episode ${ep.num}"><span class="anime-ep-num">${ep.num}</span>${isGrid ? '' : `<span class="anime-ep-title">${label}</span>`}</button>`;
   }).join('');
   const pr = document.getElementById('animeRangePrev');
   const nx = document.getElementById('animeRangeNext');
@@ -8970,11 +9052,17 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
     _animeSeasons = []; _animeCurrentSeason = 1;
     if (seasonSel) seasonSel.style.display = 'none';
     _animeEpAll = item.episodes.map((ep,i)=> ({ num:i+1, title: ep.name || `Episode ${i+1}` }));
+    if (_animeEpAll.length >= 50 && !_animeGridUserToggled) {
+      _animeGridMode = true;
+    }
     renderAnimeEpisodeListDOM(); updateAnimePrevNextState(); return;
   }
   // show placeholder immediately
   const placeholderCount = item.episodeCount || 12;
   _animeEpAll = Array.from({length: placeholderCount}, (_,i)=>({num:i+1, title:`Episode ${i+1}`}));
+  if (placeholderCount >= 50 && !_animeGridUserToggled) {
+    _animeGridMode = true;
+  }
   renderAnimeEpisodeListDOM();
   // now enrich from TMDB in background; placeholder stays if fetch fails/blocked
   if (!item.tmdbId) { updateAnimePrevNextState(); return; }
@@ -9013,6 +9101,13 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
       if (!fetched.length) fetched = Array.from({length: 12}, (_,i)=>({num:i+1, title:`Episode ${i+1}`}));
     }
     if (fetched.length){ _animeEpAll = fetched; }
+
+    const totalCount = (detail.number_of_episodes || 0) ||
+      seasonDetails.reduce((sum, s) => sum + (s.episode_count || 0), 0) ||
+      _animeEpAll.length;
+    if (totalCount >= 50 && !_animeGridUserToggled) {
+      _animeGridMode = true;
+    }
   } catch {
     // keep placeholder on failure
     if (seasonSel) seasonSel.style.display = 'none';
@@ -9123,20 +9218,42 @@ function wireAnimeTheaterOnce(){
   });}
   const layoutBtn = document.getElementById('animeLayoutBtn');
   if (layoutBtn && !layoutBtn._wired){ layoutBtn._wired=1; layoutBtn.addEventListener('click', ()=>{
+    _animeGridUserToggled = true;
     _animeGridMode = !_animeGridMode;
     const list = document.getElementById('animeEpisodeList');
-    if (list) list.classList.toggle('grid', _animeGridMode);
+    if (list) {
+      list.classList.toggle('grid', _animeGridMode);
+      list.classList.toggle('grid-5-col', _animeGridMode);
+    }
     layoutBtn.classList.toggle('active', _animeGridMode);
+    layoutBtn.title = _animeGridMode ? 'Switch to detailed list' : 'Switch to 5-column grid';
     renderAnimeEpisodeListDOM();
   });}
   const rp = document.getElementById('animeRangePrev');
-  if (rp && !rp._wired){ rp._wired=1; rp.addEventListener('click', ()=>{ _animeEpRangeStart = Math.max(0, _animeEpRangeStart - _animeRangeSize); renderAnimeEpisodeListDOM(); });}
+  if (rp && !rp._wired){ rp._wired=1; rp.addEventListener('click', ()=>{
+    _animeEpRangeStart = Math.max(0, _animeEpRangeStart - _animeRangeSize);
+    renderAnimeEpisodeListDOM();
+    const popup = document.getElementById('animeRangePopup');
+    if (popup && popup.style.display !== 'none') renderAnimeRangePopup();
+  });}
   const rn = document.getElementById('animeRangeNext');
-  if (rn && !rn._wired){ rn._wired=1; rn.addEventListener('click', ()=>{ const tot=_filteredAnimeEps().length; _animeEpRangeStart = Math.min(Math.max(0, Math.ceil(tot/_animeRangeSize)-1)*_animeRangeSize, _animeEpRangeStart + _animeRangeSize); renderAnimeEpisodeListDOM(); });}
+  if (rn && !rn._wired){ rn._wired=1; rn.addEventListener('click', ()=>{
+    const tot=_filteredAnimeEps().length;
+    _animeEpRangeStart = Math.min(Math.max(0, Math.ceil(tot/_animeRangeSize)-1)*_animeRangeSize, _animeEpRangeStart + _animeRangeSize);
+    renderAnimeEpisodeListDOM();
+    const popup = document.getElementById('animeRangePopup');
+    if (popup && popup.style.display !== 'none') renderAnimeRangePopup();
+  });}
   const rs = document.getElementById('animeRangeSelect');
-  if (rs && !rs._wired){ rs._wired=1; rs.addEventListener('click', ()=>{
-    const tot=_filteredAnimeEps().length; const pages=Math.max(1, Math.ceil(tot/_animeRangeSize)); const cur=Math.floor(_animeEpRangeStart/_animeRangeSize);
-    _animeEpRangeStart = ((cur+1)%pages)*_animeRangeSize; renderAnimeEpisodeListDOM();
+  if (rs && !rs._wired){ rs._wired=1; rs.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const popup = document.getElementById('animeRangePopup');
+    if (!popup) return;
+    if (popup.style.display === 'none') {
+      renderAnimeRangePopup();
+    } else {
+      popup.style.display = 'none';
+    }
   });}
   const seasonSel = document.getElementById('animeSeasonSelect');
   if (seasonSel && !seasonSel._wired){ seasonSel._wired=1; seasonSel.addEventListener('change', async ()=>{
@@ -9155,6 +9272,14 @@ function wireAnimeTheaterOnce(){
   });}
 }
 try{ wireAnimeTheaterOnce(); } catch {}
+document.addEventListener('click', (e) => {
+  const popup = document.getElementById('animeRangePopup');
+  if (popup && popup.style.display !== 'none') {
+    if (!popup.contains(e.target) && !e.target.closest('#animeRangeSelect')) {
+      popup.style.display = 'none';
+    }
+  }
+});
 document.addEventListener('keydown', (e)=>{
   const theater = document.getElementById('animeTheater');
   if (!theater || theater.style.display==='none') return;

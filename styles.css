@@ -5607,29 +5607,198 @@ body.light-mode .collection-tab.active { color: #fff; }
   width:32px; border-radius:9px; border:1px solid rgba(255,255,255,0.08);
   background:rgba(255,255,255,0.06); color:#fff; cursor:pointer; font-size:16px;
 }
-.anime-episode-list{ overflow:auto; padding:8px; display:grid; gap:6px; flex:1; min-height:0; }
-.anime-episode-list.grid{ grid-template-columns:repeat(5,1fr); gap:8px; }
+.anime-episode-list{
+  overflow-y:auto; overflow-x:hidden; padding:8px; display:grid; gap:6px; flex:1; min-height:0;
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.18) transparent;
+}
+.anime-episode-list::-webkit-scrollbar { width: 5px; }
+.anime-episode-list::-webkit-scrollbar-track { background: transparent; }
+.anime-episode-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 999px; }
+.anime-episode-list::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.32); }
+
+/* 5-Column Grid Layout for Long-Running Anime (50+ episodes) */
+.anime-episode-list.grid,
+.anime-episode-list.grid-5-col {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  gap: 7px !important;
+  padding: 10px 10px 14px !important;
+  align-content: start;
+}
+
 .anime-ep{
   display:flex; align-items:center; gap:10px;
   padding:9px 10px; border-radius:10px;
-  background:rgba(255,255,255,0.04); border:1px solid transparent;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.06);
   color:#d1d5db; cursor:pointer; text-align:left; width:100%;
-  transition:background .15s, border-color .15s, color .15s;
+  transition:background .15s, border-color .15s, color .15s, transform .12s, box-shadow .15s;
   font-size:13px;
+  user-select:none;
 }
-.anime-episode-list.grid .anime-ep{
-  justify-content:center; padding:0; aspect-ratio:1; font-size:16px; font-weight:800;
-  border-radius:12px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.08);
-  color:#d1d5db;
-}
-.anime-episode-list.grid .anime-ep:hover{ background:rgba(255,255,255,0.12); color:#fff; }
-.anime-episode-list.grid .anime-ep.active{ background:#ff6b35; color:#fff; border-color:#ff6b35; box-shadow:0 6px 16px rgba(255,107,53,0.35); }
-.anime-ep:hover{ background:rgba(255,255,255,0.08); color:#fff; }
-.anime-ep.active{ background:#ff6b35; color:#fff; border-color:#ff6b35; box-shadow:0 6px 16px rgba(255,107,53,0.35); }
-.anime-ep-num{ width:20px; text-align:right; font-weight:800; font-size:12px; opacity:.9; }
-.anime-episode-list.grid .anime-ep-num{ width:auto; text-align:center; font-size:18px; }
-.anime-episode-list.grid .anime-ep-title{ display:none; }
+.anime-ep:hover{ background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.14); color:#fff; }
+.anime-ep.active{ background:#ff6b35; color:#fff; border-color:#ff6b35; box-shadow:0 6px 16px rgba(255,107,53,0.35); font-weight:700; }
+.anime-ep-num{ width:20px; text-align:right; font-weight:800; font-size:12px; opacity:.9; font-variant-numeric: tabular-nums; }
 .anime-ep-title{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* 5-Column Grid Episode Tile Item */
+.anime-episode-list.grid .anime-ep,
+.anime-episode-list.grid-5-col .anime-ep {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 0 !important;
+  aspect-ratio: 1 !important;
+  min-height: 44px !important;
+  border-radius: 9px !important;
+  background: rgba(255,255,255,0.045) !important;
+  border: 1px solid rgba(255,255,255,0.075) !important;
+  color: #cbd5e1 !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25) !important;
+  position: relative !important;
+}
+.anime-episode-list.grid .anime-ep:hover,
+.anime-episode-list.grid-5-col .anime-ep:hover {
+  background: rgba(255,255,255,0.12) !important;
+  border-color: rgba(255,107,53,0.45) !important;
+  color: #ffffff !important;
+  transform: translateY(-1.5px) !important;
+  box-shadow: 0 5px 14px rgba(0,0,0,0.38), 0 0 10px rgba(255,107,53,0.18) !important;
+}
+.anime-episode-list.grid .anime-ep.active,
+.anime-episode-list.grid-5-col .anime-ep.active {
+  background: linear-gradient(135deg, #ff6b35 0%, #ff4500 100%) !important;
+  border-color: #ff9166 !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  transform: scale(1.04) !important;
+  box-shadow: 0 4px 18px rgba(255,107,53,0.5), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+  z-index: 2 !important;
+}
+.anime-episode-list.grid .anime-ep.active::after,
+.anime-episode-list.grid-5-col .anime-ep.active::after {
+  content: '';
+  position: absolute;
+  bottom: 3.5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 5px #ffffff;
+}
+
+.anime-episode-list.grid .anime-ep-num,
+.anime-episode-list.grid-5-col .anime-ep-num {
+  width: auto !important;
+  text-align: center !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.2px !important;
+  font-variant-numeric: tabular-nums !important;
+  line-height: 1 !important;
+}
+.anime-episode-list.grid .anime-ep.digits-3 .anime-ep-num,
+.anime-episode-list.grid-5-col .anime-ep.digits-3 .anime-ep-num {
+  font-size: 12px !important;
+  letter-spacing: -0.4px !important;
+}
+.anime-episode-list.grid .anime-ep.digits-4 .anime-ep-num,
+.anime-episode-list.grid-5-col .anime-ep.digits-4 .anime-ep-num {
+  font-size: 10.5px !important;
+  letter-spacing: -0.5px !important;
+}
+.anime-episode-list.grid .anime-ep-title,
+.anime-episode-list.grid-5-col .anime-ep-title {
+  display: none !important;
+}
+
+/* Episode count badge pill */
+.anime-ep-count-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(255, 107, 53, 0.16);
+  color: #ff9166;
+  border: 1px solid rgba(255, 107, 53, 0.32);
+  margin-left: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.2px;
+}
+
+/* Quick range jump popover */
+.anime-range-popup {
+  margin: 8px 12px 10px;
+  padding: 10px;
+  background: rgba(14, 16, 22, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+  animation: animeRangeFadeIn 0.15s ease-out;
+}
+@keyframes animeRangeFadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.anime-range-popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+.anime-range-popup-close {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 4px;
+}
+.anime-range-popup-close:hover { color: #fff; }
+.anime-range-popup-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+.anime-range-popup-grid::-webkit-scrollbar { width: 4px; }
+.anime-range-popup-grid::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+.anime-range-chip {
+  padding: 6px 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+}
+.anime-range-chip:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: rgba(255, 107, 53, 0.4);
+}
+.anime-range-chip.active {
+  background: #ff6b35;
+  color: #fff;
+  border-color: #ff6b35;
+  box-shadow: 0 2px 8px rgba(255, 107, 53, 0.4);
+}
 
 /* ── Anime movie-only panel ── */
 .anime-movie-panel{ padding:14px; display:flex; flex-direction:column; gap:12px; border-top:1px solid rgba(255,255,255,0.06); }
