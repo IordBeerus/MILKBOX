@@ -766,7 +766,7 @@ function applyBackground() {
     const seasonalDecorations = document.getElementById('seasonalDecorations');
     const seasonalDecorationsImage = document.getElementById('seasonalDecorationsImage');
     const seasonalDecorationImages = {
-        halloween: 'assets/theme-art/halloween-decorations.png?v=20261014',
+        halloween: 'assets/theme-art/halloween-decorations.svg',
         christmas: 'assets/theme-art/christmas-decorations.svg',
         newyear: 'assets/theme-art/newyear-decorations.svg',
         snow: 'assets/theme-art/snow-decorations.svg'
@@ -892,17 +892,8 @@ function getSeasonalThemeName() {
 
 function applySeasonalThemeIfNeeded() {
     const seasonalTheme = getSeasonalThemeName();
-    const currentlySelected = settings.activeTheme || '';
-    if (currentlySelected === 'halloween') {
-        if (settings.bgImage === 'assets/theme-art/halloween-pumpkin.jpg') {
-            settings.bgImage = 'assets/theme-art/halloween-pumpkin.jpg?v=20261014';
-            saveData();
-        } else if (!settings.bgImage) {
-            applyTheme('halloween');
-        }
-        return;
-    }
     if (!seasonalTheme) return;
+    const currentlySelected = settings.activeTheme || '';
     const shouldAutoApply = !currentlySelected || currentlySelected === 'default';
     if (shouldAutoApply) {
         applyTheme(seasonalTheme);
@@ -918,7 +909,7 @@ function applyTheme(themeName) {
         forest:   { bgColor: '#0a1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         ocean:    { bgColor: '#0a1a2e', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         sunset:   { bgColor: '#2e1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
-        halloween:{ bgColor: '#100d15', bgImage: 'assets/theme-art/halloween-pumpkin.jpg?v=20261014', bgOpacity: 28, bgBlur: 1 },
+        halloween:{ bgColor: '#1b0d16', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         christmas:{ bgColor: '#091f1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         newyear:  { bgColor: '#0c122b', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         dracula:  { bgColor: '#282a36', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -3034,35 +3025,26 @@ function renderHeroItem(force = false) {
     }
     updateHeroSoundButtonUI();
 
-    const showFeaturedLogo = (logoUrl) => {
-        heroLogo.onload = () => {
-            if (currentHeroItemId === featuredId) heroTitle.style.display = 'none';
-        };
-        heroLogo.onerror = () => {
-            heroLogo.onload = null;
-            heroLogo.onerror = null;
-            heroLogo.style.display = 'none';
-            if (currentHeroItemId === featuredId) heroTitle.style.display = '';
-        };
-        heroTitle.style.display = 'none';
-        heroLogo.src = hiRes(logoUrl);
+    // Show the featured movie's own logo (if set) on the hero's large image; keep title text at the bottom
+    if (featured.logo) {
+        heroLogo.onerror = () => { heroLogo.onerror = null; applyHeroLogo(); };
+        heroLogo.src = hiRes(featured.logo);
         heroLogo.style.display = 'block';
-    };
-    const showFeaturedTitle = () => {
-        heroLogo.onload = null;
-        heroLogo.onerror = null;
+        heroTitle.style.display = '';
+    } else {
+        heroLogo.onerror = () => { heroLogo.style.display = 'none'; };
         heroLogo.removeAttribute('src');
         heroLogo.style.display = 'none';
-        heroTitle.style.display = '';
-    };
-
-    if (featured.logo) {
-        showFeaturedLogo(featured.logo);
-    } else {
-        showFeaturedTitle();
-        // Fetch a TMDB logo when it was not included with the library item.
-        if (featured.tmdbId) fetchItemLogo(featured).then(() => {
-            if (featured.logo && featureQueueContains(featured)) showFeaturedLogo(featured.logo);
+        applyHeroLogo();
+        // Auto-fetch a TMDB brand logo for this title (non-blocking) so banners
+        // show a logo even if it wasn't loaded with the library.
+        if (featured.tmdbId && !featured.logo) fetchItemLogo(featured).then(() => {
+            const hl = document.getElementById('heroLogo');
+            if (featured.logo && featureQueueContains(featured)) {
+                hl.onerror = () => { hl.onerror = null; applyHeroLogo(); };
+                hl.src = hiRes(featured.logo);
+                hl.style.display = 'block';
+            }
         }).catch(() => {});
     }
     // Subtle fade/slide transition, Netflix-style
@@ -9070,6 +9052,25 @@ if (settingsShowCollections) {
         if (currentSection === 'home' || currentSection === 'trending') {
             const sec = document.getElementById('collectionsSection');
             if (sec) sec.style.display = settings.showCollections !== false ? '' : 'none';
+        }
+    });
+}
+// AdGuard Pop-up & Ad Blocker toggle
+const adguardToggle = document.getElementById('adguardBlockerToggle');
+if (adguardToggle) {
+    if (window.AdGuardPopupBlocker) {
+        adguardToggle.checked = window.AdGuardPopupBlocker.isEnabled();
+    }
+    adguardToggle.addEventListener('change', () => {
+        if (window.AdGuardPopupBlocker) {
+            window.AdGuardPopupBlocker.setEnabled(adguardToggle.checked);
+            const desc = document.getElementById('adguardStatusDesc');
+            if (desc) {
+                desc.textContent = adguardToggle.checked 
+                    ? 'Active · Built-in AdGuard engine protects video playback and site navigation.'
+                    : 'Disabled · Protection paused.';
+            }
+            toast(`AdGuard Pop-up Blocker ${adguardToggle.checked ? 'enabled' : 'disabled'}`, adguardToggle.checked ? 'success' : 'info');
         }
     });
 }

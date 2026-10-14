@@ -341,6 +341,29 @@ const server = http.createServer(async (req, res) => {
 
     fs.readFile(filePath, (error, content) => {
         if (error) {
+            // SPA fallback: routes without file extension serve index.html
+            if (!path.extname(requestedFile)) {
+                const indexPath = path.resolve(root, './index.html');
+                fs.readFile(indexPath, (err, indexContent) => {
+                    if (err) {
+                        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+                        res.end('Server error');
+                        return;
+                    }
+                    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+                    res.end(indexContent);
+                });
+                return;
+            }
+
+            // If a JavaScript file is missing or 404, never return HTML/text that causes SyntaxError
+            const ext = path.extname(filePath).toLowerCase();
+            if (ext === '.js' || ext === '.mjs') {
+                res.writeHead(404, { 'Content-Type': 'text/javascript; charset=utf-8' });
+                res.end('/* File not found */');
+                return;
+            }
+
             res.writeHead(error.code === 'ENOENT' ? 404 : 500, { 'Content-Type': 'text/plain; charset=utf-8' });
             res.end(error.code === 'ENOENT' ? 'Not found' : 'Server error');
             return;

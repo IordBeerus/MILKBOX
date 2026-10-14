@@ -14,7 +14,7 @@ function loadEnvFile() {
 
 loadEnvFile();
 
-const GITHUB_REPO = process.env.GITHUB_REPO || 'https://github.com/lordbeerus/MILKBOX.git';
+const GITHUB_REPO = process.env.GITHUB_REPO || 'https://github.com/IordBeerus/MILKBOX.git';
 const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
