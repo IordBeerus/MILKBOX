@@ -4433,6 +4433,7 @@ function playItem(item, type) {
     }
     serverBtnActive();
     modal.classList.add('active');
+    document.body.classList.add('player-active');
     renderPlay();
 }
 
@@ -8715,6 +8716,7 @@ function exitAnimeTheater(){
   if (right) right.classList.remove('anime-movie-mode');
   _restorePlayerContainer();
   document.body.classList.remove('anime-focus');
+  document.body.classList.remove('player-active');
   _animeFocus = false;
 }
 function renderAnimeMoviePanel(item){
@@ -9289,7 +9291,9 @@ document.addEventListener('keydown', (e)=>{
 document.getElementById('closePlayer').addEventListener('click', () => {
     const pf = document.getElementById('playerFrame');
     if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
-    document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
+    document.getElementById('playerModal').classList.remove('active');
+    document.body.classList.remove('player-active');
+    exitAnimeTheater();
     if (heroQueue && heroQueue.length && !['providers', 'manga', 'music'].includes(currentSection)) {
         resumeHeroTrailer();
     }
@@ -9298,7 +9302,9 @@ document.getElementById('playerModal').addEventListener('click', (e) => {
     if (e.target.id === 'playerModal') {
         const pf = document.getElementById('playerFrame');
         if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
-        document.getElementById('playerModal').classList.remove('active'); exitAnimeTheater();
+        document.getElementById('playerModal').classList.remove('active');
+        document.body.classList.remove('player-active');
+        exitAnimeTheater();
         if (heroQueue && heroQueue.length && !['providers', 'manga', 'music'].includes(currentSection)) {
             resumeHeroTrailer();
         }
@@ -9495,7 +9501,11 @@ document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('active');
-            if (modal.id === 'playerModal') { document.getElementById('playerFrame').innerHTML = ''; exitAnimeTheater(); }
+            if (modal.id === 'playerModal') {
+                document.getElementById('playerFrame').innerHTML = '';
+                document.body.classList.remove('player-active');
+                exitAnimeTheater();
+            }
         }
     });
 });
@@ -9504,6 +9514,7 @@ document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
         document.getElementById('playerFrame').innerHTML = '';
+        document.body.classList.remove('player-active');
         exitAnimeTheater();
     }
 });
