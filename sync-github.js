@@ -7,15 +7,28 @@ function loadEnvFile() {
     if (!fs.existsSync(envPath)) return;
     for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
         const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
-        if (!match || match[1] in process.env) continue;
-        process.env[match[1]] = match[2].replace(/^['"]|['"]$/g, '');
+        if (!match) continue;
+        const key = match[1];
+        const val = match[2].replace(/^['"]|['"]$/g, '');
+        if (!process.env[key] || (process.env[key].startsWith('ghp_') && key !== 'GITHUB_TOKEN')) {
+            process.env[key] = val;
+        }
     }
 }
 
 loadEnvFile();
 
-const GITHUB_REPO = process.env.GITHUB_REPO || 'https://github.com/IordBeerus/MILKBOX.git';
-const GITHUB_BRANCH = process.env.GITHUB_BRANCH || 'main';
+let rawRepo = process.env.GITHUB_REPO || 'https://github.com/IordBeerus/MILKBOX.git';
+if (!rawRepo.includes('github.com')) {
+    rawRepo = 'https://github.com/IordBeerus/MILKBOX.git';
+}
+const GITHUB_REPO = rawRepo;
+
+let rawBranch = process.env.GITHUB_BRANCH || 'main';
+if (rawBranch.startsWith('ghp_')) {
+    rawBranch = 'main';
+}
+const GITHUB_BRANCH = rawBranch;
 const GITHUB_TOKEN = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
 function run(cmd, options = {}) {
