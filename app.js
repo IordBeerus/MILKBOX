@@ -1081,15 +1081,31 @@ function getHeroLogoSource() {
 function applyHeroLogo() {
     const src = getHeroLogoSource();
     const logo = document.getElementById('heroLogo');
+    const heroTitle = document.getElementById('heroTitle');
+    const heroSection = document.getElementById('heroSection');
     if (!logo) return;
     if (src) {
-        logo.onerror = () => { logo.style.display = 'none'; };
+        logo.onerror = () => {
+            logo.style.display = 'none';
+            if (heroTitle) heroTitle.style.display = '';
+            if (heroSection) heroSection.classList.remove('has-hero-logo');
+        };
+        logo.onload = () => {
+            logo.style.display = 'block';
+            if (heroTitle) heroTitle.style.display = 'none';
+            if (heroSection) heroSection.classList.add('has-hero-logo');
+        };
         logo.src = src;
         logo.style.display = 'block';
+        if (heroTitle) heroTitle.style.display = 'none';
+        if (heroSection) heroSection.classList.add('has-hero-logo');
     } else {
         logo.onerror = null;
+        logo.onload = null;
         logo.removeAttribute('src');
         logo.style.display = 'none';
+        if (heroTitle) heroTitle.style.display = '';
+        if (heroSection) heroSection.classList.remove('has-hero-logo');
     }
 }
 
@@ -2602,9 +2618,11 @@ function showAnimeHero() {
         renderHeroItem();
     } else {
         heroQueue = [];
-        document.getElementById('heroTitle').textContent = 'Anime';
+        const ht = document.getElementById('heroTitle');
+        if (ht) { ht.textContent = 'Anime'; ht.style.display = ''; }
         document.getElementById('heroDesc').textContent = 'No anime content yet. Add movies/show with the "anime" genre via "+ Add Content".';
         document.getElementById('heroSection').style.backgroundImage = '';
+        document.getElementById('heroSection')?.classList.remove('has-hero-logo');
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
         const hl = document.getElementById('heroLogo');
@@ -2658,9 +2676,11 @@ function showMyListHero() {
         renderHeroItem();
     } else {
         heroQueue = [];
-        document.getElementById('heroTitle').textContent = 'My List';
+        const ht = document.getElementById('heroTitle');
+        if (ht) { ht.textContent = 'My List'; ht.style.display = ''; }
         document.getElementById('heroDesc').textContent = 'Your saved favorites will show up here. Click "+" on any movie or TV show to add it to your list.';
         document.getElementById('heroSection').style.backgroundImage = '';
+        document.getElementById('heroSection')?.classList.remove('has-hero-logo');
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
         const hl = document.getElementById('heroLogo');
@@ -2679,9 +2699,11 @@ function showTvHero() {
         renderHeroItem();
     } else {
         heroQueue = [];
-        document.getElementById('heroTitle').textContent = 'TV Shows';
+        const ht = document.getElementById('heroTitle');
+        if (ht) { ht.textContent = 'TV Shows'; ht.style.display = ''; }
         document.getElementById('heroDesc').textContent = 'No TV shows yet. Add one via "+ Add Content".';
         document.getElementById('heroSection').style.backgroundImage = '';
+        document.getElementById('heroSection')?.classList.remove('has-hero-logo');
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
         const hl = document.getElementById('heroLogo');
@@ -2700,9 +2722,11 @@ function showMovieHero() {
         renderHeroItem();
     } else {
         heroQueue = [];
-        document.getElementById('heroTitle').textContent = 'Movies';
+        const ht = document.getElementById('heroTitle');
+        if (ht) { ht.textContent = 'Movies'; ht.style.display = ''; }
         document.getElementById('heroDesc').textContent = 'No movies yet. Add one via "+ Add Content".';
         document.getElementById('heroSection').style.backgroundImage = '';
+        document.getElementById('heroSection')?.classList.remove('has-hero-logo');
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
         const hl = document.getElementById('heroLogo');
@@ -3131,25 +3155,65 @@ function renderHeroItem(force = false) {
     }
     updateHeroSoundButtonUI();
 
-    // Show the featured movie's own logo (if set) on the hero's large image; keep title text at the bottom
-    if (featured.logo) {
-        heroLogo.onerror = () => { heroLogo.onerror = null; applyHeroLogo(); };
+    // Show the featured movie/show/anime logo (if set) and only show text title when there is no logo
+    const heroSection = document.getElementById('heroSection');
+    const hasItemLogo = Boolean(featured.logo && String(featured.logo).trim());
+    if (hasItemLogo) {
+        heroLogo.onload = () => {
+            heroLogo.style.display = 'block';
+            heroTitle.style.display = 'none';
+            if (heroSection) heroSection.classList.add('has-hero-logo');
+        };
+        heroLogo.onerror = () => {
+            heroLogo.onerror = null;
+            heroLogo.onload = null;
+            heroLogo.style.display = 'none';
+            heroTitle.style.display = '';
+            if (heroSection) heroSection.classList.remove('has-hero-logo');
+            applyHeroLogo();
+        };
         heroLogo.src = hiRes(featured.logo);
         heroLogo.style.display = 'block';
-        heroTitle.style.display = '';
+        heroTitle.style.display = 'none';
+        if (heroSection) heroSection.classList.add('has-hero-logo');
     } else {
-        heroLogo.onerror = () => { heroLogo.style.display = 'none'; };
+        heroLogo.onload = null;
+        heroLogo.onerror = () => {
+            heroLogo.style.display = 'none';
+            heroTitle.style.display = '';
+            if (heroSection) heroSection.classList.remove('has-hero-logo');
+        };
         heroLogo.removeAttribute('src');
         heroLogo.style.display = 'none';
+        heroTitle.style.display = '';
+        if (heroSection) heroSection.classList.remove('has-hero-logo');
         applyHeroLogo();
         // Auto-fetch a TMDB brand logo for this title (non-blocking) so banners
         // show a logo even if it wasn't loaded with the library.
         if (featured.tmdbId && !featured.logo) fetchItemLogo(featured).then(() => {
             const hl = document.getElementById('heroLogo');
+            const ht = document.getElementById('heroTitle');
+            const hs = document.getElementById('heroSection');
             if (featured.logo && featureQueueContains(featured)) {
-                hl.onerror = () => { hl.onerror = null; applyHeroLogo(); };
-                hl.src = hiRes(featured.logo);
-                hl.style.display = 'block';
+                if (hl) {
+                    hl.onload = () => {
+                        hl.style.display = 'block';
+                        if (ht) ht.style.display = 'none';
+                        if (hs) hs.classList.add('has-hero-logo');
+                    };
+                    hl.onerror = () => {
+                        hl.onerror = null;
+                        hl.onload = null;
+                        hl.style.display = 'none';
+                        if (ht) ht.style.display = '';
+                        if (hs) hs.classList.remove('has-hero-logo');
+                        applyHeroLogo();
+                    };
+                    hl.src = hiRes(featured.logo);
+                    hl.style.display = 'block';
+                }
+                if (ht) ht.style.display = 'none';
+                if (hs) hs.classList.add('has-hero-logo');
             }
         }).catch(() => {});
     }
@@ -7957,9 +8021,11 @@ function showLiveHero(section) {
         renderHeroItem();
     } else {
         heroQueue = [];
-        document.getElementById('heroTitle').textContent = title;
+        const ht = document.getElementById('heroTitle');
+        if (ht) { ht.textContent = title; ht.style.display = ''; }
         document.getElementById('heroDesc').textContent = emptyDesc;
         document.getElementById('heroSection').style.backgroundImage = '';
+        document.getElementById('heroSection')?.classList.remove('has-hero-logo');
         document.getElementById('heroPlayBtn').onclick = null;
         document.getElementById('heroInfoBtn').onclick = null;
         const hl = document.getElementById('heroLogo');

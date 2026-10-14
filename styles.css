@@ -4368,6 +4368,14 @@ body.light-mode .modal-content { background: #fff; border-color: rgba(0,0,0,0.1)
         0 3px 6px rgba(0, 0, 0, 0.95) !important;
 }
 
+/* ---- Hero title visibility: only display when the featured movie/show/anime has no logo ---- */
+.hero.has-hero-logo .hero-title,
+#heroSection.has-hero-logo #heroTitle,
+.hero-content:has(#heroLogo[src]:not([src=""]):not([style*="display: none"]):not([style*="display:none"])) #heroTitle,
+.hero-content:has(#heroLogo[src]:not([src=""]):not([style*="display: none"]):not([style*="display:none"])) .hero-title {
+    display: none !important;
+}
+
 /* ---- Hero content scrim: keeps text readable over any (light) backdrop ---- */
 .hero-content {
     padding: 28px 34px;
