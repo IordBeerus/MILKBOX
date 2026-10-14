@@ -7572,3 +7572,16 @@ body[data-theme="halloween"] .footer {
     background: rgba(16, 11, 19, 0.94);
     border-top-color: rgba(255, 153, 55, 0.14);
 }
+body[data-theme="halloween"] .seasonal-decorations {
+    inset: 58px 0 auto;
+    height: min(24vh, 190px);
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+body[data-theme="halloween"] .seasonal-decorations img {
+    width: min(100%, 285px);
+    height: auto;
+    object-fit: contain;
+    opacity: 0.88;
+}
