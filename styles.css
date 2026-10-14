@@ -7573,15 +7573,20 @@ body[data-theme="halloween"] .footer {
     border-top-color: rgba(255, 153, 55, 0.14);
 }
 body[data-theme="halloween"] .seasonal-decorations {
-    inset: 58px 0 auto;
-    height: min(24vh, 190px);
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    inset: 58px 10px auto auto;
+    width: min(18vw, 145px);
+    height: 96px;
 }
 body[data-theme="halloween"] .seasonal-decorations img {
-    width: min(100%, 285px);
-    height: auto;
+    width: 100%;
+    height: 100%;
     object-fit: contain;
-    opacity: 0.88;
+    opacity: 0.72;
+}
+@media (max-width: 768px) {
+    body[data-theme="halloween"] .seasonal-decorations {
+        inset: 58px 6px auto auto;
+        width: 96px;
+        height: 64px;
+    }
 }
