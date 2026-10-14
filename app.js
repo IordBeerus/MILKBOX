@@ -856,6 +856,107 @@ function applyBackground() {
     document.getElementById('bgBlurVal').textContent = blur + 'px';
 
     updateBgPreview();
+    updateHalloweenAtmosphere();
+}
+
+let _halloweenEmbersRaf = null;
+let _halloweenParticles = null;
+
+function updateHalloweenAtmosphere() {
+    const isHalloween = (settings.activeTheme === 'halloween') || (document.body && document.body.dataset.theme === 'halloween');
+    let canvas = document.getElementById('halloweenEmbersCanvas');
+
+    if (!isHalloween) {
+        if (canvas) canvas.style.display = 'none';
+        if (_halloweenEmbersRaf) {
+            cancelAnimationFrame(_halloweenEmbersRaf);
+            _halloweenEmbersRaf = null;
+        }
+        return;
+    }
+
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        if (canvas) canvas.style.display = 'none';
+        return;
+    }
+
+    if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.id = 'halloweenEmbersCanvas';
+        canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;opacity:0.6;';
+        document.body.appendChild(canvas);
+        window.addEventListener('resize', () => {
+            if (canvas && canvas.style.display !== 'none') {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    }
+
+    canvas.style.display = 'block';
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    if (!_halloweenParticles) {
+        _halloweenParticles = [];
+        const count = Math.min(24, Math.max(12, Math.floor(window.innerWidth / 60)));
+        const colors = [
+            'rgba(255, 117, 24, ',
+            'rgba(255, 164, 71, ',
+            'rgba(255, 82, 0, ',
+            'rgba(255, 209, 102, '
+        ];
+        for (let i = 0; i < count; i++) {
+            _halloweenParticles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                radius: Math.random() * 1.8 + 0.8,
+                speedY: Math.random() * 0.45 + 0.2,
+                speedX: (Math.random() - 0.5) * 0.25,
+                baseAlpha: Math.random() * 0.45 + 0.25,
+                alpha: 0.3,
+                pulse: Math.random() * Math.PI * 2,
+                colorPrefix: colors[Math.floor(Math.random() * colors.length)]
+            });
+        }
+    }
+
+    if (_halloweenEmbersRaf) cancelAnimationFrame(_halloweenEmbersRaf);
+
+    const ctx = canvas.getContext('2d');
+    function drawEmbers() {
+        if (!isHalloween || canvas.style.display === 'none') return;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        for (let i = 0; i < _halloweenParticles.length; i++) {
+            const p = _halloweenParticles[i];
+            p.y -= p.speedY;
+            p.pulse += 0.02;
+            p.x += Math.sin(p.pulse) * 0.35 + p.speedX;
+            p.alpha = p.baseAlpha * (0.6 + 0.4 * Math.sin(p.pulse * 2));
+
+            if (p.y < -10) {
+                p.y = h + 10;
+                p.x = Math.random() * w;
+            }
+            if (p.x < -10) p.x = w + 10;
+            if (p.x > w + 10) p.x = -10;
+
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+            ctx.fillStyle = p.colorPrefix + Math.max(0, Math.min(1, p.alpha)).toFixed(2) + ')';
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = '#ff7518';
+            ctx.fill();
+        }
+
+        _halloweenEmbersRaf = requestAnimationFrame(drawEmbers);
+    }
+
+    _halloweenEmbersRaf = requestAnimationFrame(drawEmbers);
 }
 
 function updateBgPreview() {
@@ -909,7 +1010,7 @@ function applyTheme(themeName) {
         forest:   { bgColor: '#0a1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         ocean:    { bgColor: '#0a1a2e', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         sunset:   { bgColor: '#2e1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
-        halloween:{ bgColor: '#1b0d16', bgImage: '', bgOpacity: 30, bgBlur: 0 },
+        halloween:{ bgColor: '#09060c', bgImage: 'assets/theme-art/halloween-backdrop.svg', bgOpacity: 45, bgBlur: 0 },
         christmas:{ bgColor: '#091f1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         newyear:  { bgColor: '#0c122b', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         dracula:  { bgColor: '#282a36', bgImage: '', bgOpacity: 30, bgBlur: 0 },

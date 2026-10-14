@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Master Atmospheric Noir Base -->
+    <radialGradient id="ambBase" cx="50%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#140c1e"/>
+      <stop offset="45%" stop-color="#0c0712"/>
+      <stop offset="100%" stop-color="#060408"/>
+    </radialGradient>
+
+    <!-- Top Left Moonlight Spectral Glow -->
+    <radialGradient id="topSpectral" cx="15%" cy="10%" r="55%">
+      <stop offset="0%" stop-color="#7c3aed" stop-opacity="0.14"/>
+      <stop offset="40%" stop-color="#4c1d95" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#4c1d95" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bottom Right Warm Ember Fire Glow -->
+    <radialGradient id="bottomEmber" cx="85%" cy="85%" r="65%">
+      <stop offset="0%" stop-color="#ea580c" stop-opacity="0.15"/>
+      <stop offset="35%" stop-color="#c2410c" stop-opacity="0.08"/>
+      <stop offset="70%" stop-color="#7c2d12" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#7c2d12" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Center Soft Vignette -->
+    <radialGradient id="cinVignette" cx="50%" cy="50%" r="60%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#050307" stop-opacity="0.85"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Canvas -->
+  <rect width="1920" height="1080" fill="url(#ambBase)"/>
+  <rect width="1920" height="1080" fill="url(#topSpectral)"/>
+  <rect width="1920" height="1080" fill="url(#bottomEmber)"/>
+
+  <!-- Distant Fog Wave Layers -->
+  <path d="M0 720 Q480 660 960 740 T1920 700 L1920 1080 L0 1080 Z" fill="#170d24" opacity="0.35"/>
+  <path d="M0 840 Q480 800 960 860 T1920 820 L1920 1080 L0 1080 Z" fill="#0d0714" opacity="0.55"/>
+
+  <!-- Subtle Rim Vignette for Content Contrast -->
+  <rect width="1920" height="1080" fill="url(#cinVignette)"/>
+</svg>
