@@ -6,7 +6,7 @@
   "scripts": {
     "lint": "npm run build",
     "dev": "node server.js",
-    "build": "node --check app.js && node --check server.js && node --check sync-github.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js && node --check musify-player.js",
+    "build": "node --check app.js && node --check server.js && node --check sync-github.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js && node --check musify-player.js && node --check collections-data.js",
     "start": "node server.js",
     "sync:provider-icons": "node sync-provider-icons.js",
     "sync:github": "node sync-github.js",

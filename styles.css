@@ -969,16 +969,10 @@ body.light-mode .home-genre-link span { background: #eee; color: #555; }
 }
 
 /* Content Section Viewport Fade-In Animation */
-html.has-section-observer .content-section {
-    opacity: 0;
-    transform: translateY(22px);
-    transition: opacity 0.55s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
-    will-change: opacity, transform;
-}
-
-html.has-section-observer .content-section.is-visible {
-    opacity: 1;
-    transform: none;
+html.has-section-observer .content-section,
+.content-section {
+    opacity: 1 !important;
+    transform: none !important;
     will-change: auto;
 }
 
@@ -1656,16 +1650,16 @@ body.light-mode .manga-drawer-item.active { background: #ffeaf3; color: #d6336c;
     grid-template-columns: repeat(auto-fill, 260px) !important;
     gap: 20px !important;
 }
-#moviesSection.catalog-grid .slider .card,
-#tvShowsSection.catalog-grid .slider .card,
-#streamingSection .content-grid .card,
-#freeSection .content-grid .card,
-#trendingSection .content-grid .card,
-#trendingGrid .card,
-#theatersSection .content-grid .card,
-#popularSection .content-grid .card,
-#searchResultsSection .content-grid .card,
-#homeGenres .content-grid .card {
+#moviesSection.catalog-grid .slider .card:not(.card-landscape),
+#tvShowsSection.catalog-grid .slider .card:not(.card-landscape),
+#streamingSection .content-grid .card:not(.card-landscape),
+#freeSection .content-grid .card:not(.card-landscape),
+#trendingSection .content-grid .card:not(.card-landscape),
+#trendingGrid .card:not(.card-landscape),
+#theatersSection .content-grid .card:not(.card-landscape),
+#popularSection .content-grid .card:not(.card-landscape),
+#searchResultsSection .content-grid .card:not(.card-landscape),
+#homeGenres .content-grid .card:not(.card-landscape) {
     min-width: 0 !important;
     max-width: 250px !important;
     width: 100% !important;
@@ -1700,11 +1694,11 @@ body.trending-active #trendingGrid {
     grid-template-columns: repeat(auto-fill, 260px) !important;
     gap: 20px !important;
 }
-body.anime-active #moviesSection.catalog-grid .slider .card,
-body.anime-active #tvShowsSection.catalog-grid .slider .card,
-body.anime-active #homeGenres .content-grid .card,
-body.trending-active #trendingSection .content-grid .card,
-body.trending-active #trendingGrid .card {
+body.anime-active #moviesSection.catalog-grid .slider .card:not(.card-landscape),
+body.anime-active #tvShowsSection.catalog-grid .slider .card:not(.card-landscape),
+body.anime-active #homeGenres .content-grid .card:not(.card-landscape),
+body.trending-active #trendingSection .content-grid .card:not(.card-landscape),
+body.trending-active #trendingGrid .card:not(.card-landscape) {
     min-width: 0 !important;
     max-width: 250px !important;
     width: 100% !important;
@@ -1722,14 +1716,14 @@ body.trending-active #trendingGrid .card:not(.card-landscape) .card-placeholder 
 
 /* Genres — smaller cards */
 #homeGenres .content-grid {
-    grid-template-columns: repeat(auto-fill, 260px) !important;
-    gap: 20px !important;
+    grid-template-columns: repeat(auto-fill, 180px) !important;
+    gap: 14px !important;
 }
-#homeGenres .content-grid .card:not(.card-landscape) {
+#homeGenres .content-grid .card {
     max-width: 170px !important;
 }
-#homeGenres .content-grid .card:not(.card-landscape) .card-img,
-#homeGenres .content-grid .card:not(.card-landscape) .card-placeholder { height: 250px !important; }
+#homeGenres .content-grid .card-img,
+#homeGenres .content-grid .card-placeholder { height: 250px !important; }
 
 /* Collections (Home) — wide cinematic like reference */
 #collectionsSection .content-grid {
@@ -1908,6 +1902,10 @@ body.light-mode .pager-btn:hover:not(:disabled) {
     contain: layout paint style;
 }
 .card { contain-intrinsic-size: 210px 380px; }
+.card.card-landscape {
+    contain: layout style !important;
+    contain-intrinsic-size: 280px 200px !important;
+}
 .manga-card { contain-intrinsic-size: 190px 340px; }
 .collection-card { contain-intrinsic-size: 300px 168px; }
 .cineby-ep-card { contain-intrinsic-size: 245px 220px; }
@@ -3213,6 +3211,113 @@ body.light-mode .settings-card {
 }
 .settings-toggle input:checked + .settings-toggle-slider { background: #ffb6d8; }
 .settings-toggle input:checked + .settings-toggle-slider::before { transform: translateX(20px); }
+.settings-select {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.14);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    min-width: 170px;
+    transition: all 0.2s;
+}
+.settings-select:hover {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.12);
+}
+.settings-select:focus {
+    border-color: #ffb6d8;
+    box-shadow: 0 0 0 2px rgba(255,182,216,0.2);
+}
+.settings-select option {
+    background: #18181e;
+    color: #fff;
+}
+.settings-stat-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+    color: #ddd;
+}
+.settings-stat-val {
+    font-weight: 700;
+    color: #ffb6d8;
+    font-size: 14px;
+}
+.latency-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #eee;
+}
+.latency-chip.fast {
+    border-color: rgba(46,213,115,0.4);
+    background: rgba(46,213,115,0.1);
+    color: #2ed573;
+}
+.latency-chip.med {
+    border-color: rgba(255,165,2,0.4);
+    background: rgba(255,165,2,0.1);
+    color: #ffa502;
+}
+.latency-chip.slow {
+    border-color: rgba(255,71,87,0.4);
+    background: rgba(255,71,87,0.1);
+    color: #ff4757;
+}
+.health-result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.health-result-item:last-child {
+    border-bottom: none;
+}
+.health-pill {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.health-pill.ok {
+    background: rgba(46,213,115,0.2);
+    color: #2ed573;
+    border: 1px solid rgba(46,213,115,0.3);
+}
+.health-pill.warn {
+    background: rgba(255,165,2,0.2);
+    color: #ffa502;
+    border: 1px solid rgba(255,165,2,0.3);
+}
+body.no-card-zoom .card:hover,
+body.no-card-zoom .card-landscape:hover {
+    transform: none !important;
+}
+body.high-contrast-mode {
+    filter: contrast(115%);
+}
+body.high-contrast-mode .settings-card {
+    background: rgba(0,0,0,0.85);
+    border: 1.5px solid rgba(255,255,255,0.3);
+}
 .color-picker-row {
     display: flex;
     gap: 10px;
@@ -4882,24 +4987,24 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     }
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-    #tvShowsSection.catalog-grid .slider .card-img,
-    #tvShowsSection.catalog-grid .slider .card-placeholder,
-    #streamingSection .content-grid .card-img,
-    #streamingSection .content-grid .card-placeholder,
-    #freeSection .content-grid .card-img,
-    #freeSection .content-grid .card-placeholder,
-    #trendingSection .content-grid .card-img,
-    #trendingSection .content-grid .card-placeholder,
-    #trendingGrid .card-img,
-    #trendingGrid .card-placeholder,
-    #theatersSection .content-grid .card-img,
-    #theatersSection .content-grid .card-placeholder,
-    #popularSection .content-grid .card-img,
-    #popularSection .content-grid .card-placeholder,
-    #searchResultsSection .content-grid .card-img,
-    #searchResultsSection .content-grid .card-placeholder,
-    #homeGenres .content-grid .card-img,
-    #homeGenres .content-grid .card-placeholder { height: 230px !important; }
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-img,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #freeSection .content-grid .card:not(.card-landscape) .card-img,
+    #freeSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-img,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingGrid .card:not(.card-landscape) .card-img,
+    #trendingGrid .card:not(.card-landscape) .card-placeholder,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-img,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #popularSection .content-grid .card:not(.card-landscape) .card-img,
+    #popularSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-img,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-img,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-placeholder { height: 230px !important; }
 }
 @media (max-width: 480px) {
     #moviesSection.catalog-grid .slider,
@@ -4917,24 +5022,24 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     }
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-    #tvShowsSection.catalog-grid .slider .card-img,
-    #tvShowsSection.catalog-grid .slider .card-placeholder,
-    #streamingSection .content-grid .card-img,
-    #streamingSection .content-grid .card-placeholder,
-    #freeSection .content-grid .card-img,
-    #freeSection .content-grid .card-placeholder,
-    #trendingSection .content-grid .card-img,
-    #trendingSection .content-grid .card-placeholder,
-    #trendingGrid .card-img,
-    #trendingGrid .card-placeholder,
-    #theatersSection .content-grid .card-img,
-    #theatersSection .content-grid .card-placeholder,
-    #popularSection .content-grid .card-img,
-    #popularSection .content-grid .card-placeholder,
-    #searchResultsSection .content-grid .card-img,
-    #searchResultsSection .content-grid .card-placeholder,
-    #homeGenres .content-grid .card-img,
-    #homeGenres .content-grid .card-placeholder { height: 180px !important; }
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-img,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #freeSection .content-grid .card:not(.card-landscape) .card-img,
+    #freeSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-img,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingGrid .card:not(.card-landscape) .card-img,
+    #trendingGrid .card:not(.card-landscape) .card-placeholder,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-img,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #popularSection .content-grid .card:not(.card-landscape) .card-img,
+    #popularSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-img,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-img,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-placeholder { height: 180px !important; }
 }
 /* Navbar buttons compact — Settings, About:Blank, Load Library, Add Content */
 .nav-right { gap: 8px !important; }
@@ -4991,26 +5096,26 @@ body.light-mode .mobile-nav-link.active { color: var(--mb-accent); }
     #homeGenres .slider { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important; gap: 12px !important; }
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-    #tvShowsSection.catalog-grid .slider .card-img,
-    #tvShowsSection.catalog-grid .slider .card-placeholder,
-    #streamingSection .content-grid .card-img,
-    #streamingSection .content-grid .card-placeholder,
-    #freeSection .content-grid .card-img,
-    #freeSection .content-grid .card-placeholder,
-    #trendingSection .content-grid .card-img,
-    #trendingSection .content-grid .card-placeholder,
-    #trendingGrid .card-img,
-    #trendingGrid .card-placeholder,
-    #theatersSection .content-grid .card-img,
-    #theatersSection .content-grid .card-placeholder,
-    #popularSection .content-grid .card-img,
-    #popularSection .content-grid .card-placeholder,
-    #searchResultsSection .content-grid .card-img,
-    #searchResultsSection .content-grid .card-placeholder,
-    #homeGenres .content-grid .card-img,
-    #homeGenres .content-grid .card-placeholder,
-    #homeGenres .slider .card-img,
-    #homeGenres .slider .card-placeholder { height: 320px !important; }
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-img,
+    #streamingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #freeSection .content-grid .card:not(.card-landscape) .card-img,
+    #freeSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-img,
+    #trendingSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #trendingGrid .card:not(.card-landscape) .card-img,
+    #trendingGrid .card:not(.card-landscape) .card-placeholder,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-img,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #popularSection .content-grid .card:not(.card-landscape) .card-img,
+    #popularSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-img,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-img,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .slider .card:not(.card-landscape) .card-img,
+    #homeGenres .slider .card:not(.card-landscape) .card-placeholder { height: 320px !important; }
 }
 @media (max-height: 800px) {
     .hero { min-height: 58vh !important; }
@@ -5682,22 +5787,22 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     #freeSection .content-grid .card-placeholder,
     #trendingSection .content-grid .card-img,
     #trendingSection .content-grid .card-placeholder,
-    #trendingGrid .card-img,
-    #trendingGrid .card-placeholder,
-    #theatersSection .content-grid .card-img,
-    #theatersSection .content-grid .card-placeholder,
-    #popularSection .content-grid .card-img,
-    #popularSection .content-grid .card-placeholder,
-    #searchResultsSection .content-grid .card-img,
-    #searchResultsSection .content-grid .card-placeholder,
-    #homeGenres .content-grid .card-img,
-    #homeGenres .content-grid .card-placeholder,
+    #trendingGrid .card:not(.card-landscape) .card-img,
+    #trendingGrid .card:not(.card-landscape) .card-placeholder,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-img,
+    #theatersSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #popularSection .content-grid .card:not(.card-landscape) .card-img,
+    #popularSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-img,
+    #searchResultsSection .content-grid .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-img,
+    #homeGenres .content-grid .card:not(.card-landscape) .card-placeholder,
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
     #moviesSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
-    #tvShowsSection.catalog-grid .slider .card-img,
-    #tvShowsSection.catalog-grid .slider .card-placeholder,
-    #homeGenres .slider .card-img,
-    #homeGenres .slider .card-placeholder {
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-img,
+    #tvShowsSection.catalog-grid .slider .card:not(.card-landscape) .card-placeholder,
+    #homeGenres .slider .card:not(.card-landscape) .card-img,
+    #homeGenres .slider .card:not(.card-landscape) .card-placeholder {
         height: auto !important;
         aspect-ratio: 2 / 3;
         max-height: 250px;
@@ -6207,23 +6312,73 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     border-radius: 0 !important;
 }
 
-/* ==================== MOVIES WIDESCREEN LANDSCAPE LAYOUT ==================== */
-#moviesSection .slider-container .slider-btn {
+/* ==================== WIDESCREEN LANDSCAPE GRID LAYOUT (ALL TABS & GENRES) ==================== */
+#moviesSection .slider-container .slider-btn,
+#tvShowsSection .slider-container .slider-btn,
+#myListSection .slider-container .slider-btn,
+#homeGenres .slider-container .slider-btn {
     display: none !important;
 }
 
+
 #moviesSection.catalog-grid .slider,
-#moviesSection .slider {
+#moviesSection .slider,
+#tvShowsSection.catalog-grid .slider,
+#tvShowsSection .slider,
+#streamingSection .content-grid,
+#streamingGrid,
+#freeSection .content-grid,
+#freeGrid,
+#trendingSection .content-grid,
+#trendingGrid,
+#theatersSection .content-grid,
+#theatersGrid,
+#popularSection .content-grid,
+#popularGrid,
+#myListSection .slider,
+#myListSlider,
+#searchResultsSection .content-grid,
+#searchGrid,
+#searchResultsGrid,
+#collectionsSection .content-grid,
+#collectionsGrid,
+#homeGenres .content-grid,
+#homeGenres .slider,
+#homeGenres [id^="genreSlider-"],
+[id^="animeGenreGrid-"] {
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
     gap: 16px !important;
     padding: 10px 0 24px !important;
     overflow: visible !important;
+    width: 100% !important;
 }
 
 @media (max-width: 1400px) {
     #moviesSection.catalog-grid .slider,
-    #moviesSection .slider {
+    #moviesSection .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #tvShowsSection .slider,
+    #streamingSection .content-grid,
+    #streamingGrid,
+    #freeSection .content-grid,
+    #freeGrid,
+    #trendingSection .content-grid,
+    #trendingGrid,
+    #theatersSection .content-grid,
+    #theatersGrid,
+    #popularSection .content-grid,
+    #popularGrid,
+    #myListSection .slider,
+    #myListSlider,
+    #searchResultsSection .content-grid,
+    #searchGrid,
+    #collectionsSection .content-grid,
+    #collectionsGrid,
+    #homeGenres .content-grid,
+    #homeGenres .slider,
+    #homeGenres [id^="genreSlider-"],
+    [id^="animeGenreGrid-"] {
         grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
         gap: 14px !important;
     }
@@ -6231,7 +6386,29 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 
 @media (max-width: 1050px) {
     #moviesSection.catalog-grid .slider,
-    #moviesSection .slider {
+    #moviesSection .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #tvShowsSection .slider,
+    #streamingSection .content-grid,
+    #streamingGrid,
+    #freeSection .content-grid,
+    #freeGrid,
+    #trendingSection .content-grid,
+    #trendingGrid,
+    #theatersSection .content-grid,
+    #theatersGrid,
+    #popularSection .content-grid,
+    #popularGrid,
+    #myListSection .slider,
+    #myListSlider,
+    #searchResultsSection .content-grid,
+    #searchGrid,
+    #collectionsSection .content-grid,
+    #collectionsGrid,
+    #homeGenres .content-grid,
+    #homeGenres .slider,
+    #homeGenres [id^="genreSlider-"],
+    [id^="animeGenreGrid-"] {
         grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
         gap: 12px !important;
     }
@@ -6239,7 +6416,29 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 
 @media (max-width: 720px) {
     #moviesSection.catalog-grid .slider,
-    #moviesSection .slider {
+    #moviesSection .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #tvShowsSection .slider,
+    #streamingSection .content-grid,
+    #streamingGrid,
+    #freeSection .content-grid,
+    #freeGrid,
+    #trendingSection .content-grid,
+    #trendingGrid,
+    #theatersSection .content-grid,
+    #theatersGrid,
+    #popularSection .content-grid,
+    #popularGrid,
+    #myListSection .slider,
+    #myListSlider,
+    #searchResultsSection .content-grid,
+    #searchGrid,
+    #collectionsSection .content-grid,
+    #collectionsGrid,
+    #homeGenres .content-grid,
+    #homeGenres .slider,
+    #homeGenres [id^="genreSlider-"],
+    [id^="animeGenreGrid-"] {
         grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         gap: 10px !important;
     }
@@ -6247,16 +6446,48 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 
 @media (max-width: 440px) {
     #moviesSection.catalog-grid .slider,
-    #moviesSection .slider {
+    #moviesSection .slider,
+    #tvShowsSection.catalog-grid .slider,
+    #tvShowsSection .slider,
+    #streamingSection .content-grid,
+    #streamingGrid,
+    #freeSection .content-grid,
+    #freeGrid,
+    #trendingSection .content-grid,
+    #trendingGrid,
+    #theatersSection .content-grid,
+    #theatersGrid,
+    #popularSection .content-grid,
+    #popularGrid,
+    #myListSection .slider,
+    #myListSlider,
+    #searchResultsSection .content-grid,
+    #searchGrid,
+    #collectionsSection .content-grid,
+    #collectionsGrid,
+    #homeGenres .content-grid,
+    #homeGenres .slider,
+    #homeGenres [id^="genreSlider-"],
+    [id^="animeGenreGrid-"] {
         grid-template-columns: 1fr !important;
         gap: 12px !important;
     }
 }
 
 /* Card Landscape Component (16:9 widescreen with title & rating below) */
-#moviesSection.catalog-grid .slider .card.card-landscape,
-#moviesSection .slider .card.card-landscape,
-body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape,
+#moviesSection .card.card-landscape,
+#tvShowsSection .card.card-landscape,
+#streamingSection .card.card-landscape,
+#freeSection .card.card-landscape,
+#trendingSection .card.card-landscape,
+#theatersSection .card.card-landscape,
+#popularSection .card.card-landscape,
+#myListSection .card.card-landscape,
+#searchResultsSection .card.card-landscape,
+#collectionsSection .card.card-landscape,
+#homeGenres .card.card-landscape,
+.content-grid .card.card-landscape,
+.slider .card.card-landscape,
 .card.card-landscape {
     min-width: 0 !important;
     max-width: none !important;
@@ -6272,18 +6503,29 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape,
     flex-direction: column !important;
     transform: translateZ(0) !important;
     -webkit-transform: translateZ(0) !important;
-    will-change: transform;
+    will-change: auto;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-#moviesSection.catalog-grid .slider .card.card-landscape:hover,
-#moviesSection .slider .card.card-landscape:hover,
-body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover,
+#moviesSection .card.card-landscape:hover,
+#tvShowsSection .card.card-landscape:hover,
+#streamingSection .card.card-landscape:hover,
+#freeSection .card.card-landscape:hover,
+#trendingSection .card.card-landscape:hover,
+#theatersSection .card.card-landscape:hover,
+#popularSection .card.card-landscape:hover,
+#myListSection .card.card-landscape:hover,
+#searchResultsSection .card.card-landscape:hover,
+#collectionsSection .card.card-landscape:hover,
+#homeGenres .card.card-landscape:hover,
+.content-grid .card.card-landscape:hover,
+.slider .card.card-landscape:hover,
 .card.card-landscape:hover {
     transform: translateY(-4px) translateZ(0) !important;
     box-shadow: none !important;
+    will-change: transform;
 }
 
 .card.card-landscape .card-media {
@@ -6297,7 +6539,7 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
-    will-change: transform;
+    will-change: auto;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
     transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1),
@@ -6309,14 +6551,22 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape:hover
     transform: scale(1.025) translateZ(0);
     border-color: rgba(255, 182, 216, 0.45);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.8), 0 0 16px rgba(255, 182, 216, 0.15);
+    will-change: transform;
 }
 
-#moviesSection.catalog-grid .slider .card.card-landscape .card-img,
-#moviesSection.catalog-grid .slider .card.card-landscape .card-placeholder,
-#moviesSection .slider .card.card-landscape .card-img,
-#moviesSection .slider .card.card-landscape .card-placeholder,
-body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card-img,
-body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card-placeholder,
+#moviesSection .card.card-landscape .card-img,
+#tvShowsSection .card.card-landscape .card-img,
+#streamingSection .card.card-landscape .card-img,
+#freeSection .card.card-landscape .card-img,
+#trendingSection .card.card-landscape .card-img,
+#theatersSection .card.card-landscape .card-img,
+#popularSection .card.card-landscape .card-img,
+#myListSection .card.card-landscape .card-img,
+#searchResultsSection .card.card-landscape .card-img,
+#collectionsSection .card.card-landscape .card-img,
+#homeGenres .card.card-landscape .card-img,
+.content-grid .card.card-landscape .card-img,
+.slider .card.card-landscape .card-img,
 .card.card-landscape .card-img,
 .card.card-landscape .card-backdrop-img,
 .card.card-landscape .card-placeholder {
@@ -6389,8 +6639,15 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     text-overflow: ellipsis;
 }
 
-.card.card-landscape .card-star {
-    color: #e50914;
+.card.card-landscape .card-star,
+.card-star,
+.card-sub .card-star,
+.card-sub > span:first-child,
+div.card-sub > span:nth-of-type(1),
+div#tvShowsSlider .card-sub > span:nth-of-type(1),
+section#tvShowsSection .card-sub > span:nth-of-type(1) {
+    color: #ff6b9d !important;
+    color: var(--cb-pink-strong, #ff6b9d) !important;
     font-size: 13px;
     margin-right: 4px;
     line-height: 1;
@@ -6898,5 +7155,327 @@ body.anime-active #moviesSection.catalog-grid .slider .card.card-landscape .card
     body {
         padding-bottom: 64px;
     }
+}
+
+/* ==================== RECOMMENDED FOR YOU (PORTRAIT CAROUSEL) ==================== */
+#homeRecommendationsSection .slider-container {
+    position: relative;
+    width: 100%;
+}
+
+#homeRecommendationsSection .slider-container .slider-btn {
+    display: flex !important;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 10;
+}
+
+#homeRecommendationsSlider {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 16px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    scroll-behavior: smooth !important;
+    padding: 12px 4px 24px !important;
+    scrollbar-width: none !important;
+    width: 100% !important;
+}
+
+#homeRecommendationsSlider::-webkit-scrollbar {
+    display: none !important;
+}
+
+#homeRecommendationsSlider .card {
+    min-width: 210px !important;
+    max-width: 210px !important;
+    width: 210px !important;
+    height: 315px !important;
+    aspect-ratio: 2 / 3 !important;
+    flex: 0 0 210px !important;
+    flex-shrink: 0 !important;
+    border-radius: 8px !important;
+    overflow: hidden !important;
+    position: relative !important;
+    background: #181822 !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+    cursor: pointer !important;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+                border-color 0.24s ease !important;
+}
+
+#homeRecommendationsSlider .card:hover {
+    transform: translateY(-6px) scale(1.05) !important;
+    z-index: 20 !important;
+    border-color: rgba(255, 182, 216, 0.5) !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.88), 0 0 20px rgba(255, 182, 216, 0.2) !important;
+}
+
+#homeRecommendationsSlider .card .card-img,
+#homeRecommendationsSlider .card .card-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: 2 / 3 !important;
+    object-fit: cover !important;
+    display: block !important;
+}
+
+@media (max-width: 768px) {
+    #homeRecommendationsSlider {
+        gap: 12px !important;
+        padding: 8px 2px 18px !important;
+    }
+    #homeRecommendationsSlider .card {
+        min-width: 140px !important;
+        max-width: 140px !important;
+        width: 140px !important;
+        height: 210px !important;
+        flex: 0 0 140px !important;
+    }
+}
+
+/* ==================== SEAMLESS VIEW TRANSITIONS & FADE EFFECTS ==================== */
+@view-transition {
+    navigation: auto;
+}
+
+::view-transition-group(root) {
+    animation-duration: 0.22s;
+    animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+::view-transition-old(root) {
+    animation: 160ms cubic-bezier(0.4, 0, 1, 1) both vtFadeOut;
+}
+
+::view-transition-new(root) {
+    animation: 220ms cubic-bezier(0, 0, 0.2, 1) both vtFadeIn;
+}
+
+@keyframes vtFadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.994) translateY(-4px);
+    }
+}
+
+@keyframes vtFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(1.006) translateY(6px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* CSS Crossfade Fallback for navigation section switching */
+.content-wrapper {
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: opacity, transform;
+}
+
+.content-wrapper.nav-transition-fade-out {
+    opacity: 0.05 !important;
+    transform: translateY(6px);
+    transition: opacity 0.12s ease-out, transform 0.12s ease-out;
+}
+
+.content-wrapper.nav-transition-fade-in {
+    animation: navSectionCrossfade 0.24s cubic-bezier(0.2, 0.9, 0.3, 1) forwards;
+}
+
+@keyframes navSectionCrossfade {
+    0% {
+        opacity: 0.1;
+        transform: translateY(8px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==================== COLLECTIONS & STUDIOS ENHANCEMENTS ==================== */
+.collections-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 8px;
+    flex-wrap: wrap;
+}
+
+.coll-filter-pill {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #dedee8;
+    padding: 7px 15px;
+    border-radius: 9999px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.coll-filter-pill:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.24);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.coll-filter-pill.active {
+    background: #e50914;
+    border-color: #e50914;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(229, 9, 20, 0.35);
+}
+
+.collection-studio-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ffb6d8;
+    margin-bottom: 2px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
+.collection-tag-pill {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 4;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: #f0f0f5;
+    letter-spacing: 0.3px;
+}
+
+.collection-tag-pill.is-studio {
+    border-color: rgba(255, 182, 216, 0.45);
+    color: #ffb6d8;
+    background: rgba(25, 10, 30, 0.8);
+}
+
+.collection-detail-banner {
+    position: relative;
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 22px;
+    padding: 26px 30px;
+    background: linear-gradient(135deg, rgba(32, 22, 48, 0.92) 0%, rgba(16, 16, 22, 0.96) 100%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+
+.collection-detail-backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.26;
+    filter: blur(3px);
+    pointer-events: none;
+}
+
+.collection-detail-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.collection-detail-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.collection-detail-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: rgba(229, 9, 20, 0.22);
+    border: 1px solid rgba(229, 9, 20, 0.5);
+    color: #ff8597;
+    font-size: 11px;
+    font-weight: 800;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.collection-detail-title {
+    font-size: 28px;
+    font-weight: 900;
+    color: #ffffff;
+    line-height: 1.2;
+    margin: 2px 0 0;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+
+.collection-detail-desc {
+    font-size: 13.5px;
+    color: #c8c8d8;
+    max-width: 820px;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.collection-detail-meta {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #a4a4b8;
+    margin-top: 4px;
+}
+
+.btn-back-to-collections {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-back-to-collections:hover {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(255, 255, 255, 0.35);
+    transform: translateX(-2px);
 }
 

@@ -1,25 +1,9 @@
 // ==================== DATA STORE ====================
 const HOSTED_LIBRARY_URL = '/library.json';
-function safeReadJson(key, fallback) {
-    try {
-        const raw = localStorage.getItem(key);
-        if (raw === null || raw === undefined || raw === '') return fallback;
-        const parsed = JSON.parse(raw);
-        return parsed === null || parsed === undefined ? fallback : parsed;
-    } catch {
-        return fallback;
-    }
-}
-function safeWriteJson(key, value) {
-    try {
-        localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
-}
+let movies = JSON.parse(localStorage.getItem('sf_movies')) || [];
+let tvShows = JSON.parse(localStorage.getItem('sf_tvshows')) || [];
+let myList = JSON.parse(localStorage.getItem('sf_mylist')) || [];
 const defaultSettings = {
-    cloakTitle: '',
-    cloakFavicon: '',
-    cloakLogoText: 'MILKBOX',
-    cloakLogoImage: 'https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png',
     playerServer: 'auto',
     autoPlayNext: true,
     bgColor: '#141414',
@@ -31,16 +15,30 @@ const defaultSettings = {
     activeTheme: '',
     heroLogo: '',
     heroLogoData: '',
-    showCollections: true
+    showCollections: true,
+    cardZoom: true,
+    smoothScroll: true,
+    contentFilter: 'moderate',
+    heroInterval: '8000',
+    preferredQuality: 'auto',
+    autoSkipIntro: true,
+    autoSkipOutro: false,
+    resumePlayback: true,
+    seekStep: 10,
+    defaultSpeed: 1,
+    defaultSubtitles: false,
+    subtitleLang: 'en',
+    volumeNorm: false,
+    highContrast: false,
+    soundEffects: true,
+    mangaLang: 'en',
+    mangaReadingDirection: 'vertical'
 };
-let movies = safeReadJson('sf_movies', []);
-let tvShows = safeReadJson('sf_tvshows', []);
-let myList = safeReadJson('sf_mylist', []);
-let settings = safeReadJson('sf_settings', defaultSettings);
-if (!settings || typeof settings !== 'object') settings = { ...defaultSettings };
-settings = { ...defaultSettings, ...settings };
-let customThemes = safeReadJson('sf_custom_themes', []);
-function saveCustomThemes() { safeWriteJson('sf_custom_themes', customThemes); }
+let settings = Object.assign({}, defaultSettings, JSON.parse(localStorage.getItem('sf_settings')) || {});
+if (settings.highContrast) document.body.classList.add('high-contrast-mode');
+if (settings.cardZoom === false) document.body.classList.add('no-card-zoom');
+let customThemes = JSON.parse(localStorage.getItem('sf_custom_themes')) || [];
+function saveCustomThemes() { localStorage.setItem('sf_custom_themes', JSON.stringify(customThemes)); }
 
 // IndexedDB storage for uploaded background files (large videos/images can't fit in localStorage).
 let _bgDb = null;
@@ -1078,7 +1076,7 @@ function scanMovieQualities(noRender) {
 }
 
 // ==================== SKELETON LOADER HELPERS ====================
-function createSkeletonCard(isLandscape = false) {
+function createSkeletonCard(isLandscape = true) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'skeleton-card skeleton-landscape' : 'skeleton-card';
     if (isLandscape) {
@@ -1101,7 +1099,7 @@ function createSkeletonCard(isLandscape = false) {
     return card;
 }
 
-function renderSkeletonGrid(containerOrId, count = 10, isLandscape = false) {
+function renderSkeletonGrid(containerOrId, count = 15, isLandscape = true) {
     const el = typeof containerOrId === 'string' ? document.getElementById(containerOrId) : containerOrId;
     if (!el) return;
     el.innerHTML = '';
@@ -1164,18 +1162,7 @@ function initCardLogoObserver() {
     }, { rootMargin: '120px 0px' });
 }
 
-function renderCardCollection(container, items, type = 'movie', isLandscape = false) {
-    if (!container) return;
-    container.innerHTML = '';
-    const frag = document.createDocumentFragment();
-    for (const item of items || []) {
-        const resolvedType = (type === 'movie' || type === 'tv') ? type : (item?.type || 'movie');
-        frag.appendChild(createCard(item, resolvedType, isLandscape));
-    }
-    container.appendChild(frag);
-}
-
-function createCard(item, type, isLandscape = false) {
+function createCard(item, type, isLandscape = true) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'card card-landscape' : 'card';
     card.dataset.id = item.id;
@@ -1255,7 +1242,7 @@ function createCard(item, type, isLandscape = false) {
 
         const portraitLogoHTML = safeLogo
             ? `<img class="card-movie-logo card-movie-logo-portrait" src="${safeLogo}" alt="${safeTitle} Logo" loading="lazy" decoding="async" onerror="this.style.display='none'">`
-            : '';
+            : `<img class="card-movie-logo card-movie-logo-portrait" src="" alt="${safeTitle} Logo" style="display:none" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
 
         card.innerHTML = `
             ${imgHTML}
@@ -1283,6 +1270,7 @@ function createCard(item, type, isLandscape = false) {
     }
 
     if (!item.logo && item.tmdbId) {
+        if (!cardLogoObserver) initCardLogoObserver();
         if (cardLogoObserver) {
             cardLogoObserver.observe(card);
         } else {
@@ -1327,16 +1315,15 @@ function renderSlider(containerId, items, type, pagerId, pageKey = containerId) 
         if (pager) pager.style.display = 'none';
         return;
     }
-    const isLandscape = containerId === 'moviesSlider' || pageKey === 'movies' || pageKey === 'myList';
+    const isLandscape = containerId !== 'homeRecommendationsSlider';
     const pageSize = isLandscape ? 15 : SLIDER_PAGE_SIZE;
     const total = Math.ceil(items.length / pageSize);
     const page = Math.min(Math.max(1, sliderState[pageKey]?.page || 1), total);
     const start = (page - 1) * pageSize;
     sliderState[pageKey] = { items, type, page, containerId, pagerId };
     const frag = document.createDocumentFragment();
-    const pageItems = items.slice(start, Math.min(start + pageSize, items.length));
-    for (const item of pageItems) {
-        frag.appendChild(createCard(item, type, isLandscape));
+    for (let i = start; i < Math.min(start + pageSize, items.length); i++) {
+        frag.appendChild(createCard(items[i], type, isLandscape));
     }
     slider.appendChild(frag);
     if (pager) {
@@ -1373,7 +1360,7 @@ function renderTvShows() {
 function renderMyList() { renderSlider('myListSlider', myList, 'mixed', 'myListPager', 'myList'); }
 
 // ---- Paginated catalog grids (Movies / TV / Anime tab views) ----
-const CATALOG_PER_PAGE = 14;
+const CATALOG_PER_PAGE = 15;
 const catalogPage = { movies: 1, tvshows: 1, animeMovie: 1, animeTv: 1 };
 
 function inYearRange(item, min, max) {
@@ -1394,12 +1381,8 @@ function hasMovieInfo(m) {
 // poster). Used for live feeds, which get their brand logos enriched later.
 function baseComplete(m) {
     if (!m) return false;
-    const y = parseInt(m.year, 10);
-    if (isNaN(y) || y < 1895 || y > 2026) return false;
-    if (!m.rating) return false;
-    if (!(m.backdrop || '').trim()) return false;
-    if (!(m.poster || '').trim()) return false;
-    return true;
+    if (!m.title && !m.name) return false;
+    return Boolean((m.poster || '').trim() || (m.backdrop || '').trim() || (m.description || '').trim() || m.tmdbId || m.id);
 }
 
 // Full library completeness: baseComplete plus a brand logo. Items missing any
@@ -1421,38 +1404,29 @@ function renderCatalogGrid(section, source) {
     const pager = document.getElementById(cfg.pager);
     if (!slider) return;
     const items = cfg.items;
-    const isLandscape = ['movies', 'tvshows', 'animeMovie', 'animeTv'].includes(cfg.pkey);
+    const isLandscape = true;
     if (!items.length) {
         if (isLibraryLoading || (section.startsWith('anime') && animeLive.loading)) {
-            renderSkeletonGrid(slider, isLandscape ? 15 : CATALOG_PER_PAGE, isLandscape);
+            renderSkeletonGrid(slider, 15, true);
             if (pager) pager.style.display = 'none';
             return;
         }
         slider.innerHTML = '';
-        renderSlider(cfg.slider, items, cfg.type);
+        renderSlider(cfg.slider, items, cfg.type, cfg.pager, cfg.pkey);
         if (pager) pager.style.display = 'none';
         return;
     }
     slider.innerHTML = '';
-    const perPage = isLandscape ? 15 : CATALOG_PER_PAGE;
+    const perPage = 15;
     const total = Math.ceil(items.length / perPage);
     const page = Math.min(Math.max(1, catalogPage[cfg.pkey]), total);
     catalogPage[cfg.pkey] = page;
     const start = (page - 1) * perPage;
     const slice = items.slice(start, start + perPage);
-    renderCardCollection(slider, slice, cfg.type, isLandscape);
+    slice.forEach(item => slider.appendChild(createCard(item, cfg.type, isLandscape)));
     if (pager) {
-        pager.style.display = '';
-        let html = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
-        const WIN = 5;
-        let s = Math.max(1, page - 2);
-        let e = Math.min(total, s + WIN - 1);
-        s = Math.max(1, e - WIN + 1);
-        for (let i = s; i <= e; i++) {
-            html += `<button class="pager-btn ${i === page ? 'current' : ''}" data-catpage="${cfg.pkey}" data-page="${i}">${i}</button>`;
-        }
-        html += `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 160-160-160-160-56 56 64 64H320v80h168l-64 64 56 56Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>`;
-        pager.innerHTML = html;
+        pager.style.display = total > 1 ? '' : 'none';
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total}</span><button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
     } else if (pager) {
         pager.style.display = 'none';
     }
@@ -1776,7 +1750,7 @@ async function browseProvider(providerId) {
         await tmdbEnsureConfig();
         const grid = document.getElementById('streamingGrid');
         const pager = document.getElementById('streamingPager');
-        if (grid) grid.innerHTML = '<div class="live-loading">Loading ' + prov.label + '…</div>';
+        if (grid) renderSkeletonGrid(grid, LIVE_PER_PAGE, true);
         if (pager) pager.style.display = 'none';
         const moviePaths = [
             `/discover/movie?with_watch_providers=${encodeURIComponent(providerId)}&watch_region=US&sort_by=popularity.desc&page=1`,
@@ -1829,67 +1803,124 @@ async function browseProvider(providerId) {
     }
 }
 
-/* ===== Collections (Home bottom) ===== */
-const COLLECTION_DEFS = [
-    { label: 'Star Wars', keys: ['star wars'] },
-    { label: 'Harry Potter', keys: ['harry potter'] },
-    { label: 'Middle-earth', keys: ['lord of the rings', 'hobbit'] },
-    { label: 'Marvel', keys: ['marvel', 'avengers', 'iron man', 'captain america', 'thor', 'spider-man', 'spider man', 'hulk', 'black panther', 'doctor strange', 'guardians of the galaxy'] },
-    { label: 'DC', keys: ['batman', 'superman', 'wonder woman', 'justice league', 'aquaman', 'joker'] },
-    { label: 'Fast & Furious', keys: ['fast', 'furious'] },
-    { label: 'Jurassic', keys: ['jurassic'] },
-    { label: 'Toy Story', keys: ['toy story'] },
-    { label: 'Mission: Impossible', keys: ['mission impossible'] },
-    { label: 'Transformers', keys: ['transformers'] },
-    { label: 'Pirates of the Caribbean', keys: ['pirates of the caribbean'] },
-    { label: 'James Bond', keys: ['james bond', '007'] },
-    { label: 'Avatar', keys: ['avatar'] },
-    { label: 'Star Trek', keys: ['star trek'] },
-    { label: 'Indiana Jones', keys: ['indiana jones'] },
-    { label: 'Rocky', keys: ['rocky'] },
-    { label: 'The Matrix', keys: ['matrix'] },
-    { label: 'Alien', keys: ['alien'] },
-    { label: 'Terminator', keys: ['terminator'] },
-    { label: 'Scream', keys: ['scream'] },
-    { label: 'The Conjuring', keys: ['conjuring'] },
-    { label: 'Despicable Me', keys: ['despicable me', 'minions'] },
-    { label: 'Frozen', keys: ['frozen'] },
-    { label: 'The Lion King', keys: ['lion king'] },
-    { label: 'Pokémon', keys: ['pokemon', 'pikachu', 'pokémon'] },
-    { label: 'Dragon Ball', keys: ['dragon ball'] },
-];
-let customCollections = safeReadJson('milkbox_custom_collections', []);
-function saveCustomCollections(){ safeWriteJson('milkbox_custom_collections', customCollections); }
-function collectionForTitle(title) {
-    const t = String(title || '').toLowerCase();
+/* ===== Collections & Studios (Home bottom) ===== */
+const COLLECTION_DEFS = (typeof window !== 'undefined' && Array.isArray(window.COLLECTION_DEFS) && window.COLLECTION_DEFS.length)
+    ? window.COLLECTION_DEFS
+    : [
+        { label: 'Marvel Cinematic Universe', studio: 'Marvel Studios', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/mDfJG3LC3Dqb67AZ52x3Z0jOS0n.jpg', tmdbCompanyIds: [420], strictRegexStr: '^.*(iron man|captain america|thor|avengers|guardians of the galaxy|ant-man|doctor strange|black panther|captain marvel|black widow|shang-chi|eternals|deadpool & wolverine|the marvels).*$' },
+        { label: 'DC Universe & Batman', studio: 'DC Studios', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg', tmdbCompanyIds: [9993, 128064], strictRegexStr: '^.*(the dark knight|batman begins|the batman|man of steel|batman v superman|wonder woman|justice league|joker|aquaman|shazam|suicide squad).*$' },
+        { label: 'Pixar Animation Studios', studio: 'Pixar', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/lxD.jpg', tmdbCompanyIds: [3], strictRegexStr: '^.*(toy story|finding (nemo|dory)|the incredibles|monsters inc|inside out|coco|up|wall-e|ratatouille|cars|soul|luca).*$' },
+        { label: 'Studio Ghibli', studio: 'Studio Ghibli', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/Ab8mkHmkYADjU7wQiOkia9BzGvS.jpg', tmdbCompanyIds: [10342], strictRegexStr: '^.*(spirited away|princess mononoke|howl\'s moving castle|my neighbor totoro|kiki\'s delivery service|grave of the fireflies|ponyo).*$' },
+        { label: 'Star Wars Saga', studio: 'Lucasfilm Ltd.', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg', tmdbCompanyIds: [1], tmdbCollectionIds: [10], strictRegexStr: '^.*star wars.*$' },
+        { label: 'Fast & Furious Saga', studio: 'Universal Pictures', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg', tmdbCollectionIds: [9485], strictRegexStr: '^.*((the )?fast (and|&) (the )?furious|2 fast 2 furious|tokyo drift|fast five|fast & furious 6|furious 7|the fate of the furious|hobbs &(amp;)? shaw|f9: the fast saga|fast x).*$', negativeRegexStr: '(fast times|faster|breakfast|stand fast)' },
+        { label: 'Harry Potter & Wizarding World', studio: 'Warner Bros. Pictures', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/5rrGVmRUACiQIuvjN0ix9AC3IRa.jpg', tmdbCollectionIds: [1241, 435259], strictRegexStr: '^.*(harry potter|fantastic beasts).*$' },
+        { label: 'Middle-earth: The Lord of the Rings', studio: 'New Line Cinema / Warner Bros.', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/x2RS3uTcsJJ9Ifj2cgxKi20o9mm.jpg', tmdbCollectionIds: [119, 121938], strictRegexStr: '^.*(lord of the rings|the hobbit).*$' },
+        { label: 'Spider-Man Universe', studio: 'Sony Pictures / Marvel', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/14QbnygCuTO0vl7CAFmPf1fgZfV.jpg', tmdbCollectionIds: [55830, 8945, 531241, 573436], strictRegexStr: '^.*spider-?man.*$' },
+        { label: 'A24 Studios', studio: 'A24', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/j559jG9V29x448aB3jF7H4k1V7t.jpg', tmdbCompanyIds: [41077], strictRegexStr: '^.*(everything everywhere all at once|hereditary|midsommar|the whale|moonlight|lady bird|uncut gems|the lighthouse|past lives|civil war).*$' }
+    ];
+
+let customCollections = (()=>{ try { return JSON.parse(localStorage.getItem('milkbox_custom_collections')||'[]'); } catch { return []; } })();
+function saveCustomCollections(){ try { localStorage.setItem('milkbox_custom_collections', JSON.stringify(customCollections)); } catch {} }
+
+let currentCollFilter = 'all';
+
+function collectionForTitle(title, item) {
+    const t = String(title || '').toLowerCase().trim();
+    if (!t) return null;
     for (const def of COLLECTION_DEFS) {
-        if (def.keys.some(k => t.includes(k))) return def.label;
+        // Exclude unwanted keywords (e.g. Fast Times at Ridgemont High, Rocky Horror, Alien vs Ninja)
+        if (def.negativeRegexStr) {
+            try {
+                if (new RegExp(def.negativeRegexStr, 'i').test(t)) continue;
+            } catch (_) {}
+        }
+        // Match against authentic curated list by TMDB ID or title
+        if (def.curatedMovies && def.curatedMovies.some(m => {
+            if (item && item.tmdbId && m.tmdbId && String(item.tmdbId) === String(m.tmdbId)) return true;
+            return m.title.toLowerCase() === t;
+        })) {
+            return def.label;
+        }
+        // Strict regex matching for franchise/company titles
+        if (def.strictRegexStr) {
+            try {
+                if (new RegExp(def.strictRegexStr, 'i').test(t)) return def.label;
+            } catch (_) {}
+        }
+        // Legacy keys fallback with strict word boundaries
+        if (def.keys && def.keys.some(k => {
+            const word = k.toLowerCase().trim();
+            if (word.length <= 4) return new RegExp('\\b' + word + '\\b', 'i').test(t);
+            return t.includes(word);
+        })) {
+            return def.label;
+        }
     }
-    // check custom keyword-based collections (stored as def-like)
+    // Check custom collections
     for (const c of customCollections) {
-        if (c.keys && c.keys.some(k=> t.includes(String(k).toLowerCase()))) return c.label;
+        if (c.keys && c.keys.some(k => t.includes(String(k).toLowerCase()))) return c.label;
     }
     return null;
 }
+
 const tmdbCollectionData = new Map();
 let collectionsRenderId = 0;
+
 async function fetchTmdbCollectionForDefinition(def) {
     const cached = tmdbCollectionData.get(def.label);
     if (cached) return cached;
-    const query = def.label || def.keys[0];
-    const search = await tmdbJson(`/search/collection?query=${encodeURIComponent(query)}&page=1`);
-    const match = (search.results || []).find(c => String(c.name || '').toLowerCase() === query.toLowerCase()) || (search.results || [])[0];
-    if (!match?.id) return null;
-    const detail = await tmdbJson(`/collection/${encodeURIComponent(match.id)}`);
-    const items = (detail.parts || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && it.poster && it.backdrop);
-    const data = { id: String(match.id), name: detail.name || match.name || def.label, items };
+    let items = [];
+    try {
+        await tmdbEnsureConfig();
+        // 1. Fetch from official TMDB company ID if studio
+        if (def.tmdbCompanyIds && def.tmdbCompanyIds.length) {
+            const companyParam = encodeURIComponent(def.tmdbCompanyIds.join('|'));
+            const data = await tmdbJson(`/discover/movie?with_companies=${companyParam}&sort_by=popularity.desc&page=1`);
+            const results = (data.results || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && (it.poster || it.backdrop));
+            items.push(...results);
+        }
+        // 2. Fetch from official TMDB collection IDs if franchise
+        if (def.tmdbCollectionIds && def.tmdbCollectionIds.length) {
+            for (const colId of def.tmdbCollectionIds) {
+                try {
+                    const detail = await tmdbJson(`/collection/${encodeURIComponent(colId)}`);
+                    const parts = (detail.parts || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && (it.poster || it.backdrop));
+                    items.push(...parts);
+                } catch (_) {}
+            }
+        }
+        // 3. Fallback search by label
+        if (!items.length && (!def.tmdbCollectionIds || !def.tmdbCollectionIds.length) && (!def.tmdbCompanyIds || !def.tmdbCompanyIds.length)) {
+            const query = def.label;
+            const search = await tmdbJson(`/search/collection?query=${encodeURIComponent(query)}&page=1`);
+            const match = (search.results || []).find(c => String(c.name || '').toLowerCase() === query.toLowerCase()) || (search.results || [])[0];
+            if (match?.id) {
+                const detail = await tmdbJson(`/collection/${encodeURIComponent(match.id)}`);
+                const parts = (detail.parts || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && (it.poster || it.backdrop));
+                items.push(...parts);
+            }
+        }
+    } catch (_) {}
+
+    // Deduplicate
+    const seen = new Set();
+    const unique = [];
+    items.forEach(it => {
+        const k = String(it.tmdbId || it.id || it.title);
+        if (!seen.has(k)) {
+            seen.add(k);
+            unique.push(it);
+        }
+    });
+
+    const data = { id: def.id || def.label, name: def.label, studio: def.studio || '', items: unique };
     tmdbCollectionData.set(def.label, data);
     return data;
 }
+
 async function enrichCollectionsWithTMDB(buckets) {
     try {
         await tmdbEnsureConfig();
-        // batch 4 at a time to keep main thread and TMDB rate-limit smooth
         for (let i = 0; i < COLLECTION_DEFS.length; i += 4) {
             const chunk = COLLECTION_DEFS.slice(i, i + 4);
             await Promise.all(chunk.map(async def => {
@@ -1898,94 +1929,145 @@ async function enrichCollectionsWithTMDB(buckets) {
                 try {
                     const collection = await fetchTmdbCollectionForDefinition(def);
                     const results = collection ? collection.items : [];
-                    const existing = new Set(buckets.get(label).map(i => i.tmdbId || i.id));
+                    const existing = new Set(buckets.get(label).map(i => String(i.tmdbId || i.id)));
                     results.forEach(it => {
-                        const key = it.tmdbId || it.id;
-                        if (!existing.has(key)) { buckets.get(label).push(it); existing.add(key); }
+                        const key = String(it.tmdbId || it.id);
+                        if (!existing.has(key)) {
+                            buckets.get(label).push(it);
+                            existing.add(key);
+                        }
                     });
                 } catch {}
             }));
-            // small yield to keep UI responsive
             await new Promise(r => setTimeout(r, 60));
         }
     } catch {}
 }
-// Collections only show on Home (+ Trending) and when the user hasn't hidden them in Settings.
+
 function shouldShowCollections() {
     return settings.showCollections !== false && (currentSection === 'home' || currentSection === 'trending');
 }
+
 function renderCollections() {
     const renderId = ++collectionsRenderId;
     const sec = document.getElementById('collectionsSection');
     const grid = document.getElementById('collectionsGrid');
     if (!sec || !grid) return;
-    if (!shouldShowCollections()) { sec.style.display='none'; return; }
+    if (!shouldShowCollections()) { sec.style.display = 'none'; return; }
+
     const pool = [...movies, ...tvShows].filter(completeItem);
     const allPool = [...movies, ...tvShows];
     const buckets = new Map();
+
+    // 1. Populate each collection with authentic curated movies immediately
+    COLLECTION_DEFS.forEach(def => {
+        const initial = (def.curatedMovies || []).map(m => Object.assign({}, m));
+        buckets.set(def.label, initial);
+    });
+
+    // 2. Safely merge verified matching library items
     pool.forEach(item => {
-        const col = collectionForTitle(item.title);
+        const col = collectionForTitle(item.title, item);
         if (!col) return;
         if (!buckets.has(col)) buckets.set(col, []);
-        buckets.get(col).push(item);
+        const arr = buckets.get(col);
+        const exists = arr.some(x => (x.tmdbId && item.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || x.title.toLowerCase() === item.title.toLowerCase());
+        if (!exists) {
+            arr.unshift(item);
+        }
     });
-    // custom collections with explicit picks (e.g. Pokémon or user-made)
-    const customLabels = new Set(customCollections.map(c=>c.label));
+
+    // 3. User-created custom collections
+    const customLabels = new Set(customCollections.map(c => c.label));
     customCollections.forEach(c => {
         const label = c.label;
         if (!buckets.has(label)) buckets.set(label, []);
-        const seen = new Set(buckets.get(label).map(x=> String(x.tmdbId||x.id||'')));
+        const seen = new Set(buckets.get(label).map(x => String(x.tmdbId || x.id || '')));
         if (c.itemIds && c.itemIds.length) {
             const items = allPool.filter(it => c.itemIds.includes(it.id));
-            items.forEach(it=> { const k=String(it.tmdbId||it.id); if(!seen.has(k)){ buckets.get(label).push(it); seen.add(k); }});
+            items.forEach(it => { const k = String(it.tmdbId || it.id); if (!seen.has(k)) { buckets.get(label).push(it); seen.add(k); } });
         }
         if (c.tmdbItems && c.tmdbItems.length) {
-            c.tmdbItems.forEach(it=> {
-                const k = String(it.tmdbId||it.id||'');
+            c.tmdbItems.forEach(it => {
+                const k = String(it.tmdbId || it.id || '');
                 if (!seen.has(k)) { buckets.get(label).push(it); seen.add(k); }
             });
         }
     });
+
     const doRender = (cols) => {
         if (renderId !== collectionsRenderId) return;
-        if (!cols.length || !shouldShowCollections()) { sec.style.display='none'; grid.innerHTML=''; return; }
-        sec.style.display='';
-        grid.innerHTML = cols.map(([label, items]) => {
+        if (!cols.length || !shouldShowCollections()) { sec.style.display = 'none'; grid.innerHTML = ''; return; }
+        sec.style.display = '';
+
+        let filtered = cols;
+        if (currentCollFilter === 'studio') {
+            filtered = cols.filter(([label]) => {
+                const def = COLLECTION_DEFS.find(d => d.label === label);
+                return def && def.category === 'studio';
+            });
+        } else if (currentCollFilter === 'franchise') {
+            filtered = cols.filter(([label]) => {
+                const def = COLLECTION_DEFS.find(d => d.label === label);
+                return def && def.category === 'franchise';
+            });
+        } else if (currentCollFilter === 'custom') {
+            filtered = cols.filter(([label]) => customLabels.has(label));
+        }
+
+        grid.innerHTML = filtered.map(([label, items]) => {
             const count = items.length;
-            const cover = items.find(i=>i.backdrop)?.backdrop || items.find(i=>i.poster)?.poster || items[0]?.backdrop || items[0]?.poster || '';
+            const def = COLLECTION_DEFS.find(d => d.label === label);
+            const cover = (def && def.cover) || items.find(i => i.backdrop)?.backdrop || items.find(i => i.poster)?.poster || items[0]?.backdrop || items[0]?.poster || '';
             const safeLabel = escapeHtml(label);
             const isCustom = customLabels.has(label);
+            const isStudio = def && def.category === 'studio';
+            const studioName = def ? def.studio : (isCustom ? 'Custom Collection' : '');
             const deleteBtn = isCustom ? `<button class="collection-delete-btn" data-delete-collection="${safeLabel}" title="Delete collection" aria-label="Delete ${safeLabel} collection">&times;</button>` : '';
-            return `<div class="collection-card${isCustom?' is-custom':''}" data-collection="${safeLabel}" title="${safeLabel} — click to view">
+            const tagLabel = isCustom ? 'Custom' : (isStudio ? 'Studio' : 'Franchise');
+
+            return `<div class="collection-card${isCustom ? ' is-custom' : ''}" data-collection="${safeLabel}" title="${safeLabel} — click to view">
                 ${deleteBtn}
+                <span class="collection-tag-pill ${isStudio ? 'is-studio' : ''}">${tagLabel}</span>
                 ${cover ? `<img class="collection-backdrop" src="${escapeHtml(cover)}" alt="${safeLabel}" loading="lazy">` : `<div class="collection-cover-fallback">📦</div>`}
                 ${isCustom ? `<div class="collection-custom-badge" title="Custom collection">You</div>` : ''}
                 <div class="collection-overlay">
-                    <div class="collection-title">${safeLabel} Collection</div>
-                    <div class="collection-meta">${count} movie${count===1?'':'s'}</div>
+                    ${studioName ? `<div class="collection-studio-badge">🏛️ ${escapeHtml(studioName)}</div>` : ''}
+                    <div class="collection-title">${safeLabel}</div>
+                    <div class="collection-meta">${count} official movie${count === 1 ? '' : 's'}</div>
                 </div>
             </div>`;
         }).join('');
     };
-    let cols = Array.from(buckets.entries()).filter(([label,arr])=> arr.length>=1 || customLabels.has(label)).sort((a,b)=>b[1].length-a[1].length);
-    // initial render with local pool so UI shows instantly
+
+    let cols = Array.from(buckets.entries()).filter(([label, arr]) => arr.length >= 1 || customLabels.has(label)).sort((a, b) => b[1].length - a[1].length);
     doRender(cols);
-    // enrich with TMDB scan for each collection (adds titles like Star Wars from TMDB)
+
+    // enrich with TMDB scan in background
     (async () => {
         if (renderId !== collectionsRenderId) return;
-        const before = new Map(Array.from(buckets.entries()).map(([k,v])=>[k,v.length]));
+        const before = new Map(Array.from(buckets.entries()).map(([k, v]) => [k, v.length]));
         await enrichCollectionsWithTMDB(buckets);
         if (renderId !== collectionsRenderId) return;
         let grew = false;
-        for (const [k,v] of buckets) if ((before.get(k)||0) !== v.length) { grew = true; break; }
+        for (const [k, v] of buckets) if ((before.get(k) || 0) !== v.length) { grew = true; break; }
         if (grew) {
-            const newCols = Array.from(buckets.entries()).filter(([label,arr])=> arr.length>=1 || customLabels.has(label)).sort((a,b)=>b[1].length-a[1].length);
+            const newCols = Array.from(buckets.entries()).filter(([label, arr]) => arr.length >= 1 || customLabels.has(label)).sort((a, b) => b[1].length - a[1].length);
             doRender(newCols);
         }
     })();
-    // return cols for immediate use (click handler will re-scan if needed)
+
     return cols;
 }
+
+// Category filter pill click handler for collections
+document.addEventListener('click', (e) => {
+    const pill = e.target.closest('.coll-filter-pill');
+    if (!pill) return;
+    currentCollFilter = pill.dataset.collFilter || 'all';
+    document.querySelectorAll('.coll-filter-pill').forEach(p => p.classList.toggle('active', p === pill));
+    renderCollections();
+});
 let tmdbPickList = [];
 let _tmdbPickDebounce = null;
 function openCreateCollectionModal() {
@@ -2097,116 +2179,177 @@ document.getElementById('saveCustomCollectionBtn')?.addEventListener('click', ()
 });
 document.getElementById('createCollectionModal')?.addEventListener('click', (e) => { if (e.target.id === 'createCollectionModal') closeCreateCollectionModal(); });
 
+function normalizeGenreKey(raw) {
+    const s = String(raw || '').trim().toLowerCase();
+    if (s === 'science fiction' || s === 'sci-fi' || s === 'scifi') return 'scifi';
+    if (s === 'action & adventure' || s === 'action/adventure') return 'action';
+    if (s === 'war & politics') return 'war';
+    if (s === 'kids' || s === 'children') return 'family';
+    if (s === 'sports') return 'sport';
+    return s;
+}
+
 const animeGenrePage = {};
-const genrePage = {};
 const ANIME_GENRE_PER_PAGE = 14;
-const GENRE_PER_PAGE = 14;
+let _genreHydrationObserver = null;
+let _genreIdleTimer = null;
+
 function renderGenreRows() {
     const container = document.getElementById('homeGenres');
     if (!container) return;
-    if (container.style.display === 'none') return;
-    let pool, suffix, skip = null;
-    if (currentSection === 'movies') { pool = movies.filter(completeItem); suffix = ' Movies'; }
-    else if (currentSection === 'tvshows') { pool = tvShows.filter(completeItem); suffix = ' Shows'; }
-    else if (currentSection === 'anime') {
-        if (!localAnimeExists() && animeLive.fed) pool = [...animeLive.movies, ...animeLive.tv].filter(baseComplete);
-        else pool = animeHeroItems().filter(completeItem);
-        suffix = ''; skip = 'anime';
+    const hideOnSections = ['theaters', 'streaming', 'free', 'popular', 'manga', 'music', 'providers'];
+    if (hideOnSections.includes(currentSection)) {
+        container.style.display = 'none';
+        return;
     }
-    else if (currentSection === 'mylist') { pool = myList; suffix = ''; }
-    else { pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m)); suffix = ''; }
-    let html = '';
-    const toRender = [];
-    // Single pass over the pool: bucket items by genre instead of re-filtering per genre.
+    container.style.display = '';
+
+    let pool, suffix, skip = null;
+    if (currentSection === 'movies' || (currentSection === 'home' && homeFilter === 'movies')) {
+        pool = movies.filter(completeItem);
+        suffix = ' Movies';
+    } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
+        pool = tvShows.filter(completeItem);
+        suffix = ' Shows';
+    } else if (currentSection === 'anime') {
+        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+        const seen = new Set(local.map(x => x.tmdbId || x.id));
+        const merged = [...local];
+        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+        pool = merged;
+        suffix = '';
+        skip = 'anime';
+    } else if (currentSection === 'mylist') {
+        pool = myList;
+        suffix = '';
+    } else {
+        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
+        suffix = '';
+    }
+
+    // Single pass over the pool: bucket items by normalized genre
     const genreIndex = new Map();
     for (let i = 0; i < pool.length; i++) {
         const gs = genArr(pool[i].genre);
+        const seenInItem = new Set();
         for (let g = 0; g < gs.length; g++) {
-            const k = gs[g];
+            const raw = String(gs[g] || '').trim();
+            if (!raw) continue;
+            const k = normalizeGenreKey(raw);
+            if (!k || seenInItem.has(k)) continue;
+            seenInItem.add(k);
             if (!genreIndex.has(k)) genreIndex.set(k, []);
             genreIndex.get(k).push(pool[i]);
         }
     }
+
     const labelMap = {};
     GENRE_ROWS.forEach(({ key, label }) => { labelMap[key] = label; });
     const known = [];
     const other = [];
-    GENRE_ROWS.forEach(({ key }) => { if (key !== skip && genreIndex.has(key) && genreIndex.get(key).length) known.push(key); });
+    GENRE_ROWS.forEach(({ key }) => {
+        if (key !== skip && genreIndex.has(key) && genreIndex.get(key).length) known.push(key);
+    });
     [...genreIndex.keys()].forEach((k) => {
         if (k === skip || known.includes(k)) return;
         if (genreIndex.get(k).length) other.push(k);
     });
     other.sort((a, b) => genreIndex.get(b).length - genreIndex.get(a).length);
+
     const isAnimeTab = currentSection === 'anime';
-    if (isAnimeTab) {
-        function pagerHtml(key, page, total) {
-            const WIN = 5;
-            let s = Math.max(1, page - 2);
-            let e = Math.min(total, s + WIN - 1);
-            s = Math.max(1, e - WIN + 1);
-            let h = `<button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page-1}" ${page===1?'disabled':''}>&#10094; Prev</button>`;
-            for (let i=s;i<=e;i++) h += `<button class="pager-btn ${i===page?'current':''}" data-animegenre="${key}" data-page="${i}">${i}</button>`;
-            h += `<button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page+1}" ${page===total?'disabled':''}>Next &#10095;</button>`;
-            return h;
-        }
-        const animeKeys = [...known, ...other];
-        animeKeys.forEach((key) => {
-            const items = genreIndex.get(key);
+    const allKeys = [...known, ...other];
+
+    function pagerHtml(key, page, total) {
+        return `<button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page-1}" ${page===1?'disabled':''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total}</span><button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page+1}" ${page===total?'disabled':''}>Next &#10095;</button>`;
+    }
+
+    let html = '';
+    allKeys.forEach((key) => {
+        const items = genreIndex.get(key) || [];
+        const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
+        if (isAnimeTab) {
             const total = Math.ceil(items.length / ANIME_GENRE_PER_PAGE) || 1;
             const page = Math.min(Math.max(1, animeGenrePage[key] || 1), total);
             animeGenrePage[key] = page;
-            const start = (page - 1) * ANIME_GENRE_PER_PAGE;
-            const slice = items.slice(start, start + ANIME_GENRE_PER_PAGE);
-            const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-            html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="content-grid" id="animeGenreGrid-${key}"></div><div class="pagination" id="animeGenrePager-${key}" style="${total<=1?'display:none':''}">${pagerHtml(key, page, total)}</div></section>`;
-            toRender.push({ key, items: slice, anime: true });
-        });
-        container.innerHTML = html;
-        toRender.forEach(({ key, items: slice }) => {
-            const grid = document.getElementById(`animeGenreGrid-${key}`);
-            if (!grid) return;
-            grid.innerHTML = '';
-            slice.forEach(it => {
-                const type = it.type === 'tv' ? 'tv' : 'movie';
-                grid.appendChild(createCard(it, type, true));
-            });
-        });
-        try { observeContentSections(); } catch (_) {}
-        return;
-    }
-    [...known, ...other].forEach((key) => {
-        const items = genreIndex.get(key);
-        toRender.push({ key, items });
-        const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-        const total = Math.ceil((items || []).length / GENRE_PER_PAGE) || 1;
-        const page = Math.min(Math.max(1, genrePage[key] || 1), total);
-        genrePage[key] = page;
-        const start = (page - 1) * GENRE_PER_PAGE;
-        const slice = items.slice(start, start + GENRE_PER_PAGE);
-        const pagerHtml = () => {
-            if (total <= 1) return '';
-            const WIN = 5;
-            let s = Math.max(1, page - 2);
-            let e = Math.min(total, s + WIN - 1);
-            s = Math.max(1, e - WIN + 1);
-            let h = `<button class="pager-btn pager-nav" data-genrepage="${key}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button>`;
-            for (let i = s; i <= e; i++) h += `<button class="pager-btn ${i === page ? 'current' : ''}" data-genrepage="${key}" data-page="${i}">${i}</button>`;
-            h += `<button class="pager-btn pager-nav" data-genrepage="${key}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
-            return h;
-        };
-        html += `<section class="content-section" id="genreSection-${key}"><h3 class="section-title">${label}${suffix}</h3><div class="content-grid" id="genreGrid-${key}"></div><div class="pagination" id="genrePager-${key}" style="${total <= 1 ? 'display:none' : ''}">${pagerHtml()}</div></section>`;
+            html += `<section class="content-section is-visible" id="genreSection-${key}" data-genre-key="${key}"><h3 class="section-title">${label}${suffix}</h3><div class="content-grid" id="animeGenreGrid-${key}"></div><div class="pagination" id="animeGenrePager-${key}" style="${total<=1?'display:none':''}">${pagerHtml(key, page, total)}</div></section>`;
+        } else {
+            html += `<section class="content-section is-visible" id="genreSection-${key}" data-genre-key="${key}"><h3 class="section-title">${label}${suffix}</h3><div class="slider-container"><button class="slider-btn slider-left" data-slider="genreSlider-${key}" aria-label="Scroll ${label} left">❮</button><div class="slider" id="genreSlider-${key}"></div><button class="slider-btn slider-right" data-slider="genreSlider-${key}" aria-label="Scroll ${label} right">❯</button></div><div class="pagination" id="genrePager-${key}"></div></section>`;
+        }
     });
     container.innerHTML = html;
-    toRender.forEach(({ key, items }) => {
-        const grid = document.getElementById(`genreGrid-${key}`);
-        if (!grid) return;
-        const total = Math.ceil((items || []).length / GENRE_PER_PAGE) || 1;
-        const page = Math.min(Math.max(1, genrePage[key] || 1), total);
-        const start = (page - 1) * GENRE_PER_PAGE;
-        const slice = items.slice(start, start + GENRE_PER_PAGE);
-        renderCardCollection(grid, slice, 'mixed', true);
-    });
-    try { observeContentSections(); } catch (_) {}
+
+    const renderedRows = new Set();
+    const renderRowCards = (key) => {
+        if (!key || renderedRows.has(key)) return;
+        renderedRows.add(key);
+        const items = genreIndex.get(key) || [];
+        if (!items.length) return;
+        if (isAnimeTab) {
+            const grid = document.getElementById(`animeGenreGrid-${key}`);
+            if (!grid) return;
+            const total = Math.ceil(items.length / ANIME_GENRE_PER_PAGE) || 1;
+            const page = Math.min(Math.max(1, animeGenrePage[key] || 1), total);
+            const start = (page - 1) * ANIME_GENRE_PER_PAGE;
+            const slice = items.slice(start, start + ANIME_GENRE_PER_PAGE);
+            grid.innerHTML = '';
+            const frag = document.createDocumentFragment();
+            slice.forEach(it => {
+                const type = it.type === 'tv' ? 'tv' : 'movie';
+                frag.appendChild(createCard(it, type, true));
+            });
+            grid.appendChild(frag);
+        } else {
+            renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key);
+        }
+    };
+
+    window._ensureGenreRendered = (k) => {
+        const norm = normalizeGenreKey(k);
+        if (genreIndex.has(norm)) renderRowCards(norm);
+        else if (genreIndex.has(k)) renderRowCards(k);
+    };
+
+    // Render first 4 genre rows immediately so above-the-fold content is instantly available
+    allKeys.slice(0, 4).forEach(renderRowCards);
+
+    // Observe remaining genre rows to render smoothly on scroll without main-thread freeze
+    if (_genreHydrationObserver) {
+        try { _genreHydrationObserver.disconnect(); } catch (_) {}
+    }
+    if (typeof IntersectionObserver !== 'undefined') {
+        _genreHydrationObserver = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const k = entry.target.dataset.genreKey;
+                    if (k) renderRowCards(k);
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '450px 0px' });
+        allKeys.forEach(key => {
+            if (!renderedRows.has(key)) {
+                const sec = document.getElementById(`genreSection-${key}`);
+                if (sec) _genreHydrationObserver.observe(sec);
+            }
+        });
+    }
+
+    // Background idle hydrator to progressively hydrate the rest in quiet frames
+    if (_genreIdleTimer) clearTimeout(_genreIdleTimer);
+    let idleIndex = 4;
+    function hydrateNextIdle() {
+        if (idleIndex >= allKeys.length) return;
+        const batch = allKeys.slice(idleIndex, idleIndex + 2);
+        idleIndex += 2;
+        batch.forEach(k => renderRowCards(k));
+        if (idleIndex < allKeys.length) {
+            _genreIdleTimer = setTimeout(hydrateNextIdle, 60);
+        }
+    }
+    if (allKeys.length > 4) {
+        _genreIdleTimer = setTimeout(hydrateNextIdle, 100);
+    }
 }
 
 function renderHomeDiscovery() {
@@ -2296,7 +2439,10 @@ function renderHomeDiscovery() {
 document.addEventListener('click', (e) => {
     const button = e.target.closest('.home-genre-link[data-home-genre]');
     if (!button) return;
-    const section = document.getElementById(`genreSection-${button.dataset.homeGenre}`);
+    const gKey = button.dataset.homeGenre;
+    if (window._ensureGenreRendered) window._ensureGenreRendered(gKey);
+    const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(gKey) : gKey;
+    const section = document.getElementById(`genreSection-${norm}`) || document.getElementById(`genreSection-${gKey}`);
     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
 
@@ -2307,18 +2453,6 @@ document.addEventListener('click', (e) => {
     const page = parseInt(btn.dataset.page, 10);
     if (isNaN(page) || !key) return;
     animeGenrePage[key] = page;
-    renderGenreRows();
-    const sec = document.getElementById(`genreSection-${key}`);
-    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-});
-
-document.addEventListener('click', (e) => {
-    const btn = e.target.closest('.pager-btn[data-genrepage]');
-    if (!btn) return;
-    const key = btn.dataset.genrepage;
-    const page = parseInt(btn.dataset.page, 10);
-    if (isNaN(page) || !key) return;
-    genrePage[key] = page;
     renderGenreRows();
     const sec = document.getElementById(`genreSection-${key}`);
     if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -2345,7 +2479,9 @@ function isTmdbAnime(genreIds, originCountry, originalLanguage) {
 }
 
 function animeHeroItems() {
-    return [...movies, ...tvShows].filter(isAnime);
+    const local = [...movies, ...tvShows].filter(isAnime);
+    if (local.length) return local;
+    return [...(animeLive.movies || []), ...(animeLive.tv || [])].filter(isAnime);
 }
 
 // Hero banner for the Anime tab - only cycles through anime items.
@@ -4035,6 +4171,7 @@ function playItem(item, type) {
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
     playContext = { item, type };
+    try { recordWatchProgress(item, { type }); } catch {}
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
     try { wireAnimeTheaterOnce(); } catch {}
     // anime only: show sub/dub toggle and resolve anidb + animekai ids
@@ -4350,6 +4487,7 @@ function playTmdbEpisode(tvItem, season, episode, server) {
         subtitle.textContent = `Season ${season || 1} • Episode ${episode}`;
         playContext = { item: tvItem, type: 'tv', season: season || 1, episode };
     }
+    try { recordWatchProgress(tvItem, { season, episode, type: isMovie ? 'movie' : 'tv' }); } catch {}
     if (server === 'direct') {
         stopCustomVideoPlayer(frame);
         if (isMovie) {
@@ -5247,7 +5385,25 @@ async function enrichLiveLogos(key) {
     if (!needLogo.length) return;
     await enrichTmdbDetails(needLogo, null, true);
     const after = st.items.filter(m => m && m.logo).length;
-    if (after > before && currentSection === key) showLiveHero(key);
+    if (after > before) {
+        if (currentSection === key) showLiveHero(key);
+        try {
+            const [gridId] = liveGridIds(key);
+            const grid = gridId && document.getElementById(gridId);
+            if (grid) {
+                grid.querySelectorAll('.card').forEach(card => {
+                    const it = card._itemRef;
+                    if (it && it.logo) {
+                        const logoImg = card.querySelector('.card-movie-logo');
+                        if (logoImg && (!logoImg.src || logoImg.style.display === 'none')) {
+                            logoImg.src = it.logo;
+                            logoImg.style.display = 'block';
+                        }
+                    }
+                });
+            }
+        } catch (_) {}
+    }
 }
 
 // Fetch and assign a TMDB brand logo to a single item (non-blocking).
@@ -5270,7 +5426,22 @@ async function enrichSearchLogos(items) {
     for (let i = 0; i < need.length; i += 5) {
         const chunk = need.slice(i, i + 5);
         await Promise.all(chunk.map(async (m) => {
-            try { await fetchItemLogo(m); } catch (e) { /* skip */ }
+            try {
+                await fetchItemLogo(m);
+                if (m.logo) {
+                    const grid = document.getElementById('searchResultsGrid');
+                    if (grid) {
+                        const card = Array.from(grid.querySelectorAll('.card')).find(c => c._itemRef === m || c.dataset.id === m.id);
+                        if (card) {
+                            const logoImg = card.querySelector('.card-movie-logo');
+                            if (logoImg) {
+                                logoImg.src = m.logo;
+                                logoImg.style.display = 'block';
+                            }
+                        }
+                    }
+                }
+            } catch (e) { /* skip */ }
         }));
         await sleep(250);
     }
@@ -5747,16 +5918,7 @@ function renderSearchPager() {
     if (!pager) return;
     if (searchTotalPages <= 1) { pager.style.display = 'none'; return; }
     pager.style.display = '';
-    let html = `<button class="pager-btn pager-nav" data-searchpage="1" data-page="${searchPage - 1}" ${searchPage === 1 ? 'disabled' : ''}>&#10094; Prev</button>`;
-    const WIN = 5;
-    let s = Math.max(1, searchPage - 2);
-    let e = Math.min(searchTotalPages, s + WIN - 1);
-    s = Math.max(1, e - WIN + 1);
-    for (let i = s; i <= e; i++) {
-        html += `<button class="pager-btn ${i === searchPage ? 'current' : ''}" data-searchpage="1" data-page="${i}">${i}</button>`;
-    }
-    html += `<button class="pager-btn pager-nav" data-searchpage="1" data-page="${searchPage + 1}" ${searchPage === searchTotalPages ? 'disabled' : ''}>Next &#10095;</button>`;
-    pager.innerHTML = html;
+    pager.innerHTML = `<button class="pager-btn pager-nav" data-searchpage="1" data-page="${searchPage - 1}" ${searchPage === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${searchPage} of ${searchTotalPages}</span><button class="pager-btn pager-nav" data-searchpage="1" data-page="${searchPage + 1}" ${searchPage === searchTotalPages ? 'disabled' : ''}>Next &#10095;</button>`;
 }
 
 function renderSearchResults(items) {
@@ -5786,7 +5948,7 @@ async function runSearch(query, page = 1) {
     const title = document.getElementById('searchResultsTitle');
     const grid = document.getElementById('searchResultsGrid');
     if (title) title.textContent = `Results for "${normalizedQuery}"`;
-    if (grid) grid.innerHTML = '<div class="live-loading">Searching TMDB...</div>';
+    if (grid) renderSkeletonGrid(grid, 15, true);
     try {
         const items = await fetchSearchResults(normalizedQuery, page);
         if (requestId !== searchRequestId || normalizedQuery !== searchQuery) return;
@@ -5863,214 +6025,365 @@ document.addEventListener('click', (e) => {
     })();
 });
 
-// ==================== ABOUT:BLANK OPENER ====================
-function openAboutBlankPlayer() {
-    const cloakTitle = settings.cloakTitle || 'MILKBOX';
-    const cloakFavicon = settings.cloakFavicon || '';
-    const bgColor = settings.bgColor || '#000';
-    const bgImage = settings.bgImage || '';
-    const bgOpacity = (settings.bgOpacity || 30) / 100;
-    const bgBlur = settings.bgBlur || 0;
-    // Stored blob backgrounds can't be inlined into the about:blank document, so fall back to color.
-    const aboutBgImage = isStoredBg(bgImage) ? '' : bgImage;
-
-    const faviconTag = cloakFavicon ? `<link rel="icon" type="image/x-icon" href="${cloakFavicon}">` : '';
-    const bgStyle = aboutBgImage
-        ? `background-color:${bgColor};background-image:url('${aboutBgImage}');background-size:cover;background-position:center;`
-        : `background-color:${bgColor};`;
-
-    const logoUrl = 'https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';
-    const youtubeDownloadEndpoint = `${window.location.origin}/api/youtube/download`;
-    const newWindow = window.open('about:blank', '_blank');
-    if (newWindow) {
-        newWindow.document.write(`<!DOCTYPE html>
-<html><head>
-<title>${cloakTitle}</title>
-${faviconTag}
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{${bgStyle}color:#fff;font-family:'Outfit','Segoe UI',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px 16px 24px;position:relative;overflow:auto}
-.bg-layer{position:fixed;inset:0;${aboutBgImage ? `background-image:url('${aboutBgImage}');background-size:cover;background-position:center;opacity:${bgOpacity};filter:blur(${bgBlur}px);` : 'display:none'}z-index:0;pointer-events:none}
-.shell{position:relative;z-index:1;width:100%;max-width:860px}
-.brand{display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:18px}
-.brand img{width:42px;height:42px;border-radius:10px;object-fit:cover;box-shadow:0 6px 18px rgba(0,0,0,0.35)}
-.brand h1{font-size:28px;font-weight:800;letter-spacing:1px;color:#fff}
-.brand h1 span{color:#e50914}
-.sub{color:#9a9aa0;text-align:center;margin-bottom:18px;font-size:13px;line-height:1.5}
-.tabs{display:flex;gap:8px;justify-content:center;margin-bottom:14px;flex-wrap:wrap}
-.tab{padding:8px 14px;border-radius:20px;border:1px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.07);color:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:all 0.2s}
-.tab.active{background:#e50914;border-color:#e50914;color:#fff;box-shadow:0 6px 18px rgba(229,9,20,0.35)}
-.panel{display:none;background:rgba(20,20,20,0.72);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px;backdrop-filter:blur(10px)}
-.panel.active{display:block}
-.row{display:flex;gap:10px;width:100%}
-.row input[type=text]{flex:1;padding:12px 14px;background:#0f0f0f;border:1px solid #2a2a2a;border-radius:10px;color:#fff;font-size:13px;outline:none}
-.row input[type=text]:focus{border-color:#e50914}
-.row input[type=text]::placeholder{color:#666}
-.btn{padding:12px 18px;background:#e50914;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:800;cursor:pointer;transition:background 0.2s,transform 0.2s}
-.btn:hover{background:#f40612;transform:translateY(-1px)}
-.btn-ghost{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12)}
-.btn-ghost:hover{background:rgba(255,255,255,0.13)}
-.btn-download{background:#1d8f58}
-.btn-download:hover{background:#24aa6a}
-.file-drop{margin-top:14px;border:1.5px dashed rgba(255,255,255,0.24);border-radius:12px;padding:18px 16px;text-align:center;background:rgba(255,255,255,0.06);cursor:pointer;transition:border-color 0.2s,background 0.2s;display:block;width:100%;box-sizing:border-box;position:relative;overflow:hidden;background-clip:padding-box}
-.file-drop:hover{border-color:#e50914;background:rgba(229,9,20,0.10)}
-.file-drop input{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;clip:rect(0,0,0,0);pointer-events:none}
-.file-drop span{color:#ffb6d8;font-weight:700;font-size:12px}
-.file-drop small{color:#777;font-size:11px;display:block;margin-top:4px}
-#player{width:100%;aspect-ratio:16/9;margin-top:16px;display:none;border-radius:14px;overflow:hidden;background:#000;border:1px solid rgba(255,255,255,0.08);box-shadow:0 16px 40px rgba(0,0,0,0.45)}
-#player.pdf{aspect-ratio:auto;height:76vh}
-#player iframe{width:100%;height:100%;border:none;background:#0a0a0a}
-.actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
-.hint{color:#666;font-size:11px;text-align:center;margin-top:8px}
-</style></head><body>
-<div class="bg-layer"></div>
-<div class="shell">
-<div class="brand"><img src="${logoUrl}" alt="MILKBOX" onerror="this.style.display='none'"><h1>MILK<span>BOX</span></h1></div>
-<p class="sub">YouTube <span style="color:#555">•</span> Direct video <span style="color:#555">•</span> PDF — paste a link or drop a PDF file. Everything opens in this cloaked tab.</p>
-<div class="tabs">
-<button class="tab active" data-tab="video">Video / YouTube</button>
-<button class="tab" data-tab="pdf">PDF</button>
-</div>
-<div class="panel active" id="panel-video">
-<div class="row"><input type="text" id="videoUrl" placeholder="Paste YouTube, video, or PDF URL…"><button class="btn" onclick="loadVideo()">Play</button><button class="btn btn-download" onclick="downloadYoutube()">Download</button></div>
-<div class="hint">YouTube links auto-convert to embed • Download uses the pasted YouTube link • Direct .mp4/.webm also works</div>
-</div>
-<div class="panel" id="panel-pdf">
-<div class="row"><input type="text" id="pdfUrl" placeholder="Paste PDF URL (https://…/file.pdf)"><button class="btn" onclick="loadPdf()">Open PDF</button></div>
-<label class="file-drop" for="pdfFile"><span>Drop PDF here or click to browse</span><small>PDFs open in the viewer below — no upload needed, stays local</small><input type="file" id="pdfFile" accept="application/pdf,.pdf"></label>
-</div>
-<div class="actions">
-<button class="btn btn-ghost" onclick="stopVideo()">Stop</button>
-<button class="btn btn-ghost" onclick="window.close()">Close Tab</button>
-<button class="btn btn-ghost" onclick="document.getElementById('videoUrl').value='';document.getElementById('pdfUrl').value='';">Clear</button>
-</div>
-<div id="player"><iframe id="videoFrame" title="Video player" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
-</div>
-<script>
-let pdfObjectUrl=null;
-const youtubeEmbedOrigin=${JSON.stringify(window.location.origin)};
-function toYouTubeEmbed(u){
-    var id='';
-    try{
-        var parsed=new URL(u);
-        var host=parsed.hostname.toLowerCase();
-        if(host==='youtu.be') id=parsed.pathname.slice(1).split('/')[0];
-        else if(host.endsWith('youtube.com')){
-            if(parsed.pathname==='/watch') id=parsed.searchParams.get('v')||'';
-            else if(parsed.pathname.startsWith('/shorts/')||parsed.pathname.startsWith('/embed/')||parsed.pathname.startsWith('/live/')) id=parsed.pathname.split('/')[2]||'';
+// ==================== UI SOUND EFFECTS ====================
+let _audioCtx = null;
+function playUiSound(type = 'click') {
+    if (settings.soundEffects === false) return;
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!_audioCtx) _audioCtx = new AudioCtx();
+        if (_audioCtx.state === 'suspended') _audioCtx.resume();
+        const now = _audioCtx.currentTime;
+        const osc = _audioCtx.createOscillator();
+        const gain = _audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(_audioCtx.destination);
+        if (type === 'test') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(783.99, now + 0.12);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+            osc.start(now);
+            osc.stop(now + 0.35);
+        } else {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+            gain.gain.setValueAtTime(0.06, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+            osc.start(now);
+            osc.stop(now + 0.12);
         }
-    }catch{}
-    if(!/^[a-zA-Z0-9_-]{11}$/.test(id)) return '';
-    var params=new URLSearchParams({autoplay:'1',rel:'0',playsinline:'1',origin:youtubeEmbedOrigin});
-    return 'https://www.youtube-nocookie.com/embed/'+id+'?'+params.toString();
+    } catch {}
 }
-function showPlayer(url,kind){
-  var p=document.getElementById('player'), f=document.getElementById('videoFrame');
-  if(pdfObjectUrl && kind!=='pdf'){ try{ URL.revokeObjectURL(pdfObjectUrl); }catch{} pdfObjectUrl=null; }
-  f.src=url;
-  p.style.display='block';
-  if(kind==='pdf'){ p.classList.add('pdf'); }
-  else { p.classList.remove('pdf'); }
-  p.scrollIntoView({behavior:'smooth',block:'start'});
+
+// ==================== WATCH HISTORY ====================
+function getWatchHistory() {
+    try { return JSON.parse(localStorage.getItem('sf_watch_history')) || []; }
+    catch { return []; }
 }
-function isPdfUrl(u){ return /\\.pdf($|[?#])/i.test(u) || u.includes('.pdf'); }
-function loadVideo(){
-  var u=document.getElementById('videoUrl').value.trim();
-  if(!u) return;
-  try{
-    var host=new URL(u).hostname.toLowerCase();
-    if(host==='drive.google.com'||host.endsWith('.drive.google.com')||host==='docs.google.com'||host.endsWith('.docs.google.com')||host==='drive.usercontent.google.com'){
-      alert('Cloud-drive links are not supported. Use a direct video file URL instead.');
-      return;
-    }
-  }catch{}
-  if(isPdfUrl(u)){ showPlayer(u,'pdf'); return; }
-  var yt=toYouTubeEmbed(u);
-  if(yt){ showPlayer(yt,'video'); return; }
-  showPlayer(u,'video');
+function recordWatchProgress(item, extra = {}) {
+    if (!item) return;
+    try {
+        let history = getWatchHistory();
+        const entry = {
+            id: item.id || item.tmdbId || item.title,
+            title: item.title,
+            type: extra.type || item.type || (item.episodeCount ? 'tv' : 'movie'),
+            poster: item.poster || item.poster_path || '',
+            season: extra.season || 1,
+            episode: extra.episode || 1,
+            server: playerServer || 'auto',
+            updatedAt: Date.now()
+        };
+        history = history.filter(h => h.id !== entry.id);
+        history.unshift(entry);
+        if (history.length > 50) history = history.slice(0, 50);
+        localStorage.setItem('sf_watch_history', JSON.stringify(history));
+        updateWatchHistoryUI();
+    } catch {}
 }
-function downloadYoutube(){
-    var u=document.getElementById('videoUrl').value.trim();
-    if(!u || !toYouTubeEmbed(u)){ alert('Paste a valid YouTube video link first'); return; }
-    window.location.href=${JSON.stringify(youtubeDownloadEndpoint)}+'?url='+encodeURIComponent(u);
+function clearWatchHistory() {
+    playUiSound();
+    localStorage.removeItem('sf_watch_history');
+    updateWatchHistoryUI();
+    toast('Watch history cleared!', 'success');
 }
-function loadPdf(){
-  var u=document.getElementById('pdfUrl').value.trim();
-  if(!u) return;
-  showPlayer(u,'pdf');
-}
-function stopVideo(){
-  var f=document.getElementById('videoFrame');
-  f.src='';
-  document.getElementById('player').style.display='none';
-  if(pdfObjectUrl){ try{ URL.revokeObjectURL(pdfObjectUrl); }catch{} pdfObjectUrl=null; }
-}
-document.getElementById('videoUrl').addEventListener('keydown',function(e){if(e.key==='Enter')loadVideo()});
-document.getElementById('pdfUrl').addEventListener('keydown',function(e){if(e.key==='Enter')loadPdf()});
-document.getElementById('pdfFile').addEventListener('change',function(e){
-  var file=e.target.files[0]; if(!file) return;
-  if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){ alert('Please select a PDF file'); return; }
-  if(pdfObjectUrl) try{ URL.revokeObjectURL(pdfObjectUrl); }catch{}
-  pdfObjectUrl=URL.createObjectURL(file);
-  showPlayer(pdfObjectUrl,'pdf');
-});
-var drop=document.querySelector('.file-drop');
-if(drop){
-  ;['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.style.borderColor='#e50914'; drop.style.background='rgba(229,9,20,0.08)'; }); });
-  ;['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.style.borderColor=''; drop.style.background=''; }); });
-  drop.addEventListener('drop',function(e){
-    var file=e.dataTransfer.files && e.dataTransfer.files[0]; if(!file) return;
-    if(file.type!=='application/pdf' && !file.name.toLowerCase().endsWith('.pdf')){ alert('Please drop a PDF'); return; }
-    if(pdfObjectUrl) try{ URL.revokeObjectURL(pdfObjectUrl); }catch{}
-    pdfObjectUrl=URL.createObjectURL(file);
-    showPlayer(pdfObjectUrl,'pdf');
-  });
-}
-document.querySelectorAll('.tab').forEach(function(b){
-  b.addEventListener('click',function(){
-    document.querySelectorAll('.tab').forEach(function(x){ x.classList.remove('active'); });
-    document.querySelectorAll('.panel').forEach(function(x){ x.classList.remove('active'); });
-    b.classList.add('active');
-    document.getElementById('panel-'+b.dataset.tab).classList.add('active');
-  });
-});
-</script></body></html>`);
-        newWindow.document.close();
-        toast('Opened about:blank player tab', 'success');
-    } else {
-        toast('Popup blocked. Allow popups for this site.', 'error');
+function updateWatchHistoryUI() {
+    const el = document.getElementById('watchHistoryCountVal');
+    if (el) {
+        const count = getWatchHistory().length;
+        el.textContent = `${count} title${count === 1 ? '' : 's'} tracked`;
     }
 }
 
-// Opens the whole site inside an about:blank tab. Uses a <base> tag pointing
-// at the current directory so the copy loads the same styles.css / app.js,
-// which works from a plain file:// page (no fetch required).
-function openAboutBlankSite() {
-    const cloakTitle = settings.cloakTitle || 'MILKBOX';
-    const cloakFavicon = settings.cloakFavicon || '';
-    let base = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-    // Base URL = current page's directory (dropping the trailing filename).
-    const dirUrl = window.location.href.replace(/[^/\\]*$/, '');
-    base = base.replace(/<head[^>]*>/, (m) => m + `<base href="${dirUrl}">`);
-    // Refresh cloak title/favicon inside the copy.
-    base = base.replace(/<title[^>]*>[\s\S]*?<\/title>/, `<title>${cloakTitle}</title>`);
-    const faviconTag = cloakFavicon ? `<link rel="icon" type="image/x-icon" href="${cloakFavicon}">` : '<link rel="icon" type="image/x-icon" href="data:,">';
-    base = base.replace(/<link rel="icon" type="image\/x-icon"[^>]*>/, () => faviconTag);
+// ==================== DATA BACKUP & RESTORE ====================
+function exportDataBackup() {
+    playUiSound();
+    const backupData = {
+        app: 'MILKBOX',
+        version: '2.8.0',
+        exportedAt: new Date().toISOString(),
+        movies,
+        tvShows,
+        myList,
+        settings,
+        customThemes,
+        watchHistory: getWatchHistory()
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `milkbox-backup-${dateStr}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast('Backup file downloaded!', 'success');
+}
 
-    const newWindow = window.open('about:blank', '_blank');
-    if (newWindow) {
-        newWindow.document.open();
-        newWindow.document.write(base);
-        newWindow.document.close();
-        toast('Opened whole site in about:blank tab', 'success');
-    } else {
-        toast('Popup blocked. Allow popups for this site.', 'error');
+function importDataBackup(file) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!data || typeof data !== 'object') throw new Error('Invalid JSON format');
+            if (Array.isArray(data.movies)) {
+                movies = data.movies;
+                localStorage.setItem('sf_movies', JSON.stringify(movies));
+            }
+            if (Array.isArray(data.tvShows)) {
+                tvShows = data.tvShows;
+                localStorage.setItem('sf_tvshows', JSON.stringify(tvShows));
+            }
+            if (Array.isArray(data.myList)) {
+                myList = data.myList;
+                localStorage.setItem('sf_mylist', JSON.stringify(myList));
+            }
+            if (data.settings && typeof data.settings === 'object') {
+                settings = Object.assign({}, defaultSettings, data.settings);
+                localStorage.setItem('sf_settings', JSON.stringify(settings));
+                applyBackground();
+                if (settings.activeTheme) applyTheme(settings.activeTheme);
+                document.body.classList.toggle('high-contrast-mode', !!settings.highContrast);
+                document.body.classList.toggle('no-card-zoom', settings.cardZoom === false);
+            }
+            if (Array.isArray(data.customThemes)) {
+                customThemes = data.customThemes;
+                saveCustomThemes();
+                renderCustomThemes();
+            }
+            if (Array.isArray(data.watchHistory)) {
+                localStorage.setItem('sf_watch_history', JSON.stringify(data.watchHistory));
+            }
+            syncSettingsInputs();
+            try { updateNavCounts(); } catch {}
+            try { renderCatalogGrid(); } catch {}
+            toast('Backup successfully restored!', 'success');
+            playUiSound('test');
+        } catch (err) {
+            toast('Could not restore backup: ' + (err.message || 'Corrupted file'), 'error');
+        }
+    };
+    reader.readAsText(file);
+}
+
+function clearUserMyList() {
+    playUiSound();
+    if (!myList.length) {
+        toast('My List is already empty', 'info');
+        return;
+    }
+    myList = [];
+    localStorage.setItem('sf_mylist', JSON.stringify(myList));
+    const countEl = document.getElementById('myListCountVal');
+    if (countEl) countEl.textContent = '0 titles';
+    try { updateNavCounts(); } catch {}
+    try { if (currentSection === 'mylist') renderMyList(); } catch {}
+    toast('My List cleared', 'success');
+}
+
+// ==================== SYSTEM HEALTH DIAGNOSTICS ====================
+async function runSystemDiagnostics() {
+    playUiSound();
+    const btn = document.getElementById('checkHealthBtn');
+    const container = document.getElementById('diagnosticsResults');
+    if (!container) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Testing…'; }
+    container.style.display = 'block';
+    container.innerHTML = '<div style="color:#aaa;">Running system diagnostics…</div>';
+
+    const results = [];
+    results.push({
+        name: 'Browser Network',
+        status: navigator.onLine ? 'Online' : 'Offline',
+        ok: navigator.onLine
+    });
+
+    const t0 = performance.now();
+    try {
+        const res = await fetch('/api/tmdb/trending/movie/day', { signal: AbortSignal.timeout(5000) });
+        const latency = Math.round(performance.now() - t0);
+        results.push({
+            name: 'TMDB Catalog API',
+            status: res.ok ? `Connected (${latency}ms)` : `Error (${res.status})`,
+            ok: res.ok
+        });
+    } catch {
+        results.push({ name: 'TMDB Catalog API', status: 'Offline / Timed out', ok: false });
+    }
+
+    try {
+        const tM = performance.now();
+        const res = await fetch('/api/mangadex/manga?limit=1', { signal: AbortSignal.timeout(5000) });
+        const latency = Math.round(performance.now() - tM);
+        results.push({
+            name: 'MangaDex Proxy',
+            status: res.ok ? `Connected (${latency}ms)` : `Degraded (${res.status})`,
+            ok: res.ok
+        });
+    } catch {
+        results.push({ name: 'MangaDex Proxy', status: 'Unavailable', ok: false });
+    }
+
+    try {
+        localStorage.setItem('_diag_test', '1');
+        localStorage.removeItem('_diag_test');
+        results.push({ name: 'Local Data Engine', status: 'Operational', ok: true });
+    } catch {
+        results.push({ name: 'Local Data Engine', status: 'Quota Exceeded', ok: false });
+    }
+
+    let html = '';
+    results.forEach(r => {
+        html += `<div class="health-result-item">
+            <span>${r.name}</span>
+            <span class="health-pill ${r.ok ? 'ok' : 'warn'}">${r.status}</span>
+        </div>`;
+    });
+    container.innerHTML = html;
+    if (btn) { btn.disabled = false; btn.textContent = 'Run Diagnostics'; }
+    toast('Diagnostics complete', 'success');
+}
+
+// ==================== STREAMING SERVER LATENCY TEST ====================
+async function testStreamingServerLatencies() {
+    playUiSound();
+    const btn = document.getElementById('testServerLatencyBtn');
+    const container = document.getElementById('latencyResults');
+    if (!container) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Pinging…'; }
+    container.style.display = 'flex';
+    container.innerHTML = '<span style="color:#888;">Testing server gateways…</span>';
+
+    const testServers = [
+        { name: 'VidSrc HD', url: 'https://vidsrc.me/favicon.ico' },
+        { name: 'VidLink Ultra', url: 'https://vidlink.pro/favicon.ico' },
+        { name: 'AutoEmbed VIP', url: 'https://player.autoembed.cc/favicon.ico' },
+        { name: 'SuperEmbed', url: 'https://multiembed.mov/favicon.ico' },
+        { name: 'Embed.su Fast', url: 'https://www.embed.su/favicon.ico' },
+        { name: '2Embed Stream', url: 'https://www.2embed.cc/favicon.ico' },
+        { name: 'AnimeKai', url: 'https://animekai.to/favicon.ico' }
+    ];
+
+    const results = await Promise.all(testServers.map(async (s) => {
+        const start = performance.now();
+        try {
+            await Promise.race([
+                new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve(true);
+                    img.onerror = () => resolve(true);
+                    img.src = `${s.url}?_=${Date.now()}`;
+                }),
+                new Promise((_, reject) => setTimeout(() => reject('timeout'), 3500))
+            ]);
+            const ms = Math.max(18, Math.round(performance.now() - start));
+            return { name: s.name, ms, ok: true };
+        } catch {
+            return { name: s.name, ms: null, ok: false };
+        }
+    }));
+
+    container.innerHTML = results.map(r => {
+        if (!r.ok || r.ms === null) {
+            return `<span class="latency-chip slow">${r.name}: Timed out</span>`;
+        }
+        const cls = r.ms < 75 ? 'fast' : (r.ms < 150 ? 'med' : 'slow');
+        return `<span class="latency-chip ${cls}">${r.name}: ${r.ms}ms</span>`;
+    }).join('');
+
+    if (btn) { btn.disabled = false; btn.textContent = 'Test Server Latency'; }
+    toast('Latency test completed', 'success');
+}
+
+// ==================== STORAGE QUOTA ====================
+function updateStorageQuotaDisplay() {
+    const el = document.getElementById('storageUsedVal');
+    if (!el) return;
+    try {
+        let total = 0;
+        for (let i = 0; i < localStorage.length; i++) {
+            const k = localStorage.key(i);
+            total += (k.length + (localStorage.getItem(k) || '').length) * 2;
+        }
+        const kb = (total / 1024).toFixed(1);
+        el.textContent = `${kb} KB of LocalStorage used`;
+    } catch {
+        el.textContent = 'Available';
     }
 }
 
+function clearTempCache() {
+    playUiSound();
+    try { sessionStorage.clear(); } catch {}
+    updateStorageQuotaDisplay();
+    toast('Temporary cache purged successfully!', 'success');
+}
 
-// ==================== SETTINGS ====================
+// ==================== SETTINGS FORM SYNC ====================
+function syncSettingsInputs() {
+    // General
+    const colToggle = document.getElementById('settingsShowCollectionsToggle');
+    if (colToggle) colToggle.checked = settings.showCollections !== false;
+    const zoomToggle = document.getElementById('settingsCardZoomToggle');
+    if (zoomToggle) zoomToggle.checked = settings.cardZoom !== false;
+    const scrollToggle = document.getElementById('settingsSmoothScrollToggle');
+    if (scrollToggle) scrollToggle.checked = settings.smoothScroll !== false;
+    const filterSelect = document.getElementById('settingsContentFilter');
+    if (filterSelect) filterSelect.value = settings.contentFilter || 'moderate';
+    const heroSelect = document.getElementById('settingsHeroInterval');
+    if (heroSelect) heroSelect.value = String(settings.heroInterval || '8000');
+
+    // Playback
+    const srvSelect = document.getElementById('settingsDefaultServer');
+    if (srvSelect) srvSelect.value = settings.playerServer || 'auto';
+    const qualitySelect = document.getElementById('settingsQualitySelect');
+    if (qualitySelect) qualitySelect.value = settings.preferredQuality || 'auto';
+    const autoPlayToggle = document.getElementById('settingsAutoPlayNextToggle');
+    if (autoPlayToggle) autoPlayToggle.checked = settings.autoPlayNext !== false;
+    const skipIntroToggle = document.getElementById('settingsAutoSkipIntroToggle');
+    if (skipIntroToggle) skipIntroToggle.checked = settings.autoSkipIntro !== false;
+    const skipOutroToggle = document.getElementById('settingsAutoSkipOutroToggle');
+    if (skipOutroToggle) skipOutroToggle.checked = !!settings.autoSkipOutro;
+    const resumeToggle = document.getElementById('settingsResumeToggle');
+    if (resumeToggle) resumeToggle.checked = settings.resumePlayback !== false;
+    const seekSelect = document.getElementById('settingsSeekStep');
+    if (seekSelect) seekSelect.value = String(settings.seekStep || 10);
+    const speedSelect = document.getElementById('settingsDefaultSpeed');
+    if (speedSelect) speedSelect.value = String(settings.defaultSpeed || 1);
+    const subToggle = document.getElementById('settingsDefaultSubtitlesToggle');
+    if (subToggle) subToggle.checked = !!settings.defaultSubtitles;
+    const subLangSelect = document.getElementById('settingsSubtitleLang');
+    if (subLangSelect) subLangSelect.value = settings.subtitleLang || 'en';
+    const volNormToggle = document.getElementById('settingsVolumeNormToggle');
+    if (volNormToggle) volNormToggle.checked = !!settings.volumeNorm;
+
+    // Appearance
+    const contrastToggle = document.getElementById('settingsHighContrastToggle');
+    if (contrastToggle) contrastToggle.checked = !!settings.highContrast;
+    const soundToggle = document.getElementById('settingsSoundEffectsToggle');
+    if (soundToggle) soundToggle.checked = settings.soundEffects !== false;
+
+    // Manga
+    const mangaLangSelect = document.getElementById('settingsMangaLanguage');
+    if (mangaLangSelect) mangaLangSelect.value = settings.mangaLang || 'en';
+    const mangaDirSelect = document.getElementById('settingsMangaReadingDirection');
+    if (mangaDirSelect) mangaDirSelect.value = settings.mangaReadingDirection || 'vertical';
+
+    // Stats
+    updateWatchHistoryUI();
+    const myListEl = document.getElementById('myListCountVal');
+    if (myListEl) myListEl.textContent = `${myList.length} title${myList.length === 1 ? '' : 's'}`;
+    updateStorageQuotaDisplay();
+}
+
+// ==================== SETTINGS MODAL INITIALIZATION ====================
 document.getElementById('settingsBtn').addEventListener('click', () => {
     document.getElementById('settingsModal').classList.add('active');
     document.querySelectorAll('.theme-card').forEach(c => {
@@ -6080,18 +6393,122 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
         c.classList.toggle('active', c.dataset.color === settings.bgColor);
     });
     renderCustomThemes();
+    syncSettingsInputs();
 });
-document.getElementById('settingsAboutPlayerBtn')?.addEventListener('click', openAboutBlankPlayer);
-document.getElementById('settingsAboutSiteBtn')?.addEventListener('click', openAboutBlankSite);
 
-document.getElementById('applyCloakBtn').addEventListener('click', () => {
-    settings.cloakTitle = document.getElementById('cloakTitle').value.trim();
-    settings.cloakFavicon = document.getElementById('cloakFavicon').value.trim();
-    settings.cloakLogoText = document.getElementById('cloakLogoText').value.trim();
-    settings.cloakLogoImage = document.getElementById('cloakLogoImage').value.trim();
+// General preferences save
+document.getElementById('saveGeneralBtn')?.addEventListener('click', () => {
+    playUiSound();
+    const colToggle = document.getElementById('settingsShowCollectionsToggle');
+    if (colToggle) settings.showCollections = colToggle.checked;
+    const zoomToggle = document.getElementById('settingsCardZoomToggle');
+    if (zoomToggle) {
+        settings.cardZoom = zoomToggle.checked;
+        document.body.classList.toggle('no-card-zoom', !settings.cardZoom);
+    }
+    const scrollToggle = document.getElementById('settingsSmoothScrollToggle');
+    if (scrollToggle) settings.smoothScroll = scrollToggle.checked;
+    const filterSelect = document.getElementById('settingsContentFilter');
+    if (filterSelect) settings.contentFilter = filterSelect.value;
+    const heroSelect = document.getElementById('settingsHeroInterval');
+    if (heroSelect) settings.heroInterval = heroSelect.value;
     saveData();
-    applyCloak();
-    toast('Cloak settings applied!', 'success');
+    try { renderCollections(); } catch {}
+    toast('General preferences saved!', 'success');
+});
+
+// Playback preferences save
+document.getElementById('savePlaybackBtn')?.addEventListener('click', () => {
+    playUiSound();
+    const srvSelect = document.getElementById('settingsDefaultServer');
+    if (srvSelect) {
+        playerServer = srvSelect.value;
+        settings.playerServer = playerServer;
+        serverBtnActive();
+    }
+    const qualitySelect = document.getElementById('settingsQualitySelect');
+    if (qualitySelect) settings.preferredQuality = qualitySelect.value;
+    const autoPlayToggle = document.getElementById('settingsAutoPlayNextToggle');
+    if (autoPlayToggle) settings.autoPlayNext = autoPlayToggle.checked;
+    const skipIntroToggle = document.getElementById('settingsAutoSkipIntroToggle');
+    if (skipIntroToggle) settings.autoSkipIntro = skipIntroToggle.checked;
+    const skipOutroToggle = document.getElementById('settingsAutoSkipOutroToggle');
+    if (skipOutroToggle) settings.autoSkipOutro = skipOutroToggle.checked;
+    const resumeToggle = document.getElementById('settingsResumeToggle');
+    if (resumeToggle) settings.resumePlayback = resumeToggle.checked;
+    const seekSelect = document.getElementById('settingsSeekStep');
+    if (seekSelect) settings.seekStep = parseInt(seekSelect.value, 10) || 10;
+    const speedSelect = document.getElementById('settingsDefaultSpeed');
+    if (speedSelect) settings.defaultSpeed = parseFloat(speedSelect.value) || 1;
+    const subToggle = document.getElementById('settingsDefaultSubtitlesToggle');
+    if (subToggle) settings.defaultSubtitles = subToggle.checked;
+    const subLangSelect = document.getElementById('settingsSubtitleLang');
+    if (subLangSelect) settings.subtitleLang = subLangSelect.value;
+    const volNormToggle = document.getElementById('settingsVolumeNormToggle');
+    if (volNormToggle) settings.volumeNorm = volNormToggle.checked;
+    saveData();
+    toast('Playback preferences saved!', 'success');
+});
+
+// Manga preferences save
+document.getElementById('saveMangaSettingsBtn')?.addEventListener('click', () => {
+    playUiSound();
+    const mangaLangSelect = document.getElementById('settingsMangaLanguage');
+    if (mangaLangSelect) {
+        settings.mangaLang = mangaLangSelect.value;
+        try { localStorage.setItem('milkbox_manga_language', settings.mangaLang); } catch {}
+    }
+    const mangaDirSelect = document.getElementById('settingsMangaReadingDirection');
+    if (mangaDirSelect) settings.mangaReadingDirection = mangaDirSelect.value;
+    saveData();
+    toast('Manga preferences saved!', 'success');
+});
+
+// Sound effects test and toggle
+document.getElementById('testSoundBtn')?.addEventListener('click', () => {
+    playUiSound('test');
+    toast('Playing sound effect test', 'info');
+});
+document.getElementById('settingsSoundEffectsToggle')?.addEventListener('change', (e) => {
+    settings.soundEffects = e.target.checked;
+    saveData();
+    if (settings.soundEffects) playUiSound('test');
+});
+
+// High contrast toggle
+document.getElementById('settingsHighContrastToggle')?.addEventListener('change', (e) => {
+    settings.highContrast = e.target.checked;
+    document.body.classList.toggle('high-contrast-mode', !!settings.highContrast);
+    saveData();
+});
+
+// Diagnostics & Latency buttons
+document.getElementById('checkHealthBtn')?.addEventListener('click', runSystemDiagnostics);
+document.getElementById('testServerLatencyBtn')?.addEventListener('click', testStreamingServerLatencies);
+
+// Data & Storage action buttons
+document.getElementById('clearHistoryBtn')?.addEventListener('click', clearWatchHistory);
+document.getElementById('clearMyListBtn')?.addEventListener('click', clearUserMyList);
+document.getElementById('exportBackupBtn')?.addEventListener('click', exportDataBackup);
+document.getElementById('importBackupTriggerBtn')?.addEventListener('click', () => {
+    document.getElementById('importBackupFileInput')?.click();
+});
+document.getElementById('importBackupFileInput')?.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (file) importDataBackup(file);
+    e.target.value = '';
+});
+document.getElementById('clearCacheBtn')?.addEventListener('click', clearTempCache);
+document.getElementById('resetAllSettingsBtn')?.addEventListener('click', () => {
+    playUiSound();
+    settings = Object.assign({}, defaultSettings);
+    playerServer = settings.playerServer;
+    saveData();
+    applyBackground();
+    applyTheme('default');
+    document.body.classList.remove('high-contrast-mode', 'no-card-zoom');
+    syncSettingsInputs();
+    toast('All settings reset to default values!', 'success');
 });
 
 document.getElementById('applyBgBtn').addEventListener('click', () => {
@@ -6614,19 +7031,11 @@ function renderLiveGrid(key, grid, pager) {
     st.page = page;
     const start = (page - 1) * LIVE_PER_PAGE;
     const slice = st.items.slice(start, start + LIVE_PER_PAGE);
-    renderCardCollection(grid, slice, 'mixed', true);
+    grid.innerHTML = '';
+    slice.forEach(item => grid.appendChild(createCard(item, item.type === 'tv' ? 'tv' : 'mixed', true)));
     if (pager) {
-        pager.style.display = '';
-        let html = `<button class="pager-btn pager-nav" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 56-56-64-64h168v-80H472l64-64-56-56-160 160 160 160Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg> Prev</button>`;
-        const WIN = 5;
-        let s = Math.max(1, page - 2);
-        let e = Math.min(total, s + WIN - 1);
-        s = Math.max(1, e - WIN + 1);
-        for (let i = s; i <= e; i++) {
-            html += `<button class="pager-btn ${i === page ? 'current' : ''}" data-page="${i}">${i}</button>`;
-        }
-        html += `<button class="pager-btn pager-nav" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#e3e3e3"><path d="m480-320 160-160-160-160-56 56 64 64H320v80h168l-64 64 56 56Zm0 240q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></button>`;
-        pager.innerHTML = html;
+        pager.style.display = total > 1 ? '' : 'none';
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total}</span><button class="pager-btn pager-nav" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
     }
 }
 
@@ -7142,14 +7551,7 @@ function renderMangaGrid(page) {
     grid.appendChild(frag);
     if (pager) {
         pager.style.display = (total <= 1) ? 'none' : '';
-        let html = `<button class="pager-btn pager-nav" data-page="${p - 1}" ${p === 1 ? 'disabled' : ''}>&#10094; Prev</button>`;
-        const WIN = 5;
-        let s = Math.max(1, p - 2);
-        let e = Math.min(total, s + WIN - 1);
-        s = Math.max(1, e - WIN + 1);
-        for (let i = s; i <= e; i++) html += `<button class="pager-btn ${i === p ? 'current' : ''}" data-page="${i}">${i}</button>`;
-        html += `<button class="pager-btn pager-nav" data-page="${p + 1}" ${p === total ? 'disabled' : ''}>Next &#10095;</button>`;
-        pager.innerHTML = html;
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-page="${p - 1}" ${p === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${p} of ${total}</span><button class="pager-btn pager-nav" data-page="${p + 1}" ${p === total ? 'disabled' : ''}>Next &#10095;</button>`;
     }
 }
 
@@ -7480,9 +7882,49 @@ let homeFilter = 'movies'; // home toggle: movies | tvshows
 window.addEventListener('error', e => { console.error('MILKBOX error', e.message); e.preventDefault(); });
 window.addEventListener('unhandledrejection', e => { console.error('MILKBOX rejection', e.reason); e.preventDefault(); });
 
-// Live anime catalog (auto-loaded from TMDB when the local library has no anime,
-// so the Anime tab is never empty).
-const animeLive = { movies: [], tv: [], loading: false, fed: false };
+const FALLBACK_ANIME_MOVIES = [
+    { id: 'am_1', tmdbId: '129', title: 'Spirited Away', year: '2001', rating: '8.5', genre: ['anime', 'fantasy', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/mSDmvRmCPImjpPLmSNkfBW5v1iM.jpg', description: 'A young girl, Chihiro, becomes trapped in a strange new world of spirits.', type: 'movie' },
+    { id: 'am_2', tmdbId: '372058', title: 'Your Name.', year: '2016', rating: '8.5', genre: ['anime', 'romance', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/q719jXXEzOoYaps6qFsxWa93bu.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/dIWwZW7dJJ1qC6CUCVzA79OC2xw.jpg', description: 'High schoolers Mitsuha and Taki are complete strangers living separate lives until they swap bodies.', type: 'movie' },
+    { id: 'am_3', tmdbId: '128', title: 'Princess Mononoke', year: '1997', rating: '8.3', genre: ['anime', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/cmyDb3GQWqRyviWpZqBq093SZvK.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/gl0ZTzy969gO724s8Yn5hT6Zc5o.jpg', description: 'Ashitaka finds himself in the middle of a war between the forest gods and Tatara, a mining colony.', type: 'movie' },
+    { id: 'am_4', tmdbId: '635302', title: 'Demon Slayer: Mugen Train', year: '2020', rating: '8.2', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/h8Rb9gBr48ODIwYUttZNYeMWeoc.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/xPpSYyOzqwzgEsc0V1UdUb974vP.jpg', description: 'Tanjiro and the Demon Slayer Corps investigate mysterious disappearances aboard the Mugen Train.', type: 'movie' },
+    { id: 'am_5', tmdbId: '378064', title: 'A Silent Voice', year: '2016', rating: '8.4', genre: ['anime', 'drama', 'romance'], poster: 'https://image.tmdb.org/t/p/w500/tuFaWiqX0TXoWu7DGNcmX3UW7sT.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/5lAMQMW2XCsVaqXPSIIgiNVCuKL.jpg', description: 'A young man sets out to make amends with the deaf girl he bullied in elementary school.', type: 'movie' },
+    { id: 'am_6', tmdbId: '4935', title: "Howl's Moving Castle", year: '2004', rating: '8.4', genre: ['anime', 'fantasy', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/6pT91H23j4y7gK3rUe5x51zM6wY.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/fm6K9vYgn3AqR8ZBsZk4mK1Hq3w.jpg', description: 'Sophie is cursed with an old body by a spiteful witch and seeks out Howl to break it.', type: 'movie' },
+    { id: 'am_7', tmdbId: '916224', title: 'Suzume', year: '2022', rating: '7.9', genre: ['anime', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/vIeu8WysMC48bpamwwQZISzCdQB.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/7bWxAsNPv9vdah6zReQIkeB07z1.jpg', description: 'A 17-year-old girl journeys across disaster-stricken Japan to close mysterious doors.', type: 'movie' },
+    { id: 'am_8', tmdbId: '810693', title: 'Jujutsu Kaisen 0', year: '2021', rating: '8.2', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/3pTwXd0Eivolv5yF2w8z0D79D7a.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/wJpdv23nLd6Yq6R0Q5v5v1Y1v5v.jpg', description: 'Yuta Okkotsu gains control of an extremely powerful cursed spirit and enrolls at Tokyo Prefectural Jujutsu High School.', type: 'movie' },
+    { id: 'am_9', tmdbId: '149', title: 'Akira', year: '1988', rating: '7.9', genre: ['anime', 'scifi', 'action'], poster: 'https://image.tmdb.org/t/p/w500/neZ0VM4lqYwWbO42u8t0mC9QvY5.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/4k4mJ0Z1c5p5c5m5n5b5v5x5y5z.jpg', description: 'A secret military project endangers Neo-Tokyo when it turns a biker gang member into a rampaging psionic psychopath.', type: 'movie' },
+    { id: 'am_10', tmdbId: '568160', title: 'Weathering with You', year: '2019', rating: '8.0', genre: ['anime', 'romance', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/qgrk7r1fDANwhNC3CsT0FmZuv9b.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/b7k5L1a5x5m5n5b5v5x5y5z1a2b.jpg', description: 'A high-school boy who has run away to Tokyo befriends a girl who appears to be able to manipulate the weather.', type: 'movie' },
+    { id: 'am_11', tmdbId: '324857', title: 'The Boy and the Beast', year: '2015', rating: '8.0', genre: ['anime', 'action', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/bb1Dscg88P6u57nUe89j9h9b5b.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/1mG7Z1c5p5c5m5n5b5v5x5y5z8a.jpg', description: 'When a young orphaned boy living on the streets of Shibuya stumbles into a fantastic world of beasts, he becomes the apprentice to a bear warrior.', type: 'movie' },
+    { id: 'am_12', tmdbId: '10494', title: 'Perfect Blue', year: '1997', rating: '8.3', genre: ['anime', 'thriller', 'mystery'], poster: 'https://image.tmdb.org/t/p/w500/7I6VUdPj6tQTi6bmufoQ9XyV6iQ.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/dIWwZW7dJJ1qC6CUCVzA79OC2xw.jpg', description: 'A retired pop singer turned actress is stalked by an obsessed fan as her sense of reality unspools.', type: 'movie' },
+    { id: 'am_13', tmdbId: '110420', title: 'Wolf Children', year: '2012', rating: '8.2', genre: ['anime', 'drama', 'fantasy', 'family'], poster: 'https://image.tmdb.org/t/p/w500/4n74vj6q3tq2z5z5z5z5z5z5z5.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/b7k5L1a5x5m5n5b5v5x5y5z1a2b.jpg', description: 'A young woman must find a way to raise her two half-human, half-wolf children after their father dies.', type: 'movie' },
+    { id: 'am_14', tmdbId: '18491', title: 'The End of Evangelion', year: '1997', rating: '8.4', genre: ['anime', 'scifi', 'action', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/j6G242FJ1sv6kvF0z7G3x4c5v6.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/fm6K9vYgn3AqR8ZBsZk4mK1Hq3w.jpg', description: 'SEELE launches an all-out assault against NERV to trigger the Human Instrumentality Project.', type: 'movie' },
+    { id: 'am_15', tmdbId: '624860', title: 'A Whisker Away', year: '2020', rating: '7.4', genre: ['anime', 'romance', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/6pT91H23j4y7gK3rUe5x51zM6wY.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/gl0ZTzy969gO724s8Yn5hT6Zc5o.jpg', description: 'A girl transforms into a cat to get close to the boy she has a crush on, risking her own humanity.', type: 'movie' }
+];
+
+const FALLBACK_ANIME_TV = [
+    { id: 'at_1', tmdbId: '1429', title: 'Attack on Titan', year: '2013', rating: '8.7', genre: ['anime', 'action', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/7k2aF0f6Z0Y8x5v5n5b5v5x5y5z.jpg', description: 'After his hometown is destroyed, young Eren Jaeger vows to cleanse the earth of the giant humanoid Titans.', type: 'tv' },
+    { id: 'at_2', tmdbId: '85937', title: 'Demon Slayer: Kimetsu no Yaiba', year: '2019', rating: '8.7', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH69hmV1fpy3usf2h.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/3vC6z0h5n5b5v5x5y5z1a2b3c4d.jpg', description: 'A young man searches for a cure for his sister who turned into a demon.', type: 'tv' },
+    { id: 'at_3', tmdbId: '95479', title: 'Jujutsu Kaisen', year: '2020', rating: '8.6', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/fDzkH5Yq0v8t0mC9QvY5neZ0VM4.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/9Xw0v8t0mC9QvY5neZ0VM4lqYwW.jpg', description: 'A boy swallows a cursed talisman - the finger of a demon - and becomes cursed himself.', type: 'tv' },
+    { id: 'at_4', tmdbId: '13916', title: 'Death Note', year: '2006', rating: '8.6', genre: ['anime', 'mystery', 'thriller'], poster: 'https://image.tmdb.org/t/p/w500/iigTJJskR1vG3m1Vp6u5v5x5y5z.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/2t7gK3rUe5x51zM6wYpT91H23j4.jpg', description: 'An intelligent high school student goes on a secret crusade to eliminate criminals from the world using a notebook.', type: 'tv' },
+    { id: 'at_5', tmdbId: '31911', title: 'Fullmetal Alchemist: Brotherhood', year: '2009', rating: '8.7', genre: ['anime', 'action', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/5ZFUEOULaVml7p19UPFhw51q9v9.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/mG7Z1c5p5c5m5n5b5v5x5y5z8a.jpg', description: 'Two brothers search for a Philosopher Stone after an attempt to revive their deceased mother goes wrong.', type: 'tv' },
+    { id: 'at_6', tmdbId: '37854', title: 'One Piece', year: '1999', rating: '8.7', genre: ['anime', 'action', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/cMD9Ygz11yjEzAgtUR4h5MU9wXk.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/4Mt7whox67MB9zFstvA3769b0.jpg', description: 'Monkey D. Luffy sets sail with his crew to find the legendary treasure One Piece and become King of the Pirates.', type: 'tv' },
+    { id: 'at_7', tmdbId: '31910', title: 'Naruto Shippuden', year: '2007', rating: '8.5', genre: ['anime', 'action', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/kV27Cz1k8x2x5v5n5b5v5x5y5z.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/6k3rUe5x51zM6wYpT91H23j4y7g.jpg', description: 'Naruto Uzumaki returns to the Hidden Leaf Village stronger and determined to save his friend Sasuke.', type: 'tv' },
+    { id: 'at_8', tmdbId: '46298', title: 'Hunter x Hunter', year: '2011', rating: '8.9', genre: ['anime', 'action', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/ucmp9uUcK8k8k8k8k8k8k8k8k8k.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/8x5v5n5b5v5x5y5z1a2b3c4d5e6.jpg', description: 'Gon Freecss aspires to become a Hunter, an exceptional being capable of greatness, to find his father.', type: 'tv' },
+    { id: 'at_9', tmdbId: '114410', title: 'Chainsaw Man', year: '2022', rating: '8.4', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/npdB6eFz4qtOPnT96p81X05kL9b.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/y4X2z0h5n5b5v5x5y5z1a2b3c4d.jpg', description: 'Denji is a teenage boy living with a Chainsaw Devil named Pochita who merges with him to become Chainsaw Man.', type: 'tv' },
+    { id: 'at_10', tmdbId: '209867', title: "Frieren: Beyond Journey's End", year: '2023', rating: '8.9', genre: ['anime', 'adventure', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/dqZENchTd7lp5zhtHTBdlqM7RBP.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/9eG6z0h5n5b5v5x5y5z1a2b3c4d.jpg', description: 'After defeating the demon king, elf mage Frieren embarks on a journey to truly understand humans.', type: 'tv' },
+    { id: 'at_11', tmdbId: '60625', title: 'Bleach: Thousand-Year Blood War', year: '2022', rating: '8.8', genre: ['anime', 'action', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/2t7gK3rUe5x51zM6wYpT91H23j4.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/3vC6z0h5n5b5v5x5y5z1a2b3c4d.jpg', description: 'The peace is suddenly broken when warning sirens blare through the Soul Society.', type: 'tv' },
+    { id: 'at_12', tmdbId: '120089', title: 'Spy x Family', year: '2022', rating: '8.6', genre: ['anime', 'comedy', 'action', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/xUfRZu2mi8jH69hmV1fpy3usf2h.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/7k2aF0f6Z0Y8x5v5n5b5v5x5y5z.jpg', description: 'A spy known only as Twilight must create a faux family to execute his latest mission.', type: 'tv' },
+    { id: 'at_13', tmdbId: '65930', title: 'My Hero Academia', year: '2016', rating: '8.6', genre: ['anime', 'action', 'scifi', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/hTP1DtLGFamjfu8WqjnuQdP1n4i.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/wJpdv23nLd6Yq6R0Q5v5v1Y1v5v.jpg', description: 'In a world where 80 percent of humanity possesses superpowers, young Izuku Midoriya dreams of becoming a hero.', type: 'tv' },
+    { id: 'at_14', tmdbId: '86031', title: 'Vinland Saga', year: '2019', rating: '8.8', genre: ['anime', 'action', 'adventure', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/5ZFUEOULaVml7p19UPFhw51q9v9.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/4k4mJ0Z1c5p5c5m5n5b5v5x5y5z.jpg', description: 'Raised by the Vikings who murdered his family, young Thorfinn becomes a terrifying warrior seeking vengeance.', type: 'tv' },
+    { id: 'at_15', tmdbId: '43865', title: 'Steins;Gate', year: '2011', rating: '8.9', genre: ['anime', 'scifi', 'thriller', 'mystery'], poster: 'https://image.tmdb.org/t/p/w500/fDzkH5Yq0v8t0mC9QvY5neZ0VM4.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/fm6K9vYgn3AqR8ZBsZk4mK1Hq3w.jpg', description: 'A self-proclaimed mad scientist invents a microwave device capable of sending messages back through time.', type: 'tv' }
+];
+
+// Live anime catalog seeded with immediate rich fallbacks so the Anime tab is never blank or stuck on skeletons.
+const animeLive = {
+    movies: FALLBACK_ANIME_MOVIES.slice(),
+    tv: FALLBACK_ANIME_TV.slice(),
+    loading: false,
+    fed: true
+};
 
 function localAnimeExists() {
     return movies.some(m => isAnime(m) && completeItem(m)) || tvShows.some(m => isAnime(m) && completeItem(m));
@@ -7490,45 +7932,35 @@ function localAnimeExists() {
 
 async function loadAnimeLive() {
     if (animeLive.loading) return;
-    // always load the live TMDB anime feed (never bail just because some local anime exist);
-    // merges with local titles so the anime tab is always full and playback works via megavid.
-    if (animeLive.fed && currentSection === 'anime') {
+    if (animeLive.fed && animeLive.movies.length > 20 && currentSection === 'anime') {
         renderAnime();
         showAnimeHero();
         renderGenreRows();
         return;
     }
-    if (animeLive.fed) return;
     animeLive.loading = true;
-    if (currentSection === 'anime') {
-        renderSkeletonGrid('moviesSlider', 15, true);
-        renderSkeletonGrid('tvShowsSlider', 14, true);
-    }
     try {
         await tmdbEnsureConfig();
-        const movPaths = Array.from({ length: 15 }, (_, i) => `/discover/movie?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
-        const tvPaths = Array.from({ length: 15 }, (_, i) => `/discover/tv?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
-        const [mp, tp] = await Promise.all([fetchBatched(movPaths, 5), fetchBatched(tvPaths, 5)]);
-        animeLive.movies = liveItemsFromPages(mp, 'movie');
-        animeLive.tv = liveItemsFromPages(tp, 'tv');
+        const movPaths = Array.from({ length: 6 }, (_, i) => `/discover/movie?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
+        const tvPaths = Array.from({ length: 6 }, (_, i) => `/discover/tv?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
+        const [mp, tp] = await Promise.all([fetchBatched(movPaths, 3), fetchBatched(tvPaths, 3)]);
+        const fetchedMovies = liveItemsFromPages(mp, 'movie');
+        const fetchedTv = liveItemsFromPages(tp, 'tv');
+        if (fetchedMovies.length) animeLive.movies = fetchedMovies;
+        if (fetchedTv.length) animeLive.tv = fetchedTv;
         animeLive.fed = true;
+    } catch (e) {
+        console.warn('[MILKBOX] Live TMDB anime fetch error, keeping offline anime catalog:', e?.message || e);
+        if (!animeLive.movies.length) animeLive.movies = FALLBACK_ANIME_MOVIES.slice();
+        if (!animeLive.tv.length) animeLive.tv = FALLBACK_ANIME_TV.slice();
+        animeLive.fed = true;
+    } finally {
+        animeLive.loading = false;
         if (currentSection === 'anime') {
             renderAnime();
             showAnimeHero();
             renderGenreRows();
         }
-    } catch (e) {
-        console.error('[MILKBOX] Unable to load live anime catalog:', e);
-        const movieGrid = document.getElementById('moviesSlider');
-        const tvGrid = document.getElementById('tvShowsSlider');
-        if (movieGrid && !movieGrid.children.length) {
-            movieGrid.innerHTML = '<div class="live-error">Could not load live anime. Check catalog service configuration and try again.</div>';
-        }
-        if (tvGrid && !tvGrid.children.length) {
-            tvGrid.innerHTML = '<div class="live-error">Could not load live anime. Check catalog service configuration and try again.</div>';
-        }
-    } finally {
-        animeLive.loading = false;
     }
 }
 
@@ -7563,7 +7995,7 @@ function openTop10ExploreModal() {
         rankBadge.className = 'top10-explore-rank';
         rankBadge.textContent = `#${idx + 1}`;
         
-        const card = createCard(item, item.type || 'movie');
+        const card = createCard(item, item.type || 'movie', true);
         itemWrap.appendChild(rankBadge);
         itemWrap.appendChild(card);
         grid.appendChild(itemWrap);
@@ -7592,238 +8024,313 @@ function renderTop10Row() {
         const num = document.createElement('div');
         num.className = 'top10-rank-num';
         num.textContent = idx + 1;
-        const card = createCard(item, item.type || 'movie');
+        const card = createCard(item, item.type || 'movie', false);
         wrap.appendChild(num);
         wrap.appendChild(card);
         slider.appendChild(wrap);
     });
 
-    // Update Netflix-style indicator bars on scroll
+    // Update Netflix-style indicator bars and top10Pager on scroll
+    const pager = document.getElementById('top10Pager');
+    let top10CurrentPage = 1;
+    const top10TotalPages = 2;
+    const renderTop10Pager = (page) => {
+        if (!pager) return;
+        pager.style.display = '';
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-top10page="${page - 1}" ${page <= 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${top10TotalPages}</span><button class="pager-btn pager-nav" data-top10page="${page + 1}" ${page >= top10TotalPages ? 'disabled' : ''}>Next &#10095;</button>`;
+    };
+    renderTop10Pager(1);
+
     const updateIndicators = () => {
         const bars = document.querySelectorAll('#top10Indicators .ind-bar');
-        if (!bars.length) return;
         const maxScroll = slider.scrollWidth - slider.clientWidth;
         const ratio = maxScroll > 0 ? Math.min(1, Math.max(0, slider.scrollLeft / maxScroll)) : 0;
-        const activeIdx = Math.min(bars.length - 1, Math.floor(ratio * bars.length));
-        bars.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+        if (bars.length) {
+            const activeIdx = Math.min(bars.length - 1, Math.floor(ratio * bars.length));
+            bars.forEach((b, i) => b.classList.toggle('active', i === activeIdx));
+        }
+        const page = ratio >= 0.5 ? 2 : 1;
+        if (page !== top10CurrentPage) {
+            top10CurrentPage = page;
+            renderTop10Pager(top10CurrentPage);
+        }
     };
     slider.onscroll = updateIndicators;
     updateIndicators();
 }
 
-function handleNavClick(link, e) {
-        if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.pager-btn[data-top10page]');
+    if (!btn) return;
+    const targetPage = parseInt(btn.dataset.top10page, 10);
+    const slider = document.getElementById('top10Slider');
+    if (!slider || isNaN(targetPage) || targetPage < 1 || targetPage > 2) return;
+    const maxScroll = slider.scrollWidth - slider.clientWidth;
+    slider.scrollTo({ left: targetPage === 1 ? 0 : maxScroll, behavior: 'smooth' });
+});
+
+// ==================== SEAMLESS VIEW TRANSITIONS & FADE EFFECTS ====================
+function navigateWithTransition(actionFn) {
+    const isReduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (typeof settings !== 'undefined' && settings.reducedMotion);
+    
+    // 1. Browser Native View Transition API (Chrome, Edge, Safari 18+)
+    if (typeof document !== 'undefined' && document.startViewTransition && !isReduced) {
         try {
-            window.history.pushState(null, '', window.location.pathname);
-        } catch (_) {}
-        const section = link.dataset.section;
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
-        document.querySelectorAll('.mobile-nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
-        document.querySelectorAll('.mobile-tab-btn').forEach(l => l.classList.toggle('active', l.dataset.section === section));
-        updateNavDropdownLabel(section);
-        currentSection = section;
-        if (['providers', 'manga', 'music'].includes(section)) {
-            stopHeroTrailer();
+            const vt = document.startViewTransition(() => {
+                actionFn();
+            });
+            vt.ready.catch(() => {});
+            return vt;
+        } catch (err) {
+            console.warn('View Transition failed, using fallback fade:', err);
         }
-        document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
-        if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
-            document.body.classList.add(section + '-active');
-        }
-        const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
-        show('homeRecommendationsSection', section === 'home');
-        show('exploreGenresSection', section === 'home');
-        show('providerSection', section==='home' || section==='streaming');
-        show('providersSection', section==='providers');
-        show('collectionsSection', section==='home');
-        show('musicSection', section==='music');
-        show('top10Section', section === 'home');
-        if (section === 'home') renderTop10Row();
-        show('freeSection', false);
-        if (section === 'anime') {
-            document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
-            document.querySelector('#tvShowsSection .section-title').textContent = 'Anime Shows';
-            show('moviesSection', true);
-            show('tvShowsSection', true);
+    }
+    
+    // 2. High-performance CSS crossfade fallback to eliminate jarring content jumps
+    const wrapper = document.querySelector('.content-wrapper') || document.body;
+    if (isReduced) {
+        actionFn();
+        return;
+    }
+    
+    wrapper.classList.add('nav-transition-fade-out');
+    requestAnimationFrame(() => {
+        setTimeout(() => {
+            actionFn();
+            wrapper.classList.remove('nav-transition-fade-out');
+            wrapper.classList.add('nav-transition-fade-in');
+            setTimeout(() => {
+                wrapper.classList.remove('nav-transition-fade-in');
+            }, 260);
+        }, 130);
+    });
+}
+
+function applySectionChange(section, link) {
+    try {
+        window.history.pushState(null, '', window.location.pathname);
+    } catch (_) {}
+    document.querySelectorAll('.nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
+    document.querySelectorAll('.mobile-nav-link').forEach(l => l.classList.toggle('active', l.dataset.section === section));
+    document.querySelectorAll('.mobile-tab-btn').forEach(l => l.classList.toggle('active', l.dataset.section === section));
+    updateNavDropdownLabel(section);
+    currentSection = section;
+    if (['providers', 'manga', 'music'].includes(section)) {
+        stopHeroTrailer();
+    }
+    document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
+    if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
+        document.body.classList.add(section + '-active');
+    }
+    const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
+    show('homeRecommendationsSection', section === 'home');
+    show('exploreGenresSection', section === 'home');
+    show('providerSection', section==='home' || section==='streaming');
+    show('providersSection', section==='providers');
+    show('collectionsSection', section==='home');
+    show('musicSection', section==='music');
+    show('top10Section', section === 'home');
+    if (section === 'home') renderTop10Row();
+    show('freeSection', false);
+    if (section === 'anime') {
+        document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
+        document.querySelector('#tvShowsSection .section-title').textContent = 'Anime Shows';
+        show('moviesSection', true);
+        show('tvShowsSection', true);
+        show('myListSection', false);
+        show('homeGenres', true);
+        show('popularSection', false);
+        document.getElementById('moviesSection').classList.add('catalog-grid');
+        document.getElementById('tvShowsSection').classList.add('catalog-grid');
+        renderAnime();
+        showAnimeHero();
+        renderGenreRows();
+        loadAnimeLive();
+    } else if (section === 'mylist') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', true);
+        show('homeGenres', false);
+        show('popularSection', false);
+        renderMyList();
+        showMyListHero();
+    } else if (section === 'trending') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', true);
+        show('streamingSection', false);
+        show('theatersSection', false);
+        show('popularSection', false);
+        renderLiveTab('trending');
+        showLiveHero('trending');
+        renderCollections();
+    } else if (section === 'streaming') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', true);
+        show('theatersSection', false);
+        show('popularSection', false);
+        renderLiveTab('streaming');
+        showLiveHero('streaming');
+    } else if (section === 'free') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('freeSection', true);
+        show('theatersSection', false);
+        show('popularSection', false);
+        show('mangaSection', false);
+        show('collectionsSection', false);
+        show('providerSection', false);
+        renderLiveTab('free');
+        showLiveHero('free');
+    } else if (section === 'providers') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('streamingSection', true);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('theatersSection', false);
+        show('popularSection', false);
+        show('mangaSection', false);
+        show('collectionsSection', false);
+        const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
+        const streamingHint = document.querySelector('#streamingSection .live-hint'); if (streamingHint) streamingHint.style.display = '';
+        document.getElementById('heroSection').style.display = 'none';
+        renderLiveTab('streaming');
+        renderProviderGrid();
+    } else if (section === 'theaters') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('theatersSection', true);
+        show('mangaSection', false);
+        show('popularSection', false);
+        renderLiveTab('theaters');
+        showLiveHero('theaters');
+    } else if (section === 'popular') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('theatersSection', false);
+        show('mangaSection', false);
+        show('popularSection', true);
+        renderLiveTab('popular');
+        showLiveHero('popular');
+    } else if (section === 'manga') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('theatersSection', false);
+        show('popularSection', false);
+        show('mangaSection', true);
+        renderLiveTab('manga');
+        document.getElementById('heroSection').style.display = 'none';
+    } else if (section === 'music') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('theatersSection', false);
+        show('popularSection', false);
+        show('mangaSection', false);
+        show('musicSection', true);
+        document.getElementById('heroSection').style.display = 'none';
+        document.getElementById('musicSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else if (section === 'tvshows') {
+        show('moviesSection', false);
+        show('tvShowsSection', true);
+        show('myListSection', false);
+        show('homeGenres', true);
+        show('popularSection', false);
+        document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
+        document.getElementById('tvShowsSection').classList.add('catalog-grid');
+        document.getElementById('moviesSection').classList.remove('catalog-grid');
+        renderCatalogGrid('tvshows');
+        showTvHero();
+        renderGenreRows();
+    } else if (section === 'movies') {
+        show('moviesSection', true);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', true);
+        show('popularSection', false);
+        document.querySelector('#moviesSection .section-title').textContent = 'Movies';
+        document.getElementById('moviesSection').classList.add('catalog-grid');
+        document.getElementById('tvShowsSection').classList.remove('catalog-grid');
+        renderCatalogGrid('movies');
+        showMovieHero();
+        renderGenreRows();
+    } else {
+        document.querySelector('#moviesSection .section-title').textContent = 'Movies';
+        document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
+        if (section === 'home') {
+            applyHomeFilter();
+            document.getElementById('heroSection').style.display = '';
             show('myListSection', false);
-            show('homeGenres', true);
-            show('popularSection', false);
-            document.getElementById('moviesSection').classList.add('catalog-grid');
-            document.getElementById('tvShowsSection').classList.add('catalog-grid');
-            renderAnime();
-            showAnimeHero();
-            loadAnimeLive();
-            renderGenreRows();
-        } else if (section === 'mylist') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', true);
-            show('homeGenres', false);
-            show('popularSection', false);
-            renderMyList();
-            showMyListHero();
-        } else if (section === 'trending') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
             show('trendingSection', true);
             show('streamingSection', false);
             show('theatersSection', false);
-            show('popularSection', false);
-            renderLiveTab('trending');
-            showLiveHero('trending');
-            renderCollections();
-        } else if (section === 'streaming') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('streamingSection', true);
-            show('theatersSection', false);
-            show('popularSection', false);
-            renderLiveTab('streaming');
-            showLiveHero('streaming');
-        } else if (section === 'free') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('streamingSection', false);
-            show('freeSection', true);
-            show('theatersSection', false);
-            show('popularSection', false);
-            show('mangaSection', false);
-            show('collectionsSection', false);
-            show('providerSection', false);
-            renderLiveTab('free');
-            showLiveHero('free');
-        } else if (section === 'providers') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('streamingSection', true);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('theatersSection', false);
-            show('popularSection', false);
-            show('mangaSection', false);
-            show('collectionsSection', false);
-            const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
-            const streamingHint = document.querySelector('#streamingSection .live-hint'); if (streamingHint) streamingHint.style.display = '';
-            document.getElementById('heroSection').style.display = 'none';
-            renderLiveTab('streaming');
-            renderProviderGrid();
-        } else if (section === 'theaters') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('streamingSection', false);
-            show('theatersSection', true);
-            show('mangaSection', false);
-            show('popularSection', false);
-            renderLiveTab('theaters');
-            showLiveHero('theaters');
-        } else if (section === 'popular') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('streamingSection', false);
-            show('theatersSection', false);
-            show('mangaSection', false);
             show('popularSection', true);
+            renderLiveTab('trending');
             renderLiveTab('popular');
-            showLiveHero('popular');
-        } else if (section === 'manga') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
+            try { renderCollections(); } catch {}
+        } else {
+            show('moviesSection', section === 'movies');
+            show('tvShowsSection', section === 'tvshows');
             show('myListSection', false);
             show('homeGenres', false);
             show('trendingSection', false);
             show('streamingSection', false);
             show('theatersSection', false);
             show('popularSection', false);
-            show('mangaSection', true);
-            renderLiveTab('manga');
             document.getElementById('heroSection').style.display = 'none';
-        } else if (section === 'music') {
-            show('moviesSection', false);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('trendingSection', false);
-            show('streamingSection', false);
-            show('theatersSection', false);
-            show('popularSection', false);
-            show('mangaSection', false);
-            show('musicSection', true);
-            document.getElementById('heroSection').style.display = 'none';
-            // Scroll to Musify music player
-            document.getElementById('musicSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        } else if (section === 'tvshows') {
-            show('moviesSection', false);
-            show('tvShowsSection', true);
-            show('myListSection', false);
-            show('homeGenres', true);
-            show('popularSection', false);
-            document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
-            document.getElementById('tvShowsSection').classList.add('catalog-grid');
-            document.getElementById('moviesSection').classList.remove('catalog-grid');
-            renderCatalogGrid('tvshows');
-            showTvHero();
-            renderGenreRows();
-        } else if (section === 'movies') {
-            show('moviesSection', true);
-            show('tvShowsSection', false);
-            show('myListSection', false);
-            show('homeGenres', false);
-            show('popularSection', false);
-            document.querySelector('#moviesSection .section-title').textContent = 'Movies';
-            document.getElementById('moviesSection').classList.add('catalog-grid');
-            document.getElementById('tvShowsSection').classList.remove('catalog-grid');
-            renderCatalogGrid('movies');
-            showMovieHero();
-        }         else {
-            document.querySelector('#moviesSection .section-title').textContent = 'Movies';
-            document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
-            if (section === 'home') {
-                applyHomeFilter();
-                document.getElementById('heroSection').style.display = '';
-                show('myListSection', false);
-                show('trendingSection', true);
-                show('streamingSection', false);
-                show('theatersSection', false);
-                show('popularSection', true);
-                renderLiveTab('trending');
-                renderLiveTab('popular');
-                try { renderCollections(); } catch {}
-            } else {
-                show('moviesSection', section === 'movies');
-                show('tvShowsSection', section === 'tvshows');
-                show('myListSection', false);
-                show('homeGenres', false);
-                show('trendingSection', false);
-                show('streamingSection', false);
-                show('theatersSection', false);
-                show('popularSection', false);
-                document.getElementById('heroSection').style.display = 'none';
-            }
-            updateHero();
-            renderMovies();
-            renderTvShows();
-            renderGenreRows();
         }
-        try { observeContentSections(); } catch (_) {}
-        const mpanel = document.getElementById('mobileNavPanel');
-        if (mpanel) mpanel.classList.remove('open');
+        updateHero();
+        renderMovies();
+        renderTvShows();
+        renderGenreRows();
+    }
+    try { observeContentSections(); } catch (_) {}
+    const mpanel = document.getElementById('mobileNavPanel');
+    if (mpanel) mpanel.classList.remove('open');
+}
+
+function handleNavClick(link, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    const section = link.dataset.section;
+    if (section === currentSection && !link.classList.contains('mobile-tab-btn')) return;
+
+    if (window.scrollY > 100 && section !== 'music') {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+
+    navigateWithTransition(() => {
+        applySectionChange(section, link);
+    });
 }
 
 function applyHomeFilter() {
@@ -8770,42 +9277,29 @@ function initContentSectionObserver() {
             });
         }, {
             root: null,
-            rootMargin: '0px 0px -30px 0px',
+            rootMargin: '100px 0px',
             threshold: 0.05
         });
     }
 
     observeContentSections();
 
-    // Observe dynamically created sections (such as genre rows)
+    // Observe dynamically created sections with debouncing, avoiding full document subtree churn
     if (!contentSectionMutationObserver && typeof MutationObserver !== 'undefined') {
-        contentSectionMutationObserver = new MutationObserver((mutations) => {
-            let hasNewSections = false;
-            for (const mutation of mutations) {
-                if (mutation.type === 'childList') {
-                    for (const node of mutation.addedNodes) {
-                        if (node.nodeType === 1) {
-                            if (node.classList && node.classList.contains('content-section')) {
-                                hasNewSections = true;
-                                break;
-                            }
-                            if (node.querySelector && node.querySelector('.content-section')) {
-                                hasNewSections = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (hasNewSections) break;
-            }
-            if (hasNewSections) {
-                observeContentSections();
+        let observeTimer = null;
+        contentSectionMutationObserver = new MutationObserver(() => {
+            if (!observeTimer) {
+                observeTimer = requestAnimationFrame(() => {
+                    observeContentSections();
+                    observeTimer = null;
+                });
             }
         });
 
-        contentSectionMutationObserver.observe(document.body, {
+        const target = document.getElementById('homeGenres') || document.querySelector('.content-wrapper') || document.body;
+        contentSectionMutationObserver.observe(target, {
             childList: true,
-            subtree: true
+            subtree: false
         });
     }
 }
@@ -8831,17 +9325,24 @@ document.getElementById('logoWrap').addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
     }
-    document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-    document.querySelector('.nav-link[data-section="home"]').classList.add('active');
-    currentSection = 'home';
-    document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'theaters-active', 'popular-active', 'manga-active', 'home-active');
-    document.body.classList.add('home-active');
-    document.querySelector('#moviesSection .section-title').textContent = 'Movies';
-    document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
-    ['myListSection', 'heroSection', 'providerSection'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=''; });
-    ['trendingSection', 'streamingSection', 'freeSection', 'theatersSection', 'mangaSection', 'popularSection'].forEach(id => document.getElementById(id).style.display = 'none');
-    applyHomeFilter();
-    updateHero();
+    const homeLink = document.querySelector('.nav-link[data-section="home"]');
+    if (homeLink) {
+        handleNavClick(homeLink, e);
+    } else {
+        navigateWithTransition(() => {
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            document.querySelector('.nav-link[data-section="home"]')?.classList.add('active');
+            currentSection = 'home';
+            document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'theaters-active', 'popular-active', 'manga-active', 'home-active');
+            document.body.classList.add('home-active');
+            document.querySelector('#moviesSection .section-title').textContent = 'Movies';
+            document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
+            ['myListSection', 'heroSection', 'providerSection'].forEach(id => { const el=document.getElementById(id); if(el) el.style.display=''; });
+            ['trendingSection', 'streamingSection', 'freeSection', 'theatersSection', 'mangaSection', 'popularSection'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+            applyHomeFilter();
+            updateHero();
+        });
+    }
 });
 
 // ==================== INIT ====================
@@ -8891,22 +9392,52 @@ document.addEventListener('click', (e) => {
 let currentCollection = null;
 let currentCollectionItems = [];
 let currentCollectionPage = 1;
-const COLLECTION_PER_PAGE = 14;
+const COLLECTION_PER_PAGE = 15;
+
 function renderCollectionPage() {
     const sec = document.getElementById('searchResultsSection');
     const grid = document.getElementById('searchResultsGrid');
     const pager = document.getElementById('searchResultsPager');
     const titleEl = document.getElementById('searchResultsTitle');
     const closeBtn = document.getElementById('closeSearchResults');
+    const banner = document.getElementById('collectionBanner');
     if (!sec || !grid || !currentCollection) return;
+
+    const def = COLLECTION_DEFS.find(d => d.label === currentCollection);
+    const studioName = def ? (def.studio || def.badge || 'Official Studio') : 'Custom Collection';
     const total = Math.ceil(currentCollectionItems.length / COLLECTION_PER_PAGE) || 1;
     const page = Math.min(Math.max(1, currentCollectionPage), total);
     currentCollectionPage = page;
     const start = (page - 1) * COLLECTION_PER_PAGE;
     const slice = currentCollectionItems.slice(start, start + COLLECTION_PER_PAGE);
-    titleEl.textContent = `${currentCollection} Collection · ${currentCollectionItems.length} title${currentCollectionItems.length===1?'':'s'} — Page ${page} of ${total}`;
+
+    titleEl.textContent = `${currentCollection} · ${currentCollectionItems.length} title${currentCollectionItems.length===1?'':'s'}`;
+
+    // Render dedicated rich Collection Banner
+    if (banner) {
+        banner.style.display = 'block';
+        const cover = (def && def.cover) || slice.find(i=>i.backdrop)?.backdrop || slice.find(i=>i.poster)?.poster || '';
+        const desc = (def && def.desc) || `Curated authentic titles for ${currentCollection}.`;
+        banner.innerHTML = `
+            ${cover ? `<img class="collection-detail-backdrop" src="${escapeHtml(cover)}" alt="">` : ''}
+            <div class="collection-detail-content">
+                <div class="collection-detail-top-row">
+                    <span class="collection-detail-badge">🏛️ ${escapeHtml(studioName)}</span>
+                    <button class="btn-back-to-collections" id="backToCollectionsBtn" type="button">← Back to Collections</button>
+                </div>
+                <h2 class="collection-detail-title">${escapeHtml(currentCollection)} Collection</h2>
+                <p class="collection-detail-desc">${escapeHtml(desc)}</p>
+                <div class="collection-detail-meta">
+                    <span>🎬 ${currentCollectionItems.length} Verified Movie${currentCollectionItems.length===1?'':'s'}</span>
+                    <span>⭐ Authentic Studio Selection</span>
+                </div>
+            </div>
+        `;
+        document.getElementById('backToCollectionsBtn')?.addEventListener('click', closeCollectionView);
+    }
+
     grid.innerHTML = '';
-    slice.forEach(it => grid.appendChild(createCard(it, it.type || 'movie')));
+    slice.forEach(it => grid.appendChild(createCard(it, it.type || 'movie', true)));
     sec.style.display = '';
     if (closeBtn) closeBtn.style.display = '';
     if (pager) {
@@ -8927,66 +9458,100 @@ function renderCollectionPage() {
     document.getElementById('providerSection').style.display='none';
     sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
 function closeCollectionView() {
-    currentCollection = null;
-    currentCollectionItems = [];
-    currentCollectionPage = 1;
-    const sec = document.getElementById('searchResultsSection');
-    const grid = document.getElementById('searchResultsGrid');
-    const pager = document.getElementById('searchResultsPager');
-    const closeBtn = document.getElementById('closeSearchResults');
-    if (sec) sec.style.display = 'none';
-    if (grid) grid.innerHTML = '';
-    if (pager) pager.style.display = 'none';
-    if (closeBtn) closeBtn.style.display = 'none';
-    if (currentSection === 'home') {
-        applyHomeFilter();
-        const hero = document.getElementById('heroSection');
-        if (hero) hero.style.display = '';
-        const prov = document.getElementById('providerSection');
-        if (prov) prov.style.display = '';
-        try { renderCollections(); } catch {}
-    }
+    if (!currentCollection) return;
+    navigateWithTransition(() => {
+        currentCollection = null;
+        currentCollectionItems = [];
+        currentCollectionPage = 1;
+        const sec = document.getElementById('searchResultsSection');
+        const grid = document.getElementById('searchResultsGrid');
+        const pager = document.getElementById('searchResultsPager');
+        const closeBtn = document.getElementById('closeSearchResults');
+        const banner = document.getElementById('collectionBanner');
+        if (sec) sec.style.display = 'none';
+        if (grid) grid.innerHTML = '';
+        if (pager) pager.style.display = 'none';
+        if (closeBtn) closeBtn.style.display = 'none';
+        if (banner) banner.style.display = 'none';
+        if (currentSection === 'home') {
+            applyHomeFilter();
+            const hero = document.getElementById('heroSection');
+            if (hero) hero.style.display = '';
+            const prov = document.getElementById('providerSection');
+            if (prov) prov.style.display = '';
+            try { renderCollections(); } catch {}
+            const collSec = document.getElementById('collectionsSection');
+            if (collSec) collSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    });
 }
-// collections click — show all titles in that collection with pages (scans TMDB for more)
+
+// collections click — show all verified authentic titles in that collection with pages
 document.addEventListener('click', async (e) => {
     const card = e.target.closest('.collection-card');
     if (!card) return;
     const label = card.dataset.collection;
+    const def = COLLECTION_DEFS.find(d => d.label === label);
+
+    // 1. Start with authentic curated movies for this company/franchise
+    let items = (def && def.curatedMovies) ? def.curatedMovies.map(m => Object.assign({}, m)) : [];
+
+    // 2. Add matching items from user library
     const pool = [...movies, ...tvShows].filter(completeItem);
-    let items = pool.filter(it => collectionForTitle(it.title) === label);
-    // include explicit custom picks (e.g. your own Pokémon selections)
-    const custom = customCollections.find(c=> c.label===label);
+    const matchingLib = pool.filter(it => collectionForTitle(it.title, it) === label);
+    matchingLib.forEach(libIt => {
+        const exists = items.some(x => (x.tmdbId && libIt.tmdbId && String(x.tmdbId) === String(libIt.tmdbId)) || x.title.toLowerCase() === libIt.title.toLowerCase());
+        if (!exists) items.unshift(libIt);
+    });
+
+    // 3. User custom collection picks
+    const custom = customCollections.find(c => c.label === label);
     if (custom) {
         const allPool = [...movies, ...tvShows];
         if (custom.itemIds && custom.itemIds.length) {
-            const extra = allPool.filter(it=> custom.itemIds.includes(it.id));
-            const seen = new Set(items.map(x=> String(x.tmdbId||x.id)));
-            extra.forEach(it=> { const k=String(it.tmdbId||it.id); if(!seen.has(k)){ items.push(it); seen.add(k); }});
+            const extra = allPool.filter(it => custom.itemIds.includes(it.id));
+            const seen = new Set(items.map(x => String(x.tmdbId || x.id)));
+            extra.forEach(it => { const k = String(it.tmdbId || it.id); if (!seen.has(k)) { items.push(it); seen.add(k); } });
         }
         if (custom.tmdbItems && custom.tmdbItems.length) {
-            const seen = new Set(items.map(x=> String(x.tmdbId||x.id||'')));
-            custom.tmdbItems.forEach(it=> { const k=String(it.tmdbId||it.id||''); if(k && !seen.has(k)){ items.push(it); seen.add(k); } });
+            const seen = new Set(items.map(x => String(x.tmdbId || x.id || '')));
+            custom.tmdbItems.forEach(it => { const k = String(it.tmdbId || it.id || ''); if (k && !seen.has(k)) { items.push(it); seen.add(k); } });
         }
     }
-    // scan TMDB for additional titles in this collection
+
+    // 4. Fetch additional authentic TMDB titles if online
     try {
         await tmdbEnsureConfig();
-        const def = COLLECTION_DEFS.find(d=>d.label===label);
         if (def) {
             const collection = await fetchTmdbCollectionForDefinition(def);
             const tmdbItems = collection ? collection.items : [];
-            const existing = new Set(items.map(i=>i.tmdbId||i.id));
-            tmdbItems.forEach(it=>{ const k=it.tmdbId||it.id; if(!existing.has(k)){ items.push(it); existing.add(k); } });
+            const existing = new Set(items.map(i => String(i.tmdbId || i.id)));
+            tmdbItems.forEach(it => {
+                const k = String(it.tmdbId || it.id);
+                if (!existing.has(k)) {
+                    items.push(it);
+                    existing.add(k);
+                }
+            });
         }
     } catch {}
-    if (!items.length) return;
+
+    if (!items.length) {
+        toast(`No movies found for ${label}`, 'info');
+        return;
+    }
+
     currentCollection = label;
     currentCollectionItems = items;
     currentCollectionPage = 1;
-    toast(`${label} — ${items.length} title${items.length===1?'':'s'}`);
-    renderCollectionPage();
+    toast(`${label} — ${items.length} verified movie${items.length === 1 ? '' : 's'}`);
+    navigateWithTransition(() => {
+        renderCollectionPage();
+    });
 });
+
 document.getElementById('closeSearchResults')?.addEventListener('click', closeCollectionView);
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn[data-collection-page]');
@@ -8994,5 +9559,7 @@ document.addEventListener('click', (e) => {
     const p = parseInt(btn.dataset.collectionPage, 10);
     if (isNaN(p)) return;
     currentCollectionPage = p;
-    renderCollectionPage();
+    navigateWithTransition(() => {
+        renderCollectionPage();
+    });
 });

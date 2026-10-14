@@ -166,6 +166,7 @@
                 <h3 class="section-title" id="searchResultsTitle" style="margin-bottom:0">Search Results</h3>
                 <button class="btn-secondary" id="closeSearchResults" style="display:none; padding:6px 14px; font-size:13px;">✕ Close</button>
             </div>
+            <div id="collectionBanner" class="collection-detail-banner" style="display:none"></div>
             <div class="content-grid" id="searchResultsGrid" style="margin-top:14px"></div>
             <div class="pagination" id="searchResultsPager" style="display:none"></div>
         </section>
@@ -185,6 +186,7 @@
                 <div class="slider top10-slider" id="top10Slider"></div>
                 <button class="slider-btn slider-right" data-slider="top10Slider" aria-label="Scroll Top 10 right">❯</button>
             </div>
+            <div class="pagination" id="top10Pager" style="display:none"></div>
         </section>
         <section class="content-section" id="moviesSection">
             <h3 class="section-title">Movies</h3>
@@ -206,12 +208,11 @@
             <div class="slider-container">
                 <button class="slider-btn slider-left" data-slider="tvShowsSlider">❮</button>
                 <div class="slider" id="tvShowsSlider">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <button class="slider-btn slider-right" data-slider="tvShowsSlider">❯</button>
             </div>
@@ -222,12 +223,11 @@
             <p class="live-hint">Live from TMDB · movies &amp; shows on streaming services</p>
             <div class="grid-wrap">
                 <div class="content-grid" id="streamingGrid">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="streamingPager" style="display:none"></div>
             </div>
@@ -237,12 +237,11 @@
             <p class="live-hint">Live from TMDB · movies &amp; shows available free with ads</p>
             <div class="grid-wrap">
                 <div class="content-grid" id="freeGrid">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="freePager" style="display:none"></div>
             </div>
@@ -301,12 +300,11 @@
             <p class="live-hint">Live from TMDB · trending this week</p>
             <div class="grid-wrap">
                 <div class="content-grid" id="trendingGrid">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="trendingPager" style="display:none"></div>
             </div>
@@ -315,10 +313,16 @@
         <section class="content-section" id="collectionsSection" style="display:none">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
                 <div>
-                    <h3 class="section-title" style="margin-bottom:4px">Collections</h3>
-                    <p class="live-hint" style="margin:0">Auto-grouped franchises — e.g. Star Wars adds all of its movies &amp; shows and tells you how many are in it</p>
+                    <h3 class="section-title" style="margin-bottom:4px">Collections &amp; Studios</h3>
+                    <p class="live-hint" style="margin:0">Official movie franchises &amp; studio universes — curated authentic titles from Marvel Studios, DC, Pixar, Studio Ghibli, Star Wars, A24, and more</p>
                 </div>
                 <button class="btn-secondary" id="createCollectionBtn" style="padding:8px 14px; font-size:13px; white-space:nowrap;">+ Create Custom Collection</button>
+            </div>
+            <div class="collections-filter-pills" id="collectionsFilterPills">
+                <button class="coll-filter-pill active" data-coll-filter="all">All</button>
+                <button class="coll-filter-pill" data-coll-filter="studio">Studios &amp; Companies</button>
+                <button class="coll-filter-pill" data-coll-filter="franchise">Franchises &amp; Sagas</button>
+                <button class="coll-filter-pill" data-coll-filter="custom">My Custom</button>
             </div>
             <div class="content-grid" id="collectionsGrid" style="margin-top:14px"></div>
         </section>
@@ -356,12 +360,11 @@
             <p class="live-hint">Live from TMDB · now playing</p>
             <div class="grid-wrap">
                 <div class="content-grid" id="theatersGrid">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="theatersPager" style="display:none"></div>
             </div>
@@ -372,12 +375,11 @@
             <p class="live-hint">Live from TMDB · the most popular movies, TV shows &amp; anime of all time</p>
             <div class="grid-wrap">
                 <div class="content-grid" id="popularGrid">
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
-                    <div class="skeleton-card"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
+                    <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="popularPager" style="display:none"></div>
             </div>
@@ -1316,49 +1318,286 @@
 
             <div class="settings-tabs">
                 <button class="settings-tab active" data-settings-tab="general">General</button>
-                <button class="settings-tab" data-settings-tab="appearance">Appearance</button>
                 <button class="settings-tab" data-settings-tab="playback">Playback</button>
+                <button class="settings-tab" data-settings-tab="appearance">Appearance</button>
+                <button class="settings-tab" data-settings-tab="data">Data & Storage</button>
                 <button class="settings-tab" data-settings-tab="manga">Manga</button>
             </div>
 
             <!-- General Tab -->
             <div class="settings-tab-panel active" data-settings-panel="general">
                 <div class="settings-card">
-                    <h3 class="settings-card-title">Install MILKBOX</h3>
-                    <p class="settings-card-desc">Add MILKBOX to your device and open it in its own app window. An internet connection is required.</p>
+                    <h3 class="settings-card-title">System Diagnostics & Platform</h3>
+                    <p class="settings-card-desc">Check system connectivity, install status, and external APIs.</p>
                     <div class="settings-card-body">
                         <div class="settings-row">
                             <div class="settings-row-info">
-                                <div class="settings-row-label">Install the app</div>
-                                <div class="settings-row-desc">If the install button is unavailable, use your browser menu and choose Install MILKBOX or Add to Home Screen. On iPhone or iPad, use Share, then Add to Home Screen.</div>
+                                <div class="settings-row-label">Install MILKBOX App</div>
+                                <div class="settings-row-desc">Install as a standalone PWA on your desktop or mobile device.</div>
                             </div>
                             <div class="settings-row-control">
                                 <button class="settings-apply-btn" id="installAppBtn" type="button" hidden>Install</button>
                             </div>
                         </div>
                         <p id="installAppStatus" aria-live="polite"></p>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">System Health Check</div>
+                                <div class="settings-row-desc">Test TMDB metadata API, MangaDex proxy, local database, and network connectivity.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-apply-btn" id="checkHealthBtn" type="button">Run Diagnostics</button>
+                            </div>
+                        </div>
+                        <div id="diagnosticsResults" style="display:none;margin-top:8px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:13px;line-height:1.6;"></div>
                     </div>
                 </div>
+
                 <div class="settings-card">
-                    <h3 class="settings-card-title">Tab Cloak</h3>
-                    <p class="settings-card-desc">Change the browser tab name, favicon, and navbar logo.</p>
+                    <h3 class="settings-card-title">Browsing & Display</h3>
+                    <p class="settings-card-desc">Control home feed layout, card interaction, and animation behavior.</p>
                     <div class="settings-card-body">
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">TMDB API</div><div class="settings-row-desc">Configured server-side with <code>TMDB_ACCESS_TOKEN</code> in <code>.env</code>.</div></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Open in about:blank</div><div class="settings-row-desc">Open the player or the whole site in a separate cloaked tab.</div></div><div class="settings-row-control settings-action-group"><button class="settings-apply-btn" id="settingsAboutPlayerBtn" type="button">Player</button><button class="settings-apply-btn" id="settingsAboutSiteBtn" type="button">Whole Site</button></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Site Name</div><div class="settings-row-desc">Browser tab title for main site and about:blank.</div></div><div class="settings-row-control" style="max-width:220px;width:100%"><input type="text" id="cloakTitle" placeholder="MILKBOX" style="width:100%"></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Favicon URL</div><div class="settings-row-desc">Square image (32x32 or 64x64).</div></div><div class="settings-row-control" style="max-width:320px;width:100%"><input type="url" id="cloakFavicon" placeholder="https://example.com/favicon.png" style="width:100%"></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Logo Text</div><div class="settings-row-desc">Text shown in the navbar.</div></div><div class="settings-row-control" style="max-width:220px;width:100%"><input type="text" id="cloakLogoText" placeholder="MILKBOX" style="width:100%"></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Logo Image URL</div><div class="settings-row-desc">Image to the left of logo text.</div></div><div class="settings-row-control" style="max-width:320px;width:100%"><input type="url" id="cloakLogoImage" placeholder="https://example.com/logo.png" style="width:100%"></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Upload Logo Icon</div><div class="settings-row-desc">PNG/JPG saved locally as a data URL.</div></div><div class="settings-row-control"><input type="file" id="cloakLogoUpload" accept="image/*"></div></div>
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Logo Preview</div></div><div class="settings-row-control"><div class="logo-preview" id="logoPreview"><span id="logoPreviewText">MILKBOX</span></div></div></div>
-                        <button class="settings-apply-btn" id="applyCloakBtn">Apply Cloak</button>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Show Franchise Collections</div>
+                                <div class="settings-row-desc">Display auto-grouped movie and series franchises on the Home and Trending sections.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsShowCollectionsToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Card Hover Animations</div>
+                                <div class="settings-row-desc">Enable dynamic scale and elevation when pointing to movie/show cards.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsCardZoomToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Smooth Viewport Scroll</div>
+                                <div class="settings-row-desc">Smoothly scroll to the top of the catalog when switching category tabs.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsSmoothScrollToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Safe Search & Content Rating</div>
+                                <div class="settings-row-desc">Filter explicit, adult, or unrated content from live discoveries.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsContentFilter" class="settings-select">
+                                    <option value="none">Show All (Unrestricted)</option>
+                                    <option value="moderate" selected>Moderate Filter</option>
+                                    <option value="strict">Strict (Family Safe)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Hero Carousel Rotation</div>
+                                <div class="settings-row-desc">Frequency of rotating hero spotlight titles on the homepage.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsHeroInterval" class="settings-select">
+                                    <option value="0">Off (Manual Only)</option>
+                                    <option value="5000">5 seconds</option>
+                                    <option value="8000" selected>8 seconds</option>
+                                    <option value="12000">12 seconds</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="settings-apply-btn" id="saveGeneralBtn">Save General Preferences</button>
                     </div>
                 </div>
+            </div>
+
+            <!-- Playback Tab -->
+            <div class="settings-tab-panel" data-settings-panel="playback">
                 <div class="settings-card">
-                    <h3 class="settings-card-title">Content</h3>
-                    <p class="settings-card-desc">Control how content sections behave.</p>
+                    <h3 class="settings-card-title">Streaming Servers & Sources</h3>
+                    <p class="settings-card-desc">Configure default streaming provider and test real-time server latencies.</p>
                     <div class="settings-card-body">
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Show Collections</div><div class="settings-row-desc">Show the auto-grouped franchise collections on the Home and Trending tabs.</div></div><div class="settings-row-control"><label class="settings-toggle"><input type="checkbox" id="settingsShowCollectionsToggle" checked><span class="settings-toggle-slider"></span></label></div></div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Default Streaming Server</div>
+                                <div class="settings-row-desc">Provider used when starting a movie or TV episode.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsDefaultServer" class="settings-select">
+                                    <option value="auto" selected>Auto Best Available (Smart Fallback)</option>
+                                    <option value="tmdb">VidSrc / TMDB HD (Primary)</option>
+                                    <option value="vidlink">VidLink Ultra</option>
+                                    <option value="autoembed">AutoEmbed VIP</option>
+                                    <option value="superembed">SuperEmbed Cloud</option>
+                                    <option value="embedsu">Embed.su Fast</option>
+                                    <option value="twoembed">2Embed Stream</option>
+                                    <option value="videasy">VidEasy Player</option>
+                                    <option value="animekai">AnimeKai (Sub & Dub)</option>
+                                    <option value="kisskh">KissKH (Dramas & Anime)</option>
+                                    <option value="direct">Direct Local Video / HLS</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Server Health & Latency Test</div>
+                                <div class="settings-row-desc">Ping providers to find the lowest-latency active server right now.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-apply-btn" id="testServerLatencyBtn" type="button">Test Server Latency</button>
+                            </div>
+                        </div>
+                        <div id="latencyResults" style="display:none;margin-top:8px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:12px;display:flex;flex-wrap:wrap;gap:8px;"></div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Preferred Video Quality</div>
+                                <div class="settings-row-desc">Requested stream resolution where provider supports selector.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsQualitySelect" class="settings-select">
+                                    <option value="auto" selected>Auto (Adaptive)</option>
+                                    <option value="1080">1080p Full HD</option>
+                                    <option value="720">720p HD</option>
+                                    <option value="480">480p Data Saver</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Playback Automation & Controls</h3>
+                    <p class="settings-card-desc">Control episode transitions, auto-skipping, and player navigation.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Auto Play Next Episode</div>
+                                <div class="settings-row-desc">Automatically transition to the next episode when current finishes.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsAutoPlayNextToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Auto-Skip TV Intros</div>
+                                <div class="settings-row-desc">Automatically skip introductory themes and recap segments where available.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsAutoSkipIntroToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Auto-Skip Outros / Credits</div>
+                                <div class="settings-row-desc">Skip end credits directly to next episode or recommendations.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsAutoSkipOutroToggle"><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Remember Playback Progress</div>
+                                <div class="settings-row-desc">Resume videos from your exact timestamp across sessions.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsResumeToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Seek Jump Interval</div>
+                                <div class="settings-row-desc">Seconds jumped with Left/Right arrows or on-screen skip buttons.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsSeekStep" class="settings-select">
+                                    <option value="5">5 seconds</option>
+                                    <option value="10" selected>10 seconds</option>
+                                    <option value="15">15 seconds</option>
+                                    <option value="30">30 seconds</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Default Playback Speed</div>
+                                <div class="settings-row-desc">Default speed applied when launching native media.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsDefaultSpeed" class="settings-select">
+                                    <option value="0.75">0.75x</option>
+                                    <option value="1" selected>1.0x Normal</option>
+                                    <option value="1.25">1.25x</option>
+                                    <option value="1.5">1.5x</option>
+                                    <option value="2">2.0x</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Audio & Subtitle Preferences</h3>
+                    <p class="settings-card-desc">Set preferred language tracks and audio normalization.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Subtitles Enabled by Default</div>
+                                <div class="settings-row-desc">Automatically display subtitles when available on playback.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsDefaultSubtitlesToggle"><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Preferred Subtitle Language</div>
+                                <div class="settings-row-desc">Language track prioritized when subtitles are loaded.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsSubtitleLang" class="settings-select">
+                                    <option value="en" selected>English</option>
+                                    <option value="es">Spanish (Español)</option>
+                                    <option value="ja">Japanese (日本語)</option>
+                                    <option value="fr">French (Français)</option>
+                                    <option value="de">German (Deutsch)</option>
+                                    <option value="auto">Auto (Match System)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Volume Normalization</div>
+                                <div class="settings-row-desc">Boost quiet dialogue and reduce loud action sound peaks.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <label class="settings-toggle"><input type="checkbox" id="settingsVolumeNormToggle"><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                        <button class="settings-apply-btn" id="savePlaybackBtn">Save Playback Preferences</button>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Pop-up Protection</h3>
+                    <p class="settings-card-desc">MILKBOX includes built-in protection for pop-ups opened by the app. No installation is needed.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Optional: browser-wide protection</div>
+                                <div class="settings-row-desc">For protection on other websites, install AdGuard PopupBlocker with a compatible userscript manager. MILKBOX cannot control pop-ups opened inside cross-origin playback providers, and this built-in protection does not remove banners or in-player video ads.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <a class="settings-apply-btn" style="display:inline-block;text-decoration:none" href="https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js" target="_blank" rel="noopener noreferrer">Install AdGuard PopupBlocker</a>
+                            </div>
+                        </div>
+                        <div class="settings-row-desc">The optional userscript requires a userscript manager. See the <a href="https://github.com/AdguardTeam/PopupBlocker" target="_blank" rel="noopener noreferrer">official project instructions</a> for supported managers and setup details.</div>
                     </div>
                 </div>
             </div>
@@ -1440,31 +1679,120 @@
                         <div id="customThemesGrid" class="theme-grid" style="margin-top:16px;"></div>
                     </div>
                 </div>
-            </div>
-
-            <!-- Playback Tab -->
-            <div class="settings-tab-panel" data-settings-panel="playback">
                 <div class="settings-card">
-                    <h3 class="settings-card-title">Playback</h3>
-                    <p class="settings-card-desc">Control how videos play.</p>
-                    <div class="settings-card-body">
-                        <div class="settings-row"><div class="settings-row-info"><div class="settings-row-label">Auto Play Next Episode</div><div class="settings-row-desc">Automatically play the next episode when the current one ends.</div></div><div class="settings-row-control"><label class="settings-toggle"><input type="checkbox" id="settingsAutoPlayNextToggle" checked><span class="settings-toggle-slider"></span></label></div></div>
-                    </div>
-                </div>
-                <div class="settings-card">
-                    <h3 class="settings-card-title">Pop-up Protection</h3>
-                    <p class="settings-card-desc">MILKBOX includes built-in protection for pop-ups opened by the app. No installation is needed.</p>
+                    <h3 class="settings-card-title">Visual Effects & Audio Feedback</h3>
+                    <p class="settings-card-desc">Fine-tune high contrast rendering and UI sound effects.</p>
                     <div class="settings-card-body">
                         <div class="settings-row">
                             <div class="settings-row-info">
-                                <div class="settings-row-label">Optional: browser-wide protection</div>
-                                <div class="settings-row-desc">For protection on other websites, install AdGuard PopupBlocker with a compatible userscript manager. MILKBOX cannot control pop-ups opened inside cross-origin playback providers, and this built-in protection does not remove banners or in-player video ads.</div>
+                                <div class="settings-row-label">High Contrast Mode</div>
+                                <div class="settings-row-desc">Sharper borders and darker overlays for enhanced readability.</div>
                             </div>
                             <div class="settings-row-control">
-                                <a class="settings-apply-btn" style="display:inline-block;text-decoration:none" href="https://userscripts.adtidy.org/release/popup-blocker/2.5/popupblocker.user.js" target="_blank" rel="noopener noreferrer">Install AdGuard PopupBlocker</a>
+                                <label class="settings-toggle"><input type="checkbox" id="settingsHighContrastToggle"><span class="settings-toggle-slider"></span></label>
                             </div>
                         </div>
-                        <div class="settings-row-desc">The optional userscript requires a userscript manager. See the <a href="https://github.com/AdguardTeam/PopupBlocker" target="_blank" rel="noopener noreferrer">official project instructions</a> for supported managers and setup details.</div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">UI Sound Effects</div>
+                                <div class="settings-row-desc">Play smooth synthesized acoustic feedback on buttons and actions.</div>
+                            </div>
+                            <div class="settings-row-control" style="display:flex;align-items:center;gap:10px;">
+                                <button class="settings-reset-btn" id="testSoundBtn" type="button" style="margin:0;padding:6px 12px;">Test Sound</button>
+                                <label class="settings-toggle"><input type="checkbox" id="settingsSoundEffectsToggle" checked><span class="settings-toggle-slider"></span></label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data & Storage Tab -->
+            <div class="settings-tab-panel" data-settings-panel="data">
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Watch History & Continue Watching</h3>
+                    <p class="settings-card-desc">Manage your playback progress across movies, anime, and series.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-stat-box">
+                            <span>Recorded Watch History</span>
+                            <span class="settings-stat-val" id="watchHistoryCountVal">0 titles tracked</span>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Clear Watch History</div>
+                                <div class="settings-row-desc">Removes all resume points and clears your Continue Watching row.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-apply-btn" id="clearHistoryBtn" type="button" style="background:linear-gradient(135deg, #e50914, #b00610);">Clear Watch History</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="settings-card-title">My List & Library Backup</h3>
+                    <p class="settings-card-desc">Backup and restore your personal bookmarks and customized settings.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-stat-box">
+                            <span>Saved Bookmarks in My List</span>
+                            <span class="settings-stat-val" id="myListCountVal">0 titles</span>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Export Data Backup</div>
+                                <div class="settings-row-desc">Download a complete JSON backup of your watchlist, custom themes, and preferences.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-apply-btn" id="exportBackupBtn" type="button">Export Backup (.json)</button>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Restore Data Backup</div>
+                                <div class="settings-row-desc">Import a previously exported MILKBOX backup file to restore your library.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <input type="file" id="importBackupFileInput" accept=".json" style="display:none">
+                                <button class="settings-reset-btn" id="importBackupTriggerBtn" type="button">Import Backup File</button>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Clear My List</div>
+                                <div class="settings-row-desc">Remove all bookmarked titles from your personal collection.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-reset-btn" id="clearMyListBtn" type="button" style="color:#ff6b6b;border-color:rgba(255,107,107,0.3)">Clear My List</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Cache & Factory Reset</h3>
+                    <p class="settings-card-desc">Manage local storage quota or restore factory settings.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-stat-box">
+                            <span>Local Storage Used</span>
+                            <span class="settings-stat-val" id="storageUsedVal">Calculating…</span>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Purge Temporary Cache</div>
+                                <div class="settings-row-desc">Clear API response caches, search histories, and temporary posters.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-reset-btn" id="clearCacheBtn" type="button">Clear Cache</button>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Reset All Settings</div>
+                                <div class="settings-row-desc">Reset all visual, playback, and interface configurations to default values.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <button class="settings-reset-btn" id="resetAllSettingsBtn" type="button" style="color:#ff4757;border-color:rgba(255,71,87,0.4);">Reset to Defaults</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1476,6 +1804,40 @@
                     <p class="settings-card-desc">Configured server-side with <code>MANGADEX_ACCESS_TOKEN</code> in <code>.env</code>.</p>
                     <div class="settings-card-body">
                         <div id="mangadexAuthStatus" style="display:block;padding:8px 12px;border-radius:6px;font-size:13px;margin-top:8px;">The server proxy adds the configured token without exposing it to the browser.</div>
+                    </div>
+                </div>
+                <div class="settings-card">
+                    <h3 class="settings-card-title">Manga Catalog & Reader Preferences</h3>
+                    <p class="settings-card-desc">Configure chapter language prioritization and reading layout.</p>
+                    <div class="settings-card-body">
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Preferred Chapter Language</div>
+                                <div class="settings-row-desc">Primary language filter for MangaDex chapters.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsMangaLanguage" class="settings-select">
+                                    <option value="en" selected>English</option>
+                                    <option value="ja">Japanese (日本語)</option>
+                                    <option value="es">Spanish (Español)</option>
+                                    <option value="fr">French (Français)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <div class="settings-row-info">
+                                <div class="settings-row-label">Reading Mode</div>
+                                <div class="settings-row-desc">Default page layout for the manga reader.</div>
+                            </div>
+                            <div class="settings-row-control">
+                                <select id="settingsMangaReadingDirection" class="settings-select">
+                                    <option value="vertical" selected>Vertical Continuous Webtoon</option>
+                                    <option value="single">Single Page</option>
+                                    <option value="double">Double Page Spread</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button class="settings-apply-btn" id="saveMangaSettingsBtn">Save Manga Preferences</button>
                     </div>
                 </div>
             </div>
@@ -1529,6 +1891,7 @@
     </nav>
 
     <script src="jsmediatags.min.js"></script>
+    <script src="collections-data.js?v=20261013"></script>
     <script src="milkbox-player.js?v=player-fix-20261009"></script>
     <script src="musify-player.js?v=milkify-audio-info-20261011"></script>
     <script src="app.js?v=player-fix-20261009"></script>
