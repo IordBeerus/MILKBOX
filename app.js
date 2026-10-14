@@ -766,7 +766,7 @@ function applyBackground() {
     const seasonalDecorations = document.getElementById('seasonalDecorations');
     const seasonalDecorationsImage = document.getElementById('seasonalDecorationsImage');
     const seasonalDecorationImages = {
-        halloween: 'assets/theme-art/halloween-decorations.svg',
+        halloween: 'assets/theme-art/halloween-decorations.png?v=20261014',
         christmas: 'assets/theme-art/christmas-decorations.svg',
         newyear: 'assets/theme-art/newyear-decorations.svg',
         snow: 'assets/theme-art/snow-decorations.svg'
@@ -893,8 +893,13 @@ function getSeasonalThemeName() {
 function applySeasonalThemeIfNeeded() {
     const seasonalTheme = getSeasonalThemeName();
     const currentlySelected = settings.activeTheme || '';
-    if (currentlySelected === 'halloween' && !settings.bgImage) {
-        applyTheme('halloween');
+    if (currentlySelected === 'halloween') {
+        if (settings.bgImage === 'assets/theme-art/halloween-pumpkin.jpg') {
+            settings.bgImage = 'assets/theme-art/halloween-pumpkin.jpg?v=20261014';
+            saveData();
+        } else if (!settings.bgImage) {
+            applyTheme('halloween');
+        }
         return;
     }
     if (!seasonalTheme) return;
@@ -913,7 +918,7 @@ function applyTheme(themeName) {
         forest:   { bgColor: '#0a1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         ocean:    { bgColor: '#0a1a2e', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         sunset:   { bgColor: '#2e1a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
-        halloween:{ bgColor: '#100d15', bgImage: 'assets/theme-art/halloween-pumpkin.jpg', bgOpacity: 28, bgBlur: 1 },
+        halloween:{ bgColor: '#100d15', bgImage: 'assets/theme-art/halloween-pumpkin.jpg?v=20261014', bgOpacity: 28, bgBlur: 1 },
         christmas:{ bgColor: '#091f1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         newyear:  { bgColor: '#0c122b', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         dracula:  { bgColor: '#282a36', bgImage: '', bgOpacity: 30, bgBlur: 0 },
