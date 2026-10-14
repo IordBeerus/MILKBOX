@@ -1255,6 +1255,7 @@ function initCardLogoObserver() {
             if (entry.isIntersecting) {
                 const card = entry.target;
                 obs.unobserve(card);
+                if (card.closest('#homeRecommendationsSection')) return;
                 const item = card._itemRef;
                 if (item && !item.logo && item.tmdbId) {
                     queueLogoFetch(item, card);
@@ -1425,7 +1426,11 @@ function renderSlider(containerId, items, type, pagerId, pageKey = containerId) 
     sliderState[pageKey] = { items, type, page, containerId, pagerId };
     const frag = document.createDocumentFragment();
     for (let i = start; i < Math.min(start + pageSize, items.length); i++) {
-        frag.appendChild(createCard(items[i], type, isLandscape));
+        const card = createCard(items[i], type, isLandscape);
+        if (containerId === 'homeRecommendationsSlider') {
+            card.querySelectorAll('.card-movie-logo').forEach(l => l.remove());
+        }
+        frag.appendChild(card);
     }
     slider.appendChild(frag);
     if (pager) {

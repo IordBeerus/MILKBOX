@@ -7249,6 +7249,14 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
     display: block !important;
 }
 
+#homeRecommendationsSection .card-movie-logo,
+#homeRecommendationsSection .card-movie-logo-portrait {
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 @media (max-width: 768px) {
     #homeRecommendationsSlider {
         gap: 12px !important;
