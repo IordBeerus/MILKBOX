@@ -7250,7 +7250,9 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
 }
 
 #homeRecommendationsSection .card-movie-logo,
-#homeRecommendationsSection .card-movie-logo-portrait {
+#homeRecommendationsSection .card-movie-logo-portrait,
+#top10Section .card-movie-logo,
+#top10Section .card-movie-logo-portrait {
     display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;

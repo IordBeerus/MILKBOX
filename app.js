@@ -1255,7 +1255,7 @@ function initCardLogoObserver() {
             if (entry.isIntersecting) {
                 const card = entry.target;
                 obs.unobserve(card);
-                if (card.closest('#homeRecommendationsSection')) return;
+                if (card.closest('#homeRecommendationsSection') || card.closest('#top10Section')) return;
                 const item = card._itemRef;
                 if (item && !item.logo && item.tmdbId) {
                     queueLogoFetch(item, card);
@@ -8132,6 +8132,7 @@ function renderTop10Row() {
         num.className = 'top10-rank-num';
         num.textContent = idx + 1;
         const card = createCard(item, item.type || 'movie', false);
+        card.querySelectorAll('.card-movie-logo').forEach(l => l.remove());
         wrap.appendChild(num);
         wrap.appendChild(card);
         slider.appendChild(wrap);
