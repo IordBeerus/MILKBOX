@@ -747,6 +747,25 @@
   color: #e50914;
 }
 
+.musify-track-delete-btn {
+  background: transparent;
+  border: none;
+  color: var(--musify-text-muted);
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.musify-track-delete-btn:hover {
+  color: #ff5252;
+  background: rgba(255, 82, 82, 0.15);
+  transform: scale(1.08);
+}
+
 /* VIEW: EQUALIZER */
 .musify-eq-card {
   background: var(--musify-surface-container);

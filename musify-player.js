@@ -1268,11 +1268,13 @@
 
     // =========================================================================
     // MUSIFY PLAYER CLASS
-    // =========================================================================
-
     class MusifyPlayer {
         constructor() {
-            this.tracks = [...DEFAULT_TRACKS];
+            let removedTrackIds = [];
+            try {
+                removedTrackIds = JSON.parse(localStorage.getItem('musify_removed_track_ids') || '[]');
+            } catch (e) {}
+            this.tracks = DEFAULT_TRACKS.filter(t => !removedTrackIds.includes(t.id));
             this.currentIndex = 0;
             this.isPlaying = false;
             this.isShuffle = false;
@@ -2123,13 +2125,12 @@
                 }
             }
 
-            // Show/Hide Delete Button
+            // Show Delete Button
             if (this.modalDeleteBtn) {
-                if (track.isSavedOffline || track.category === 'uploads') {
-                    this.modalDeleteBtn.style.display = 'inline-flex';
-                } else {
-                    this.modalDeleteBtn.style.display = 'none';
-                }
+                this.modalDeleteBtn.style.display = 'inline-flex';
+                this.modalDeleteBtn.title = (track.isSavedOffline || track.category === 'uploads')
+                    ? 'Remove from offline device storage'
+                    : 'Remove track from library';
             }
 
             // Show Dialog
@@ -2889,14 +2890,25 @@
 
         async deleteSavedTrack(track) {
             if (!track) return;
-            const confirmDelete = window.confirm(`Remove "${track.title}" from your saved offline music library?`);
-            if (!confirmDelete) return;
-
-            await MusifyStorage.deleteTrack(track.id);
+            try {
+                if (track.isSavedOffline || track.category === 'uploads') {
+                    await MusifyStorage.deleteTrack(track.id);
+                } else {
+                    const removedIds = JSON.parse(localStorage.getItem('musify_removed_track_ids') || '[]');
+                    if (!removedIds.includes(track.id)) {
+                        removedIds.push(track.id);
+                        localStorage.setItem('musify_removed_track_ids', JSON.stringify(removedIds));
+                    }
+                }
+            } catch (err) {
+                console.warn('[Musify] Error removing track from storage:', err);
+            }
 
             if (track.src && track.src.startsWith('blob:')) {
                 try { URL.revokeObjectURL(track.src); } catch (e) {}
             }
+
+            this.likedTracks?.delete(track.id);
 
             const wasCurrent = this.tracks[this.currentIndex]?.id === track.id;
             const idx = this.tracks.findIndex(t => t.id === track.id);
@@ -2927,7 +2939,7 @@
             this.renderTracklist();
             this.buildUpcomingQueue();
             this.updateQueueBadges();
-            this.showToast(`🗑️ Removed "${track.title}" from saved offline music.`);
+            this.showToast(`🗑️ Removed "${track.title}" from library.`);
         }
 
         async clearAllOfflineMusic() {
@@ -2936,8 +2948,6 @@
                 this.showToast('No saved offline tracks to clear.');
                 return;
             }
-            const ok = window.confirm(`Clear all ${offlineTracks.length} saved offline songs from this device?`);
-            if (!ok) return;
 
             await MusifyStorage.clearAll();
             offlineTracks.forEach(t => {
@@ -2996,7 +3006,24 @@
                     this.tracklistEl.querySelector('#musifyEmptyOfflineInput')?.addEventListener('change', (e) => this.handleLocalFiles(e.target.files));
                     return;
                 }
-                this.tracklistEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--musify-text-muted);font-size:13px;">No audio tracks found. Click "+ Offline Audio" to upload music files.</div>`;
+                let restoreBtn = '';
+                try {
+                    const removed = JSON.parse(localStorage.getItem('musify_removed_track_ids') || '[]');
+                    if (removed.length > 0) {
+                        restoreBtn = `<br><button id="musifyRestoreDefaultsBtn" class="musify-act-btn" style="margin-top:14px;display:inline-flex;">↺ Restore Default Songs</button>`;
+                    }
+                } catch (e) {}
+                this.tracklistEl.innerHTML = `<div style="text-align:center;padding:32px;color:var(--musify-text-muted);font-size:13px;">No audio tracks found. Click "+ Offline Audio" to upload music files.${restoreBtn}</div>`;
+                this.tracklistEl.querySelector('#musifyRestoreDefaultsBtn')?.addEventListener('click', () => {
+                    localStorage.removeItem('musify_removed_track_ids');
+                    this.tracks = [...DEFAULT_TRACKS];
+                    this.currentIndex = 0;
+                    this.loadTrack(0, false);
+                    this.renderTracklist();
+                    this.buildUpcomingQueue();
+                    this.updateQueueBadges();
+                    this.showToast('↺ Restored default songs');
+                });
                 return;
             }
 
@@ -3060,13 +3087,11 @@
                                 <path d="m480-120-58-52q-101-91-167-157T150-447.5Q111-500 95.5-544.5T80-634q0-94 63-157t157-63q52 0 99 22t81 62q34-40 81-62t99-22q94 0 157 63t63 157q0 45-15.5 89.5T810-447.5q-39 52.5-105 118.5T538-172l-58 52Z"/>
                             </svg>
                         </button>
-                        ${isOfflineSaved ? `
-                            <button class="musify-track-delete-btn" title="Remove from offline storage" data-id="${track.id}">
-                                <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor">
-                                    <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T760-120H280Zm480-600H280v520h480v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
-                                </svg>
-                            </button>
-                        ` : ''}
+                        <button class="musify-track-delete-btn" title="${isOfflineSaved ? 'Remove from offline storage' : 'Remove track from library'}" data-id="${track.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor">
+                                <path d="M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T760-120H280Zm480-600H280v520h480v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM280-720v520-520Z"/>
+                            </svg>
+                        </button>
                     </div>
                 `;
 
@@ -3101,6 +3126,7 @@
                 const deleteBtn = row.querySelector('.musify-track-delete-btn');
                 deleteBtn?.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     this.deleteSavedTrack(track);
                 });
 
