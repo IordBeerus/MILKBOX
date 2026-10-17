@@ -20,7 +20,7 @@ function loadEnvFile() {
 
 loadEnvFile();
 
-// Extract GITHUB_TOKEN reliably even if user put it in GITHUB_REPO or GITHUB_BRANCH
+// Extract GITHUB_TOKEN reliably from env, .env, git config, or git token file
 let GITHUB_TOKEN = (process.env.GITHUB_TOKEN || process.env.GH_TOKEN || '').trim();
 if (!GITHUB_TOKEN) {
     if (process.env.GITHUB_REPO && process.env.GITHUB_REPO.startsWith('ghp_')) {
@@ -28,6 +28,50 @@ if (!GITHUB_TOKEN) {
     } else if (process.env.GITHUB_BRANCH && process.env.GITHUB_BRANCH.startsWith('ghp_')) {
         GITHUB_TOKEN = process.env.GITHUB_BRANCH.trim();
     }
+}
+
+// Fallback: extract token from current git remote origin if already configured
+if (!GITHUB_TOKEN) {
+    try {
+        const currentOrigin = execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8', stdio: 'pipe' }).trim();
+        const match = currentOrigin.match(/https:\/\/([^:@]+)@github\.com/);
+        if (match && match[1] && match[1].startsWith('ghp_')) {
+            GITHUB_TOKEN = match[1];
+        }
+    } catch {}
+}
+
+// Fallback: extract token from git config or untracked .git/github_token
+if (!GITHUB_TOKEN) {
+    try {
+        const cfgToken = execSync('git config --local --get milkbox.token', { cwd: __dirname, encoding: 'utf8', stdio: 'pipe' }).trim();
+        if (cfgToken && cfgToken.startsWith('ghp_')) {
+            GITHUB_TOKEN = cfgToken;
+        }
+    } catch {}
+}
+
+if (!GITHUB_TOKEN) {
+    try {
+        const tokenFilePath = path.join(__dirname, '.git', 'github_token');
+        if (fs.existsSync(tokenFilePath)) {
+            const fileToken = fs.readFileSync(tokenFilePath, 'utf8').trim();
+            if (fileToken && fileToken.startsWith('ghp_')) {
+                GITHUB_TOKEN = fileToken;
+            }
+        }
+    } catch {}
+}
+
+// Persist to .env and git config so future restarts have it immediately without ever being tracked in git
+if (GITHUB_TOKEN) {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (!fs.existsSync(envPath) || !fs.readFileSync(envPath, 'utf8').includes('GITHUB_TOKEN=')) {
+            fs.writeFileSync(envPath, `GITHUB_TOKEN=${GITHUB_TOKEN}\nGITHUB_REPO=https://github.com/IordBeerus/MILKBOX.git\nGITHUB_BRANCH=main\n`);
+        }
+        execSync(`git config --local milkbox.token "${GITHUB_TOKEN}"`, { cwd: __dirname, stdio: 'pipe' });
+    } catch {}
 }
 
 let GITHUB_REPO = (process.env.GITHUB_REPO || '').trim();
@@ -89,10 +133,23 @@ function syncToGitHub(customMessage) {
 
         // 3. Configure authenticated remote origin
         let authUrl = GITHUB_REPO;
-        if (GITHUB_TOKEN) {
-            if (authUrl.startsWith('https://')) {
-                authUrl = authUrl.replace('https://', `https://${GITHUB_TOKEN}@`);
-            }
+        if (!GITHUB_TOKEN) {
+            try {
+                const currentOrigin = run('git remote get-url origin').trim();
+                const match = currentOrigin.match(/https:\/\/([^:@]+)@github\.com/);
+                if (match && match[1]) {
+                    GITHUB_TOKEN = match[1];
+                }
+            } catch {}
+        }
+        if (!GITHUB_TOKEN) {
+            try {
+                const cfgToken = run('git config --local --get milkbox.token').trim();
+                if (cfgToken && cfgToken.startsWith('ghp_')) GITHUB_TOKEN = cfgToken;
+            } catch {}
+        }
+        if (GITHUB_TOKEN && authUrl.startsWith('https://') && !authUrl.includes('@')) {
+            authUrl = authUrl.replace('https://', `https://${GITHUB_TOKEN}@`);
         }
 
         try {
