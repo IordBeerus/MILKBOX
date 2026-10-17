@@ -1146,7 +1146,12 @@ function renderAll() {
     renderMovies();
     renderTvShows();
     renderMyList();
-    renderGenreRows();
+    if (currentSection !== 'mylist') {
+        renderGenreRows();
+    } else {
+        const hg = document.getElementById('homeGenres');
+        if (hg) hg.style.display = 'none';
+    }
     renderHomeDiscovery();
     try { renderCollections(); } catch {}
     updateHero();
@@ -1480,7 +1485,15 @@ function renderTvShows() {
     if (title && title.textContent !== 'TV Shows') title.textContent = 'TV Shows';
     renderCatalogGrid('tvshows', 'home');
 }
-function renderMyList() { renderSlider('myListSlider', myList, 'mixed', 'myListPager', 'myList'); }
+function renderMyList() {
+    const title = document.querySelector('#myListSection .section-title');
+    if (title) {
+        title.textContent = myList.length ? `My List (${myList.length})` : 'My List';
+    }
+    const hg = document.getElementById('homeGenres');
+    if (hg && currentSection === 'mylist') hg.style.display = 'none';
+    renderSlider('myListSlider', myList, 'mixed', 'myListPager', 'myList');
+}
 
 // ---- Paginated catalog grids (Movies / TV / Anime tab views) ----
 const CATALOG_PER_PAGE = 15;
@@ -2320,7 +2333,7 @@ let _genreIdleTimer = null;
 function renderGenreRows() {
     const container = document.getElementById('homeGenres');
     if (!container) return;
-    const hideOnSections = ['theaters', 'streaming', 'free', 'popular', 'manga', 'music', 'providers'];
+    const hideOnSections = ['theaters', 'streaming', 'free', 'popular', 'manga', 'music', 'providers', 'mylist'];
     if (hideOnSections.includes(currentSection)) {
         container.style.display = 'none';
         return;
@@ -2343,9 +2356,6 @@ function renderGenreRows() {
         pool = merged;
         suffix = '';
         skip = 'anime';
-    } else if (currentSection === 'mylist') {
-        pool = myList;
-        suffix = '';
     } else {
         pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
         suffix = '';
@@ -2640,7 +2650,8 @@ function refreshCurrent() {
     } else if (currentSection === 'mylist') {
         renderMyList();
         showMyListHero();
-        renderGenreRows();
+        const hg = document.getElementById('homeGenres');
+        if (hg) hg.style.display = 'none';
     } else if (currentSection === 'tvshows') {
         renderCatalogGrid('tvshows');
         showTvHero();
@@ -9048,6 +9059,8 @@ function applySectionChange(section, link) {
         show('myListSection', true);
         show('homeGenres', false);
         show('popularSection', false);
+        const hg = document.getElementById('homeGenres');
+        if (hg) hg.style.display = 'none';
         renderMyList();
         showMyListHero();
     } else if (section === 'trending') {

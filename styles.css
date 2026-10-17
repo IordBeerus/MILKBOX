@@ -1008,6 +1008,10 @@ body.movies-active #moviesSection {
     justify-content: flex-start;
 }
 
+body.mylist-active #homeGenres {
+    display: none !important;
+}
+
 /* ---- Live tabs (Trending / Streaming / In Theaters / Most Popular) ---- */
 #trendingSection, #streamingSection, #freeSection, #theatersSection, #popularSection, #mangaSection { display: none; }
 
