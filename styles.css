@@ -5469,16 +5469,32 @@ body.light-mode .collection-tab.active { color: #fff; }
 .collection-pick-pane { min-height: 40px; }
 
 /* ================= ANIME THEATER (anime-only) ================= */
-.anime-theater{
-  display:grid;
+.anime-theater {
+  display: grid;
   grid-template-columns: 280px minmax(0,1fr) 320px;
-  gap:16px;
-  align-items:start;
-  width:100%;
+  gap: 16px;
+  align-items: start;
+  width: 100%;
 }
-.player-content.anime-mode{ max-width:1400px !important; }
+.player-content.anime-mode { max-width: 1400px !important; }
+
+/* Strictly ensure only ONE player/layout is shown: never both */
+.player-content:not(.anime-mode) #animeTheater,
+.player-content:not(.anime-mode) .anime-theater,
+#playerModal:not(.anime-mode) #animeTheater,
+#animeTheater[style*="display: none"],
+#animeTheater[style*="display:none"] {
+  display: none !important;
+}
+
 .player-content.anime-mode #genericPlayerLayout,
-.player-content.anime-mode #episodeSelector{ display:none !important; }
+.player-content.anime-mode .player-layout,
+.player-content.anime-mode #episodeSelector,
+.player-content.anime-mode .episode-selector,
+.player-content.anime-mode .cineby-ep-section,
+.player-content.anime-mode #animeLangSelector {
+  display: none !important;
+}
 
 /* left */
 .anime-left{
@@ -5645,8 +5661,30 @@ body.light-mode .collection-tab.active { color: #fff; }
 }
 .anime-ep:hover{ background:rgba(255,255,255,0.08); border-color:rgba(255,255,255,0.14); color:#fff; }
 .anime-ep.active{ background:#ff6b35; color:#fff; border-color:#ff6b35; box-shadow:0 6px 16px rgba(255,107,53,0.35); font-weight:700; }
+.anime-ep.last-watched{ border-color:rgba(255,182,216,0.45); }
 .anime-ep-num{ width:20px; text-align:right; font-weight:800; font-size:12px; opacity:.9; font-variant-numeric: tabular-nums; }
 .anime-ep-title{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.anime-ep-time-pill {
+  font-size: 10px;
+  font-weight: 700;
+  color: #ffb6d8;
+  background: rgba(255, 182, 216, 0.12);
+  border: 1px solid rgba(255, 182, 216, 0.25);
+  padding: 1px 7px;
+  border-radius: 999px;
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.anime-ep.active .anime-ep-time-pill {
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.anime-episode-list.grid .anime-ep-time-pill,
+.anime-episode-list.grid-5-col .anime-ep-time-pill {
+  display: none !important;
+}
 
 /* 5-Column Grid Episode Tile Item */
 .anime-episode-list.grid .anime-ep,
@@ -6097,8 +6135,28 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
         cursor: pointer !important;
     }
 
-    /* Order 1: Video Player is at the very top */
-    #genericPlayerLayout {
+    /* Strict mutual exclusion: never display both generic player and anime theater */
+    .player-content:not(.anime-mode) #animeTheater,
+    .player-content:not(.anime-mode) .anime-theater,
+    #playerModal:not(.anime-mode) #animeTheater,
+    #playerModal:not(.anime-mode) .anime-theater {
+        display: none !important;
+    }
+    .player-content:not(.anime-mode) #animeLangSelector {
+        display: none !important;
+    }
+    .player-content.anime-mode #genericPlayerLayout,
+    .player-content.anime-mode .player-layout,
+    .player-content.anime-mode #episodeSelector,
+    .player-content.anime-mode .episode-selector,
+    .player-content.anime-mode .cineby-ep-section,
+    .player-content.anime-mode .player-header .server-selector {
+        display: none !important;
+    }
+
+    /* Order 1: Non-Anime Video Player is at the very top */
+    .player-content:not(.anime-mode) #genericPlayerLayout {
+        display: block !important;
         order: 1 !important;
         width: 100% !important;
         margin: 0 !important;
@@ -6150,17 +6208,21 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
         justify-content: space-between !important;
         gap: 8px !important;
     }
+    .player-content.anime-mode .player-header {
+        background: transparent !important;
+        border-bottom: none !important;
+        padding: 0 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
     .player-header .server-selector {
         width: 100% !important;
         margin: 0 !important;
         flex: 1 1 auto !important;
     }
-    #animeLangSelector {
-        order: 2 !important;
-        margin: 8px 12px !important;
-    }
 
-    /* Order 3: Episodes below server selector */
+    /* Order 3: Episodes below server selector for TV Shows */
     .episode-selector {
         order: 3 !important;
         margin: 0 !important;
@@ -6171,8 +6233,8 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
     .episode-list { overflow-y: auto; }
     .episode-selector .ep-play-item { padding: 10px; }
 
-    /* Anime Theater on Mobile: Video Player is FIRST */
-    #animeTheater.anime-theater {
+    /* Order 1: Anime Theater on Mobile (ONLY when in anime-mode) */
+    .player-content.anime-mode #animeTheater.anime-theater {
         display: flex !important;
         flex-direction: column !important;
         gap: 0 !important;
@@ -6250,11 +6312,23 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
         padding: 0 !important;
         margin: 0 !important;
     }
-    .player-modal.active #genericPlayerLayout,
-    .player-modal.active .player-main,
-    .player-modal.active .player-container,
-    .player-modal.active .anime-center,
-    .player-modal.active .anime-player-wrap,
+    /* Hide generic layout when anime mode is active */
+    .player-modal.active.anime-mode #genericPlayerLayout,
+    .player-content.anime-mode #genericPlayerLayout,
+    .player-content.anime-mode #episodeSelector {
+        display: none !important;
+    }
+    /* Hide anime theater when not in anime mode */
+    .player-modal.active:not(.anime-mode) #animeTheater,
+    .player-content:not(.anime-mode) #animeTheater {
+        display: none !important;
+    }
+
+    .player-modal.active.anime-mode .anime-center,
+    .player-modal.active.anime-mode .anime-player-wrap,
+    .player-modal.active:not(.anime-mode) #genericPlayerLayout,
+    .player-modal.active:not(.anime-mode) .player-main,
+    .player-modal.active:not(.anime-mode) .player-container,
     .player-modal.active #playerFrame,
     .player-modal.active #playerFrame iframe,
     .player-modal.active #playerFrame video {
@@ -7536,12 +7610,10 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
     backface-visibility: hidden;
 }
 
-/* 8. Netflix Mobile Floating Bottom Navigation — hidden for mobile users */
+/* 8. Netflix Mobile Floating Bottom Navigation */
 .netflix-mobile-nav,
 #netflixMobileNav {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
+    display: none;
 }
 @media (max-width: 768px) {
     .hero {
@@ -7558,27 +7630,42 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
     }
     .netflix-mobile-nav,
     #netflixMobileNav {
-        display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
+        display: flex !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 60px;
+        background: rgba(18, 18, 20, 0.95);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        z-index: 1000;
+        justify-content: space-around;
+        align-items: center;
+        padding: 0 4px;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .mobile-tab-btn {
-        display: none !important;
-    }
         background: none;
         border: none;
         color: #8c8c94;
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: center;
         gap: 3px;
         font-size: 10px;
         font-weight: 600;
         cursor: pointer;
-        padding: 6px 10px;
+        padding: 6px 6px;
         transition: color 0.2s, transform 0.2s;
         font-family: inherit;
         text-decoration: none;
+        flex: 1;
+        min-width: 0;
     }
     .mobile-tab-btn:hover {
         color: #ffffff;
@@ -7588,8 +7675,15 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
         text-shadow: 0 0 10px rgba(255, 182, 216, 0.4);
     }
     .mobile-tab-btn svg {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+    }
+    .mobile-tab-btn span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: 10px;
     }
     body {
         padding-bottom: 64px;
@@ -8186,9 +8280,13 @@ body[data-theme="halloween"] .footer {
 }
 
 body[data-theme="halloween"] .netflix-mobile-nav,
-body[data-theme="halloween"] #netflixMobileNav,
-body[data-theme="halloween"] .mobile-tab-btn {
-    display: none !important;
+body[data-theme="halloween"] #netflixMobileNav {
+    background: #09060c !important;
+    border-top: 1px solid rgba(255, 120, 30, 0.2) !important;
+}
+body[data-theme="halloween"] .mobile-tab-btn.active {
+    color: #ffa447 !important;
+    text-shadow: 0 0 10px rgba(255, 164, 71, 0.5) !important;
 }
 
 body[data-theme="halloween"] .seasonal-decorations {
@@ -8215,3 +8313,399 @@ body[data-theme="halloween"] .seasonal-decorations img {
         opacity: 0.85;
     }
 }
+
+/* ==================== ANIME CONTINUE WATCHING & RESUME ==================== */
+.anime-continue-watching-section {
+    margin-bottom: 32px;
+    position: relative;
+}
+.anime-cw-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 182, 216, 0.16);
+    color: #ffb6d8;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+.anime-cw-heading-icon svg {
+    width: 16px;
+    height: 16px;
+}
+.anime-cw-pill {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 182, 216, 0.15);
+    color: #ffb6d8;
+    border: 1px solid rgba(255, 182, 216, 0.3);
+    margin-left: 8px;
+    vertical-align: middle;
+}
+.clear-cw-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #a0a0a8;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.clear-cw-btn:hover {
+    color: #ffffff;
+    border-color: rgba(255, 80, 80, 0.5);
+    background: rgba(255, 80, 80, 0.12);
+}
+.anime-cw-slider {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding: 6px 4px 18px 4px;
+    scroll-behavior: smooth;
+    scrollbar-width: none;
+    will-change: scroll-position;
+    -webkit-overflow-scrolling: touch;
+}
+.anime-cw-slider::-webkit-scrollbar {
+    display: none;
+}
+.anime-cw-card {
+    flex: 0 0 280px;
+    width: 280px;
+    background: rgba(20, 20, 26, 0.92);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+.anime-cw-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 182, 216, 0.5);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(255, 182, 216, 0.2);
+}
+.anime-cw-thumb-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0d0d12;
+    overflow: hidden;
+}
+.anime-cw-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.35s ease;
+    display: block;
+}
+.anime-cw-card:hover .anime-cw-thumb {
+    transform: scale(1.06);
+}
+.anime-cw-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, transparent 40%, rgba(0, 0, 0, 0.8) 100%);
+    pointer-events: none;
+}
+.anime-cw-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(12, 12, 16, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffb6d8;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 182, 216, 0.35);
+    z-index: 2;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+.anime-cw-time-pill {
+    position: absolute;
+    bottom: 10px;
+    right: 8px;
+    background: rgba(12, 12, 16, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+.anime-cw-time-pill svg {
+    color: #ffb6d8;
+}
+.player-resume-pill {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(14, 14, 18, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: #ffb6d8;
+    border: 1px solid rgba(255, 182, 216, 0.35);
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.7);
+    pointer-events: auto;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+.player-resume-pill.fade-out {
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+}
+.resume-pill-restart {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 2px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+}
+.resume-pill-restart:hover {
+    background: #ffb6d8;
+    color: #0d0d12;
+    border-color: #ffb6d8;
+}
+.anime-cw-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.72);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #b0b0b8;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    cursor: pointer;
+    z-index: 4;
+    transition: all 0.2s ease;
+}
+.anime-cw-remove-btn:hover {
+    color: #ff4757;
+    border-color: #ff4757;
+    background: rgba(20, 10, 12, 0.95);
+    transform: scale(1.15);
+}
+.anime-cw-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: rgba(0, 0, 0, 0.38);
+    pointer-events: none;
+    z-index: 3;
+}
+.anime-cw-card:hover .anime-cw-play-overlay {
+    opacity: 1;
+}
+.anime-cw-play-circle {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #ffb6d8;
+    color: #0f0f14;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(255, 182, 216, 0.6);
+    transform: scale(0.9);
+    transition: transform 0.2s ease;
+}
+.anime-cw-card:hover .anime-cw-play-circle {
+    transform: scale(1);
+}
+.anime-cw-progress-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.22);
+    z-index: 3;
+    overflow: hidden;
+}
+.anime-cw-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #ff758c, #ffb6d8);
+    box-shadow: 0 0 8px rgba(255, 182, 216, 0.7);
+    transition: width 0.3s ease;
+}
+.anime-cw-info {
+    padding: 12px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    justify-content: space-between;
+}
+.anime-cw-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+}
+.anime-cw-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #8c8c94;
+}
+.anime-cw-ep-tag {
+    color: #ffb6d8;
+    font-weight: 600;
+}
+.anime-cw-time {
+    color: #6e6e76;
+}
+.anime-cw-resume-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 8px 12px;
+    background: rgba(255, 182, 216, 0.12);
+    color: #ffb6d8;
+    border: 1px solid rgba(255, 182, 216, 0.3);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 4px;
+    font-family: inherit;
+}
+.anime-cw-resume-btn:hover {
+    background: #ffb6d8;
+    color: #0f0f14;
+    box-shadow: 0 4px 14px rgba(255, 182, 216, 0.45);
+}
+.anime-cw-resume-btn svg {
+    flex-shrink: 0;
+}
+
+/* Anime Theater Left Column Resume Widget */
+.anime-theater-resume-box {
+    margin-top: 14px;
+    padding: 12px;
+    background: rgba(255, 182, 216, 0.08);
+    border: 1px solid rgba(255, 182, 216, 0.25);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.anime-theater-resume-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+.anime-theater-resume-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #ffb6d8;
+    font-weight: 700;
+}
+.anime-theater-resume-ep {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.anime-theater-resume-btn {
+    padding: 6px 12px;
+    background: #ffb6d8;
+    color: #0d0d12;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: transform 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+    font-family: inherit;
+}
+.anime-theater-resume-btn:hover {
+    transform: scale(1.04);
+    background: #ffffff;
+}
+
+/* Highlight for last-watched episode button in theater episode list */
+.anime-ep.last-watched:not(.active) {
+    border-color: rgba(255, 182, 216, 0.8) !important;
+    background: rgba(255, 182, 216, 0.12) !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 182, 216, 0.4);
+}
+
+@media (max-width: 768px) {
+    .anime-cw-card {
+        flex: 0 0 230px;
+        width: 230px;
+    }
+    .anime-cw-info {
+        padding: 10px 12px 12px;
+    }
+    .anime-cw-title {
+        font-size: 13px;
+    }
+    .anime-cw-resume-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+}
+

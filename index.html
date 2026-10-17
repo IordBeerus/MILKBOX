@@ -190,6 +190,22 @@
             </div>
             <div class="pagination" id="top10Pager" style="display:none"></div>
         </section>
+        <!-- Continue Watching (Anime Focused) -->
+        <section class="content-section continue-watching-section anime-continue-watching-section" id="animeContinueWatchingSection" style="display:none">
+            <div class="section-title-wrap">
+                <h3 class="section-title">
+                    <span class="anime-cw-heading-icon"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="m380-300 280-180-280-180v360ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg></span>
+                    <span>Continue Watching Anime</span>
+                    <span class="anime-cw-pill" id="animeCwCountBadge">0</span>
+                </h3>
+                <button class="clear-cw-btn" id="clearAnimeCwBtn" type="button" title="Clear Anime Continue Watching">Clear</button>
+            </div>
+            <div class="slider-container">
+                <button class="slider-btn slider-left" data-slider="animeContinueWatchingSlider" aria-label="Scroll left">❮</button>
+                <div class="slider anime-cw-slider" id="animeContinueWatchingSlider"></div>
+                <button class="slider-btn slider-right" data-slider="animeContinueWatchingSlider" aria-label="Scroll right">❯</button>
+            </div>
+        </section>
         <section class="content-section" id="moviesSection">
             <h3 class="section-title">Movies</h3>
             <div class="slider-container">
@@ -1053,6 +1069,16 @@
                         <p class="anime-left-desc" id="animeLeftDesc"></p>
                         <dl class="anime-left-meta" id="animeLeftMeta"></dl>
                         <button class="anime-left-bookmark" id="animeLeftBookmark"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 2h12a2 2 0 0 1 2 2v18l-8-4-8 4V4a2 2 0 0 1 2-2z"/></svg> My List</button>
+                        <div class="anime-theater-resume-box" id="animeLeftResumeBox" style="display:none">
+                            <div class="anime-theater-resume-info">
+                                <span class="anime-theater-resume-label">Last Watched</span>
+                                <span class="anime-theater-resume-ep" id="animeLeftResumeEp">Episode 1</span>
+                            </div>
+                            <button class="anime-theater-resume-btn" id="animeLeftResumeBtn" type="button">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                                Resume
+                            </button>
+                        </div>
                         <div class="anime-left-rating" id="animeLeftRating">
                             <div class="anime-left-rating-label">How'd you rate this anime?</div>
                             <div class="anime-left-rating-score" id="animeLeftRatingScore">—</div>
@@ -1880,22 +1906,22 @@
     </footer>
 
     <!-- Netflix Mobile Bottom Navigation -->
-    <nav class="netflix-mobile-nav" id="netflixMobileNav" aria-label="Mobile Navigation" style="display:none !important;">
+    <nav class="netflix-mobile-nav" id="netflixMobileNav" aria-label="Mobile Navigation">
         <button class="mobile-tab-btn active nav-link" data-section="home" title="Home">
             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M240-200h120v-240h240v240h120v-360L480-740 240-560v360Zm-80 80v-480l320-240 320 240v480H520v-240h-80v240H160Zm320-350Z"/></svg>
             <span>Home</span>
-        </button>
-        <button class="mobile-tab-btn nav-link" data-section="tvshows" title="TV Shows">
-            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-120v-80q-33 0-56.5-23.5T80-280v-440q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v440q0 33-23.5 56.5T800-200v80h-40l-26-80H227l-27 80h-40Zm0-160h640v-440H160v440Zm320-220Z"/></svg>
-            <span>TV Shows</span>
         </button>
         <button class="mobile-tab-btn nav-link" data-section="movies" title="Movies">
             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm240-200 240-120-240-120v240Z"/></svg>
             <span>Movies</span>
         </button>
-        <button class="mobile-tab-btn nav-link" data-section="trending" title="New & Popular">
-            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M382-80 154-308l57-57 171 171 367-367 57 57-424 424Z"/></svg>
-            <span>Hot &amp; New</span>
+        <button class="mobile-tab-btn nav-link" data-section="tvshows" title="TV Shows">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-120v-80q-33 0-56.5-23.5T80-280v-440q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v440q0 33-23.5 56.5T800-200v80h-40l-26-80H227l-27 80h-40Zm0-160h640v-440H160v440Zm320-220Z"/></svg>
+            <span>TV Shows</span>
+        </button>
+        <button class="mobile-tab-btn nav-link" data-section="anime" title="Anime">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
+            <span>Anime</span>
         </button>
         <button class="mobile-tab-btn nav-link" data-section="music" title="Milkify Music">
             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M400-120q-66 0-113-47t-47-113q0-66 47-113t113-47q23 0 42.5 5.5T480-418v-422h240v160H560v400q0 66-47 113t-113 47Z"/></svg>

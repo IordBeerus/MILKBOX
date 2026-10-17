@@ -231,11 +231,26 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     playButton.addEventListener('click', togglePlayback);
     centerPlay.addEventListener('click', togglePlayback);
     video.addEventListener('click', togglePlayback);
+    const applyPendingResume = () => {
+        if (window._pendingResumeTime > 0 && Number.isFinite(video.duration) && window._pendingResumeTime < Math.max(video.duration - 5, 1)) {
+            try {
+                video.currentTime = window._pendingResumeTime;
+                currentTime.textContent = _milkboxFormatTime(video.currentTime);
+            } catch {}
+            window._pendingResumeTime = 0;
+        }
+    };
     video.addEventListener('play', updatePlayState);
-    video.addEventListener('pause', updatePlayState);
+    video.addEventListener('pause', () => {
+        updatePlayState();
+        if (typeof window.onMilkboxVideoTimeUpdate === 'function') {
+            window.onMilkboxVideoTimeUpdate(video.currentTime, video.duration, true);
+        }
+    });
     video.addEventListener('loadedmetadata', () => {
         duration.textContent = _milkboxFormatTime(video.duration);
         loading.hidden = true;
+        applyPendingResume();
     });
     video.addEventListener('durationchange', () => {
         duration.textContent = _milkboxFormatTime(video.duration);
@@ -246,16 +261,30 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             seek.value = String(Math.round((video.currentTime / video.duration) * 1000));
             seek.style.setProperty('--milkbox-progress', `${(video.currentTime / video.duration) * 100}%`);
         }
+        if (typeof window.onMilkboxVideoTimeUpdate === 'function') {
+            window.onMilkboxVideoTimeUpdate(video.currentTime, video.duration);
+        }
+    });
+    video.addEventListener('seeked', () => {
+        if (typeof window.onMilkboxVideoTimeUpdate === 'function') {
+            window.onMilkboxVideoTimeUpdate(video.currentTime, video.duration, true);
+        }
     });
     video.addEventListener('waiting', () => { loading.hidden = false; });
     video.addEventListener('playing', () => { loading.hidden = true; });
-    video.addEventListener('canplay', () => { loading.hidden = true; });
+    video.addEventListener('canplay', () => {
+        loading.hidden = true;
+        applyPendingResume();
+    });
     video.addEventListener('error', () => {
         showPlaybackError('This video could not be played. Check the source URL or try another playback server.');
     });
     video.addEventListener('ended', () => {
         updatePlayState();
         player.classList.remove('controls-hidden');
+        if (typeof window.onMilkboxVideoTimeUpdate === 'function') {
+            window.onMilkboxVideoTimeUpdate(video.currentTime, video.duration, true);
+        }
     });
     seek.addEventListener('input', () => {
         if (Number.isFinite(video.duration)) {

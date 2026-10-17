@@ -3084,7 +3084,22 @@ function renderHeroItem(force = false) {
     } else {
         document.getElementById('heroSection').style.backgroundImage = '';
     }
-    document.getElementById('heroPlayBtn').onclick = () => playItem(featured, featured.type || 'movie');
+    const heroPlayBtn = document.getElementById('heroPlayBtn');
+    if (heroPlayBtn) {
+        const lastProg = isAnime(featured) ? getAnimeLastProgress(featured) : null;
+        if (lastProg && lastProg.episode && featured.type !== 'movie') {
+            const timeStr = lastProg.currentTime > 5 ? ` (${formatTimeDisplay(lastProg.currentTime)})` : '';
+            heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume Ep ${lastProg.episode}${timeStr}`;
+            heroPlayBtn.onclick = () => resumeAnime(featured, lastProg.season, lastProg.episode);
+        } else if (lastProg && lastProg.currentTime > 10 && featured.type === 'movie') {
+            const timeStr = formatTimeDisplay(lastProg.currentTime);
+            heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume (${timeStr})`;
+            heroPlayBtn.onclick = () => resumeAnime(featured, 1, 1);
+        } else {
+            heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Play`;
+            heroPlayBtn.onclick = () => playItem(featured, featured.type || 'movie');
+        }
+    }
     document.getElementById('heroInfoBtn').onclick = () => showInfo(featured, featured.type || 'movie');
 
     // Start background trailer playback for this featured item
@@ -4258,16 +4273,16 @@ function renderPlay() {
                 frame.innerHTML = animekaiIframe(base, malId, type, ep, langCheck);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • megavid ${base.toUpperCase()} (${malId})`;
             }
-            epSelector.style.display = type === 'tv' ? 'block' : 'none';
-            if (type === 'tv' && item.tmdbId) renderTmdbEpisodes(item, 'tmdb');
+            epSelector.style.display = isAnimeTitle ? 'none' : (type === 'tv' ? 'block' : 'none');
+            if (type === 'tv' && item.tmdbId && !isAnimeTitle) renderTmdbEpisodes(item, 'tmdb');
             return;
         }
         // 2) KissKH episode id (dramas / Kshows) — the /kisskh/{id} endpoint
         if (kissId) {
             frame.innerHTML = kisskhIframe(kissId, '2ad4b8', true, type === 'tv' ? ep : null);
             subtitle.textContent = `${item.year || ''} • KissKH (${kissId})`;
-            epSelector.style.display = type === 'tv' ? 'block' : 'none';
-            if (type === 'tv' && item.tmdbId) renderTmdbEpisodes(item, 'tmdb');
+            epSelector.style.display = isAnimeTitle ? 'none' : (type === 'tv' ? 'block' : 'none');
+            if (type === 'tv' && item.tmdbId && !isAnimeTitle) renderTmdbEpisodes(item, 'tmdb');
             return;
         }
         if (currentAnidbId) {
@@ -4285,13 +4300,13 @@ function renderPlay() {
                 frame.innerHTML = anidbIframe(currentAnidbId, type, season, ep, langCheck);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AniDB`;
             }
-            epSelector.style.display = type === 'tv' ? 'block' : 'none';
-            if (type === 'tv' && item.tmdbId) renderTmdbEpisodes(item, 'tmdb');
+            epSelector.style.display = isAnimeTitle ? 'none' : (type === 'tv' ? 'block' : 'none');
+            if (type === 'tv' && item.tmdbId && !isAnimeTitle) renderTmdbEpisodes(item, 'tmdb');
             return;
         }
     }
     const langSel2 = document.getElementById('animeLangSelector');
-    if(langSel2) langSel2.style.display = isAnimeTitle && playerServer !== 'milkbox' ? 'flex' : 'none';
+    if(langSel2) langSel2.style.display = 'none';
     const server = effectiveServerFor(item, type);
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
@@ -4309,19 +4324,22 @@ function renderPlay() {
             frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#888;font-size:18px;">No video source on this server</div>`;
         }
     } else if (type === 'tv') {
-        subtitle.textContent = `Season ${item.season || 1}`;
+        const resumeSeason = playContext.season || item.season || 1;
+        const resumeEp = playContext.episode || 1;
+        subtitle.textContent = `Season ${resumeSeason} • Episode ${resumeEp}`;
         if (server === 'kisskh') {
-            epSelector.style.display = 'block';
-            if (item.tmdbId) renderTmdbEpisodes(item, server);
-            playTmdbEpisode(item, item.season || 1, 1, server);
+            epSelector.style.display = (isAnimeTitle || isAnime(item)) ? 'none' : 'block';
+            if (item.tmdbId && !isAnime(item)) renderTmdbEpisodes(item, server);
+            playTmdbEpisode(item, resumeSeason, resumeEp, server);
         } else if (server === 'milkbox' || (isTmdbServer && item.tmdbId)) {
-            epSelector.style.display = 'block';
-            renderTmdbEpisodes(item, server);
-            playTmdbEpisode(item, item.season || 1, 1, server);
+            epSelector.style.display = (isAnimeTitle || isAnime(item)) ? 'none' : 'block';
+            if (!isAnime(item)) renderTmdbEpisodes(item, server);
+            playTmdbEpisode(item, resumeSeason, resumeEp, server);
         } else if (server === 'direct' && item.episodes && item.episodes.length > 0) {
-            epSelector.style.display = 'block';
+            epSelector.style.display = (isAnimeTitle || isAnime(item)) ? 'none' : 'block';
             renderEpisodePlaylist(item);
-            playEpisode(item, item.episodes[0], 0);
+            const epIdx = Math.max(0, Math.min(item.episodes.length - 1, resumeEp - 1));
+            playEpisode(item, item.episodes[epIdx], epIdx);
         } else {
             epSelector.style.display = 'none';
             frame.innerHTML = `<div class="milkbox-player-empty">${server === 'direct' ? 'Add direct video URLs or upload episodes to play this show.' : 'No episodes available on this server.'}</div>`;
@@ -4342,7 +4360,28 @@ function playItem(item, type) {
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
     playContext = { item, type };
-    try { recordWatchProgress(item, { type }); } catch {}
+    let initialOffset = 0;
+    if (isAnime(item)) {
+        const saved = getAnimeLastProgress(item);
+        if (saved && saved.episode && type !== 'movie' && item.type !== 'movie') {
+            playContext.episode = saved.episode;
+            playContext.season = saved.season || 1;
+        }
+        if (saved && saved.currentTime > 5) {
+            initialOffset = saved.currentTime;
+            playContext.resumeTime = initialOffset;
+            window._pendingResumeTime = initialOffset;
+            const epNum = playContext.episode || 1;
+            const timeStr = formatTimeDisplay(initialOffset);
+            try { toast(`Resuming ${item.title} • Episode ${epNum} at ${timeStr}`, 'info'); } catch {}
+            setTimeout(() => showPlayerResumePill(initialOffset), 400);
+        } else if (saved && saved.episode && type !== 'movie' && item.type !== 'movie') {
+            try { toast(`Resuming ${item.title} • Episode ${saved.episode}`, 'info'); } catch {}
+        }
+    }
+    startPlaybackTimeTracking(item, initialOffset);
+    try { recordWatchProgress(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } catch {}
+    try { if (isAnime(item)) { recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } } catch {}
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
     try { wireAnimeTheaterOnce(); } catch {}
     // anime only: show sub/dub toggle and resolve anidb + animekai ids
@@ -4351,7 +4390,7 @@ function playItem(item, type) {
     const autoembedAnimeOpt = document.getElementById('serverOptAutoembedAnime');
     if (isAnime(item) && playerServer !== 'milkbox') {
         if (langSel) {
-            langSel.style.display = 'flex';
+            langSel.style.display = 'none';
             document.querySelectorAll('.lang-btn').forEach(b => {
                 const isActive = b.dataset.lang === currentAnimeLang;
                 b.classList.toggle('active', isActive);
@@ -4652,14 +4691,30 @@ function playTmdbEpisode(tvItem, season, episode, server) {
     clearAutoFallback();
     title.textContent = tvItem.title;
     const isMovie = (playContext && playContext.type === 'movie') || tvItem.type === 'movie' || (tvItem.media_type === 'movie');
+    const seNum = season || 1;
+    const epNum = isMovie ? 1 : (episode || 1);
+
+    let initialOffset = 0;
+    if (isAnime(tvItem)) {
+        const saved = getAnimeLastProgress(tvItem, seNum, epNum);
+        if (saved && (saved.episode === epNum || isMovie) && saved.currentTime > 5) {
+            initialOffset = saved.currentTime;
+            window._pendingResumeTime = initialOffset;
+            setTimeout(() => showPlayerResumePill(initialOffset), 400);
+        }
+    }
+
     if (isMovie) {
         subtitle.textContent = tvItem.title;
-        playContext = { item: tvItem, type: 'movie', season: 1, episode: 1 };
+        playContext = { item: tvItem, type: 'movie', season: 1, episode: 1, resumeTime: initialOffset };
     } else {
-        subtitle.textContent = `Season ${season || 1} • Episode ${episode}`;
-        playContext = { item: tvItem, type: 'tv', season: season || 1, episode };
+        const timeStr = initialOffset > 5 ? ` · ${formatTimeDisplay(initialOffset)}` : '';
+        subtitle.textContent = `Season ${seNum} • Episode ${epNum}${timeStr}`;
+        playContext = { item: tvItem, type: 'tv', season: seNum, episode: epNum, resumeTime: initialOffset };
     }
-    try { recordWatchProgress(tvItem, { season, episode, type: isMovie ? 'movie' : 'tv' }); } catch {}
+    startPlaybackTimeTracking(tvItem, initialOffset);
+    try { recordWatchProgress(tvItem, { season: seNum, episode: epNum, type: isMovie ? 'movie' : 'tv', currentTime: initialOffset }); } catch {}
+    try { if (isAnime(tvItem)) { recordAnimeContinueWatching(tvItem, { season: seNum, episode: epNum, type: isMovie ? 'movie' : 'tv', currentTime: initialOffset }); } } catch {}
     if (server === 'direct') {
         stopCustomVideoPlayer(frame);
         if (isMovie) {
@@ -4706,9 +4761,26 @@ async function playEpisode(tvItem, episode, index) {
     const title = document.getElementById('playerTitle');
     const subtitle = document.getElementById('playerSubtitle');
     title.textContent = tvItem.title;
-    subtitle.textContent = `Season ${tvItem.season || 1} • Episode ${index + 1} - ${episode.name}`;
+    const seNum = tvItem.season || 1;
+    const epNum = index + 1;
+
+    let initialOffset = 0;
+    if (isAnime(tvItem)) {
+        const saved = getAnimeLastProgress(tvItem, seNum, epNum);
+        if (saved && saved.episode === epNum && saved.currentTime > 5) {
+            initialOffset = saved.currentTime;
+            window._pendingResumeTime = initialOffset;
+            setTimeout(() => showPlayerResumePill(initialOffset), 400);
+        }
+    }
+
+    const timeStr = initialOffset > 5 ? ` · ${formatTimeDisplay(initialOffset)}` : '';
+    subtitle.textContent = `Season ${seNum} • Episode ${epNum} - ${episode.name}${timeStr}`;
     // Keep playContext in sync for auto-play next
-    playContext = { item: tvItem, type: 'tv', season: tvItem.season || 1, episode: index + 1 };
+    playContext = { item: tvItem, type: 'tv', season: seNum, episode: epNum, resumeTime: initialOffset };
+    startPlaybackTimeTracking(tvItem, initialOffset);
+    try { recordWatchProgress(tvItem, { season: seNum, episode: epNum, type: 'tv', currentTime: initialOffset }); } catch {}
+    try { if (isAnime(tvItem)) { recordAnimeContinueWatching(tvItem, { season: seNum, episode: epNum, episodeName: episode?.name, type: 'tv', currentTime: initialOffset }); } } catch {}
     const context = playContext;
     stopCustomVideoPlayer(frame);
     frame.innerHTML = '';
@@ -6247,6 +6319,8 @@ function recordWatchProgress(item, extra = {}) {
             poster: item.poster || item.poster_path || '',
             season: extra.season || 1,
             episode: extra.episode || 1,
+            currentTime: Math.max(0, Math.floor(extra.currentTime || 0)),
+            duration: Math.max(0, Math.floor(extra.duration || 0)),
             server: playerServer || 'auto',
             updatedAt: Date.now()
         };
@@ -6260,14 +6334,577 @@ function recordWatchProgress(item, extra = {}) {
 function clearWatchHistory() {
     playUiSound();
     localStorage.removeItem('sf_watch_history');
+    clearAnimeContinueWatching();
     updateWatchHistoryUI();
-    toast('Watch history cleared!', 'success');
+    toast('Watch history and Continue Watching cleared!', 'success');
 }
 function updateWatchHistoryUI() {
     const el = document.getElementById('watchHistoryCountVal');
     if (el) {
         const count = getWatchHistory().length;
         el.textContent = `${count} title${count === 1 ? '' : 's'} tracked`;
+    }
+}
+
+// ==================== ANIME CONTINUE WATCHING & RESUME ====================
+const ANIME_CW_KEY = 'milkbox_anime_continue_watching';
+
+function formatTimeDisplay(seconds) {
+    if (!seconds || isNaN(seconds) || seconds < 0) return '0:00';
+    const s = Math.floor(seconds);
+    const hrs = Math.floor(s / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    if (hrs > 0) {
+        return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+}
+
+function getAnimeContinueWatching() {
+    try {
+        const raw = localStorage.getItem(ANIME_CW_KEY);
+        let list = raw ? JSON.parse(raw) : null;
+        if (!Array.isArray(list) || list.length === 0) {
+            const general = getWatchHistory();
+            const animeEntries = general.filter(entry => entry && (isAnime(entry) || entry.type === 'anime' || (entry.genre && String(entry.genre).toLowerCase().includes('anime'))));
+            if (animeEntries.length > 0) {
+                list = animeEntries.map(e => ({
+                    id: String(e.id || e.tmdbId || e.title),
+                    tmdbId: e.tmdbId || e.id,
+                    title: e.title || 'Untitled Anime',
+                    poster: e.poster || '',
+                    backdrop: e.backdrop || e.poster || '',
+                    season: e.season || 1,
+                    episode: e.episode || 1,
+                    currentTime: e.currentTime || 0,
+                    duration: e.duration || 0,
+                    episodesProgress: {
+                        [`${e.season || 1}_${e.episode || 1}`]: {
+                            currentTime: e.currentTime || 0,
+                            duration: e.duration || 0,
+                            updatedAt: e.updatedAt || Date.now()
+                        }
+                    },
+                    type: e.type || 'tv',
+                    server: e.server || 'auto',
+                    updatedAt: e.updatedAt || Date.now()
+                }));
+                localStorage.setItem(ANIME_CW_KEY, JSON.stringify(list));
+            } else {
+                list = [];
+            }
+        }
+        return list;
+    } catch {
+        return [];
+    }
+}
+
+function recordAnimeContinueWatching(item, extra = {}) {
+    if (!item) return;
+    try {
+        const itemKey = String(item.id || item.tmdbId || item.title);
+        let list = getAnimeContinueWatching();
+        const existing = list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)));
+        const season = parseInt(extra.season || (existing && existing.season) || item.season || 1, 10) || 1;
+        const episode = parseInt(extra.episode || (existing && existing.episode) || item.episode || 1, 10) || 1;
+        const totalEps = parseInt(extra.episodeCount || (existing && existing.episodeCount) || item.episodeCount || (item.episodes && item.episodes.length) || (typeof _animeEpAll !== 'undefined' && _animeEpAll.length) || 0, 10) || 0;
+        const isMovie = extra.type === 'movie' || item.type === 'movie' || item.media_type === 'movie';
+        
+        let curTime = 0;
+        if (extra.currentTime != null && !isNaN(extra.currentTime)) curTime = Math.max(0, Math.floor(parseFloat(extra.currentTime)));
+        else if (existing && existing.currentTime != null) curTime = existing.currentTime;
+
+        let durTime = 0;
+        if (extra.duration != null && !isNaN(extra.duration)) durTime = Math.max(0, Math.floor(parseFloat(extra.duration)));
+        else if (existing && existing.duration != null) durTime = existing.duration;
+
+        const epKey = `${season}_${episode}`;
+        const episodesProgress = Object.assign({}, existing && existing.episodesProgress);
+        episodesProgress[epKey] = {
+            currentTime: curTime,
+            duration: durTime,
+            updatedAt: Date.now()
+        };
+
+        const entry = {
+            id: itemKey,
+            tmdbId: item.tmdbId || item.id,
+            title: item.title || item.name || 'Untitled Anime',
+            type: isMovie ? 'movie' : 'tv',
+            poster: item.poster || item.poster_path || '',
+            backdrop: item.backdrop || item.backdrop_path || item.poster || '',
+            genre: item.genre || ['anime'],
+            season,
+            episode,
+            episodeCount: totalEps,
+            episodeName: extra.episodeName || (existing && existing.episodeName) || (extra.episode ? `Episode ${extra.episode}` : ''),
+            currentTime: curTime,
+            duration: durTime,
+            episodesProgress,
+            server: playerServer || 'auto',
+            lang: currentAnimeLang || 'sub',
+            updatedAt: Date.now()
+        };
+
+        list = list.filter(x => String(x.id) !== itemKey && String(x.title).toLowerCase() !== String(entry.title).toLowerCase());
+        list.unshift(entry);
+        if (list.length > 40) list = list.slice(0, 40);
+
+        localStorage.setItem(ANIME_CW_KEY, JSON.stringify(list));
+        renderAnimeContinueWatchingRow();
+    } catch (e) {
+        console.warn('[MILKBOX] Error recording anime continue watching:', e);
+    }
+}
+
+function getAnimeLastProgress(item, season = null, episode = null) {
+    if (!item) return null;
+    try {
+        const itemKey = String(item.id || item.tmdbId || item.title);
+        const titleLower = String(item.title || item.name || '').toLowerCase();
+        const list = getAnimeContinueWatching();
+        const entry = list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || (titleLower && String(x.title || '').toLowerCase() === titleLower)) || null;
+        if (!entry) return null;
+        if (episode != null) {
+            const epKey = `${season || entry.season || 1}_${episode}`;
+            const epData = entry.episodesProgress && entry.episodesProgress[epKey];
+            if (epData && epData.currentTime > 0) {
+                return {
+                    ...entry,
+                    season: season || entry.season || 1,
+                    episode: episode,
+                    currentTime: epData.currentTime,
+                    duration: epData.duration || entry.duration || 0
+                };
+            }
+        }
+        return entry;
+    } catch {
+        return null;
+    }
+}
+
+function removeAnimeContinueWatching(id) {
+    playUiSound();
+    try {
+        const idStr = String(id);
+        let list = getAnimeContinueWatching();
+        list = list.filter(x => String(x.id) !== idStr && String(x.tmdbId) !== idStr);
+        localStorage.setItem(ANIME_CW_KEY, JSON.stringify(list));
+        renderAnimeContinueWatchingRow();
+        toast('Removed from Continue Watching', 'info');
+    } catch {}
+}
+
+function clearAnimeContinueWatching() {
+    playUiSound();
+    localStorage.removeItem(ANIME_CW_KEY);
+    renderAnimeContinueWatchingRow();
+}
+
+function formatCwTimeAgo(ts) {
+    if (!ts) return '';
+    const diff = Math.max(0, Date.now() - ts);
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return `${mins}m ago`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 30) return `${days}d ago`;
+    return '';
+}
+
+// Active Playback Time Tracking Engine
+let _liveTrackedTime = 0;
+let _liveTrackedDuration = 0;
+let _playbackWatchStart = 0;
+let _playbackStartOffset = 0;
+let _playbackWatchInterval = null;
+let _lastTimeUpdateCommit = 0;
+
+function startPlaybackTimeTracking(item, initialOffset = 0) {
+    if (!item) return;
+    _liveTrackedTime = Math.max(0, Math.floor(initialOffset || 0));
+    _liveTrackedDuration = 0;
+    _playbackStartOffset = _liveTrackedTime;
+    _playbackWatchStart = Date.now();
+    _lastTimeUpdateCommit = Date.now();
+
+    if (_playbackWatchInterval) clearInterval(_playbackWatchInterval);
+    _playbackWatchInterval = setInterval(() => {
+        if (!document.body.classList.contains('player-active') || document.hidden) return;
+        const pf = document.getElementById('playerFrame');
+        const vid = pf ? pf.querySelector('video') : null;
+        if (vid && !isNaN(vid.currentTime) && !vid.paused) {
+            _liveTrackedTime = Math.max(0, Math.floor(vid.currentTime));
+            _liveTrackedDuration = Math.max(0, Math.floor(vid.duration || 0));
+        } else {
+            const elapsed = Math.floor((Date.now() - _playbackWatchStart) / 1000);
+            _liveTrackedTime = _playbackStartOffset + elapsed;
+        }
+
+        if (playContext && playContext.item && _liveTrackedTime > 2) {
+            commitTimestampProgress(playContext.item, _liveTrackedTime, _liveTrackedDuration);
+        }
+    }, 2000);
+}
+
+function stopPlaybackTimeTracking() {
+    flushPlaybackTimestamp();
+    if (_playbackWatchInterval) {
+        clearInterval(_playbackWatchInterval);
+        _playbackWatchInterval = null;
+    }
+    _playbackWatchStart = 0;
+}
+
+function flushPlaybackTimestamp() {
+    if (!playContext || !playContext.item) return;
+    const pf = document.getElementById('playerFrame');
+    const vid = pf ? pf.querySelector('video') : null;
+    let cur = null;
+    let dur = null;
+    if (vid && !isNaN(vid.currentTime)) {
+        cur = Math.max(0, Math.floor(vid.currentTime));
+        dur = Math.max(0, Math.floor(vid.duration || 0));
+    } else if (_liveTrackedTime > 0) {
+        cur = _liveTrackedTime;
+        dur = _liveTrackedDuration || 0;
+    } else if (_playbackWatchStart > 0) {
+        const elapsed = Math.floor((Date.now() - _playbackWatchStart) / 1000);
+        cur = _playbackStartOffset + elapsed;
+    }
+    if (cur != null && cur > 2) {
+        commitTimestampProgress(playContext.item, cur, dur);
+    }
+}
+
+function commitTimestampProgress(item, currentTime, duration) {
+    if (!item) return;
+    try {
+        const isMovie = (playContext && playContext.type === 'movie') || item.type === 'movie';
+        const season = (playContext && playContext.season) || item.season || 1;
+        const episode = (playContext && playContext.episode) || 1;
+        const cur = Math.max(0, Math.floor(currentTime || 0));
+        const dur = Math.max(0, Math.floor(duration || 0));
+
+        if (isAnime(item)) {
+            recordAnimeContinueWatching(item, {
+                season,
+                episode,
+                type: isMovie ? 'movie' : 'tv',
+                currentTime: cur,
+                duration: dur
+            });
+        }
+        recordWatchProgress(item, {
+            season,
+            episode,
+            type: isMovie ? 'movie' : 'tv',
+            currentTime: cur,
+            duration: dur
+        });
+
+        // Update player subtitle with live timestamp
+        const subtitle = document.getElementById('playerSubtitle');
+        if (subtitle && playContext && playContext.item && cur > 3) {
+            const baseSub = isMovie ? (playContext.item.title || item.title) : `Season ${season} • Episode ${episode}`;
+            const timeStr = formatTimeDisplay(cur);
+            const durStr = dur > 0 ? ` / ${formatTimeDisplay(dur)}` : '';
+            subtitle.textContent = `${baseSub} · ${timeStr}${durStr}`;
+        }
+
+        // Live update Anime Theater left column resume box if visible
+        const resumeBox = document.getElementById('animeLeftResumeBox');
+        if (resumeBox && resumeBox.style.display !== 'none') {
+            const epLabel = document.getElementById('animeLeftResumeEp');
+            const timeStr = cur > 5 ? formatTimeDisplay(cur) : '';
+            if (epLabel) {
+                epLabel.textContent = isMovie ? `Movie • ${timeStr}` : `Episode ${episode}${timeStr ? ' • ' + timeStr : ''}`;
+            }
+            const resumeBtn = document.getElementById('animeLeftResumeBtn');
+            if (resumeBtn) {
+                resumeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${timeStr ? 'Resume at ' + timeStr : 'Resume'}`;
+            }
+        }
+    } catch (e) {
+        console.warn('commitTimestampProgress error', e);
+    }
+}
+
+// Hook for HTML5 custom player
+window.onMilkboxVideoTimeUpdate = (currentTime, duration, force = false) => {
+    if (!playContext || !playContext.item) return;
+    _liveTrackedTime = Math.max(0, Math.floor(currentTime || 0));
+    _liveTrackedDuration = Math.max(0, Math.floor(duration || 0));
+    _playbackStartOffset = _liveTrackedTime;
+    _playbackWatchStart = Date.now();
+    const now = Date.now();
+    if (force || !_lastTimeUpdateCommit || now - _lastTimeUpdateCommit >= 2000) {
+        _lastTimeUpdateCommit = now;
+        if (_liveTrackedTime > 2) {
+            commitTimestampProgress(playContext.item, _liveTrackedTime, _liveTrackedDuration);
+        }
+    }
+};
+
+// Global message listener for iframe embed player timestamps (VidLink, PlayerJS, JWPlayer, AutoEmbed, SuperEmbed, etc.)
+window.addEventListener('message', (e) => {
+    if (!playContext || !playContext.item) return;
+    try {
+        let msg = e.data;
+        if (typeof msg === 'string') {
+            try { msg = JSON.parse(msg); } catch {
+                if (msg.startsWith('time:') || msg.startsWith('timeupdate:')) {
+                    const num = parseFloat(msg.split(':')[1]);
+                    if (!isNaN(num)) msg = { currentTime: num };
+                }
+            }
+        }
+        if (!msg || typeof msg !== 'object') return;
+
+        const checkTime = (val) => (typeof val === 'number' && !isNaN(val) && val >= 0) ? val : null;
+        let cur = checkTime(msg.currentTime) ?? checkTime(msg.time) ?? checkTime(msg.seconds) ?? checkTime(msg.position) ?? checkTime(msg.value);
+        if (cur == null && msg.data && typeof msg.data === 'object') {
+            cur = checkTime(msg.data.currentTime) ?? checkTime(msg.data.time) ?? checkTime(msg.data.position) ?? checkTime(msg.data.value) ?? checkTime(msg.data.seconds);
+        }
+        if (cur == null && msg.detail && typeof msg.detail === 'object') {
+            cur = checkTime(msg.detail.currentTime) ?? checkTime(msg.detail.time) ?? checkTime(msg.detail.position);
+        }
+
+        let dur = checkTime(msg.duration) ?? checkTime(msg.totalTime) ?? checkTime(msg.length);
+        if (dur == null && msg.data && typeof msg.data === 'object') {
+            dur = checkTime(msg.data.duration) ?? checkTime(msg.data.totalTime);
+        }
+
+        if (cur != null && !isNaN(cur) && cur >= 0) {
+            _liveTrackedTime = Math.floor(cur);
+            if (dur != null && !isNaN(dur) && dur > 0) _liveTrackedDuration = Math.floor(dur);
+            _playbackStartOffset = _liveTrackedTime;
+            _playbackWatchStart = Date.now();
+            commitTimestampProgress(playContext.item, _liveTrackedTime, _liveTrackedDuration);
+        }
+    } catch {}
+});
+
+function showPlayerResumePill(seconds) {
+    if (!seconds || seconds <= 5) return;
+    const container = document.querySelector('.anime-player-wrap') || document.querySelector('.player-container');
+    if (!container) return;
+    
+    document.getElementById('playerResumePill')?.remove();
+
+    const pill = document.createElement('div');
+    pill.className = 'player-resume-pill';
+    pill.id = 'playerResumePill';
+    pill.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm.5-13h-1.5v6l5.25 3.15.75-1.23-4.5-2.67Z"/></svg>
+        <span>Resumed at ${formatTimeDisplay(seconds)}</span>
+        <button type="button" class="resume-pill-restart" id="resumePillRestart" title="Restart from beginning">↺ Restart</button>
+    `;
+
+    container.appendChild(pill);
+
+    pill.querySelector('#resumePillRestart')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        restartPlaybackFromStart();
+    });
+
+    setTimeout(() => {
+        pill.classList.add('fade-out');
+        setTimeout(() => pill.remove(), 400);
+    }, 5500);
+}
+
+function restartPlaybackFromStart() {
+    window._pendingResumeTime = 0;
+    _liveTrackedTime = 0;
+    _playbackStartOffset = 0;
+    _playbackWatchStart = Date.now();
+
+    const pf = document.getElementById('playerFrame');
+    const vid = pf ? pf.querySelector('video') : null;
+    if (vid) {
+        try { vid.currentTime = 0; } catch {}
+    }
+    const ifr = pf ? pf.querySelector('iframe') : null;
+    if (ifr && ifr.contentWindow) {
+        try { ifr.contentWindow.postMessage({ type: 'seek', time: 0 }, '*'); } catch {}
+        try { ifr.contentWindow.postMessage({ event: 'seek', time: 0 }, '*'); } catch {}
+        try { ifr.contentWindow.postMessage({ action: 'seek', time: 0 }, '*'); } catch {}
+    }
+    if (playContext && playContext.item) {
+        commitTimestampProgress(playContext.item, 0, _liveTrackedDuration || 0);
+    }
+    document.getElementById('playerResumePill')?.remove();
+    toast('Restarted from beginning', 'info');
+}
+
+function renderAnimeContinueWatchingRow() {
+    const section = document.getElementById('animeContinueWatchingSection');
+    const slider = document.getElementById('animeContinueWatchingSlider');
+    const countBadge = document.getElementById('animeCwCountBadge');
+    if (!section || !slider) return;
+
+    const items = getAnimeContinueWatching();
+    if (!items || items.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+
+    if (currentSection !== 'anime' && currentSection !== 'home') {
+        section.style.display = 'none';
+        return;
+    }
+
+    section.style.display = '';
+    if (countBadge) countBadge.textContent = String(items.length);
+
+    slider.innerHTML = items.map(item => {
+        const poster = item.backdrop || item.poster || '';
+        const title = escapeHtml(item.title || 'Untitled Anime');
+        const season = item.season || 1;
+        const episode = item.episode || 1;
+        const totalEps = item.episodeCount || 0;
+        const curTime = item.currentTime || 0;
+        const durTime = item.duration || 0;
+        const timeStr = curTime > 5 ? formatTimeDisplay(curTime) : '';
+        const durStr = durTime > 0 ? formatTimeDisplay(durTime) : '';
+
+        let progressPct = 35;
+        if (curTime > 0 && durTime > 0) {
+            progressPct = Math.min(100, Math.max(5, Math.round((curTime / durTime) * 100)));
+        } else if (curTime > 0) {
+            // Standard anime episode ~24m (1440s)
+            progressPct = Math.min(95, Math.max(5, Math.round((curTime / 1440) * 100)));
+        } else if (totalEps > 0) {
+            progressPct = Math.min(100, Math.max(8, Math.round((episode / totalEps) * 100)));
+        }
+
+        const progressLabel = timeStr 
+            ? `Ep ${episode} · ${timeStr}${durStr ? ' / ' + durStr : ''}` 
+            : (totalEps > 0 ? `Ep ${episode} of ${totalEps}` : `Episode ${episode}`);
+        const timeAgo = formatCwTimeAgo(item.updatedAt);
+        const itemJson = escapeHtml(JSON.stringify(item));
+        const timeBadge = timeStr ? `<span class="anime-cw-time-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm.5-13h-1.5v6l5.25 3.15.75-1.23-4.5-2.67Z"/></svg> ${timeStr}</span>` : '';
+
+        return `
+            <div class="anime-cw-card" data-id="${escapeHtml(item.id)}" data-anime-cw="${itemJson}">
+                <div class="anime-cw-thumb-wrap">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" loading="lazy" decoding="async" onerror="if(this.src!=='${escapeHtml(item.poster || '')}'&&'${escapeHtml(item.poster || '')}'){this.src='${escapeHtml(item.poster || '')}';}else{this.style.display='none';}">
+                    <div class="anime-cw-scrim"></div>
+                    <span class="anime-cw-badge">EPISODE ${episode}</span>
+                    ${timeBadge}
+                    <button class="anime-cw-remove-btn" data-action="remove-cw" data-id="${escapeHtml(item.id)}" title="Remove from Continue Watching" aria-label="Remove">✕</button>
+                    <div class="anime-cw-play-overlay">
+                        <div class="anime-cw-play-circle">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        </div>
+                    </div>
+                    <div class="anime-cw-progress-bar">
+                        <div class="anime-cw-progress-fill" style="width:${progressPct}%"></div>
+                    </div>
+                </div>
+                <div class="anime-cw-info">
+                    <h4 class="anime-cw-title" title="${title}">${title}</h4>
+                    <div class="anime-cw-sub">
+                        <span class="anime-cw-ep-tag">${progressLabel}</span>
+                        ${timeAgo ? `<span class="anime-cw-time">${timeAgo}</span>` : ''}
+                    </div>
+                    <button class="anime-cw-resume-btn" type="button" data-action="resume-cw" data-id="${escapeHtml(item.id)}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <span>${timeStr ? `Resume at ${timeStr}` : `Resume Ep ${episode}`}</span>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    slider.querySelectorAll('.anime-cw-card').forEach(card => {
+        const raw = card.getAttribute('data-anime-cw');
+        let itemData = null;
+        try { itemData = JSON.parse(raw); } catch {}
+        if (!itemData) return;
+
+        card.addEventListener('click', (e) => {
+            const removeBtn = e.target.closest('[data-action="remove-cw"]');
+            if (removeBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                removeAnimeContinueWatching(itemData.id);
+                return;
+            }
+            resumeAnime(itemData, itemData.season, itemData.episode);
+        });
+    });
+}
+
+function resumeAnime(itemData, season = 1, episode = 1) {
+    playUiSound();
+    const fullItem = [...movies, ...tvShows, ...(animeLive.movies || []), ...(animeLive.tv || []), ...FALLBACK_ANIME_TV, ...FALLBACK_ANIME_MOVIES]
+        .find(x => String(x.id) === String(itemData.id) || (x.tmdbId && String(x.tmdbId) === String(itemData.tmdbId)) || (x.title && x.title.toLowerCase() === (itemData.title || '').toLowerCase()))
+        || itemData;
+
+    fullItem.isAnime = true;
+    const isMovie = itemData.type === 'movie' || fullItem.type === 'movie' || fullItem.media_type === 'movie';
+    const targetSeason = parseInt(season || fullItem.season || 1, 10) || 1;
+    const targetEpisode = parseInt(episode || 1, 10) || 1;
+    const savedTime = Math.max(0, parseFloat(itemData.currentTime || 0) || 0);
+
+    const timeLabel = savedTime > 5 ? ` at ${formatTimeDisplay(savedTime)}` : '';
+    toast(`Resuming ${fullItem.title} • Episode ${targetEpisode}${timeLabel}`, 'info');
+
+    playContext = {
+        item: fullItem,
+        type: isMovie ? 'movie' : 'tv',
+        season: targetSeason,
+        episode: targetEpisode,
+        resumeTime: savedTime
+    };
+
+    window._pendingResumeTime = savedTime;
+
+    const modal = document.getElementById('playerModal');
+    const title = document.getElementById('playerTitle');
+    const subtitle = document.getElementById('playerSubtitle');
+    if (title) title.textContent = fullItem.title;
+    if (subtitle) subtitle.textContent = isMovie ? fullItem.title : `Season ${targetSeason} • Episode ${targetEpisode}${timeLabel}`;
+    if (modal) {
+        modal.classList.add('active');
+        modal.classList.add('anime-mode');
+    }
+    document.body.classList.add('player-active');
+
+    recordAnimeContinueWatching(fullItem, {
+        season: targetSeason,
+        episode: targetEpisode,
+        currentTime: savedTime,
+        type: isMovie ? 'movie' : 'tv'
+    });
+
+    enterAnimeTheater(fullItem);
+
+    // Start active time tracking with this saved offset
+    startPlaybackTimeTracking(fullItem, savedTime);
+
+    const srv = effectiveServerFor(fullItem, isMovie ? 'movie' : 'tv');
+    if (isMovie) {
+        renderPlay();
+    } else {
+        if (fullItem.tmdbId) {
+            playTmdbEpisode(fullItem, targetSeason, targetEpisode, srv);
+        } else if (fullItem.episodes && fullItem.episodes[targetEpisode - 1]) {
+            playEpisode(fullItem, fullItem.episodes[targetEpisode - 1], targetEpisode - 1);
+        } else {
+            playTmdbEpisode(fullItem, targetSeason, targetEpisode, srv);
+        }
+    }
+
+    if (savedTime > 5) {
+        showPlayerResumePill(savedTime);
     }
 }
 
@@ -8307,6 +8944,12 @@ function applySectionChange(section, link) {
     show('top10Section', section === 'home');
     if (section === 'home') renderTop10Row();
     show('freeSection', false);
+    const animeCwList = getAnimeContinueWatching();
+    const hasAnimeCw = animeCwList && animeCwList.length > 0;
+    show('animeContinueWatchingSection', (section === 'anime' || section === 'home') && hasAnimeCw);
+    if ((section === 'anime' || section === 'home') && hasAnimeCw) {
+        renderAnimeContinueWatchingRow();
+    }
     if (section === 'anime') {
         document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
         document.querySelector('#tvShowsSection .section-title').textContent = 'Anime Shows';
@@ -8530,6 +9173,13 @@ function applyHomeFilter() {
         try { renderGenreRows(); } catch(e){ console.error(e); }
         try { renderHomeDiscovery(); } catch(e){ console.error(e); }
         try { renderTop10Row(); } catch(e){ console.error(e); }
+        try {
+            const animeCwList = getAnimeContinueWatching();
+            const hasAnimeCw = animeCwList && animeCwList.length > 0;
+            const cwSec = document.getElementById('animeContinueWatchingSection');
+            if (cwSec) cwSec.style.display = hasAnimeCw ? '' : 'none';
+            if (hasAnimeCw) renderAnimeContinueWatchingRow();
+        } catch(e) { console.error('animeCw render error', e); }
     } catch(e){ console.error('applyHomeFilter', e); }
     try { renderCollections(); } catch {}
     try { observeContentSections(); } catch (_) {}
@@ -8635,10 +9285,16 @@ function _restorePlayerContainer(){
 function enterAnimeTheater(item){
   const theater = document.getElementById('animeTheater');
   const content = document.querySelector('.player-content');
+  const modal = document.getElementById('playerModal');
+  const generic = document.getElementById('genericPlayerLayout');
+  const epSelector = document.getElementById('episodeSelector');
   if (!theater || !content) return;
   _movePlayerToAnimeWrap();
   content.classList.add('anime-mode');
+  if (modal) modal.classList.add('anime-mode');
   theater.style.display = '';
+  if (generic) generic.style.display = 'none';
+  if (epSelector) epSelector.style.display = 'none';
   const als = document.getElementById('animeLangSelector'); if (als) als.style.display = 'none';
   _animeCcOn = currentAnimeLang !== 'dub';
   const isMovie = (playContext && playContext.type === 'movie') || item.type === 'movie' || item.media_type === 'movie';
@@ -8710,8 +9366,12 @@ async function loadAnimeTheaterDetails(item) {
 function exitAnimeTheater(){
   const theater = document.getElementById('animeTheater');
   const content = document.querySelector('.player-content');
+  const modal = document.getElementById('playerModal');
+  const generic = document.getElementById('genericPlayerLayout');
   if (theater) theater.style.display = 'none';
   if (content) content.classList.remove('anime-mode');
+  if (modal) modal.classList.remove('anime-mode');
+  if (generic) generic.style.display = '';
   const right = document.getElementById('animeRight');
   if (right) right.classList.remove('anime-movie-mode');
   _restorePlayerContainer();
@@ -8824,6 +9484,39 @@ function renderAnimeTheaterLeft(item){
       renderAnimeTheaterLeft(item);
       try{ toast(idx >= 0 ? 'Removed from My List' : 'Added to My List', 'success'); }catch{}
     };
+  }
+  // Resume Last Watched box
+  const resumeBox = document.getElementById('animeLeftResumeBox');
+  if (resumeBox) {
+    const isMovie = (playContext && playContext.type === 'movie') || item.type === 'movie' || item.media_type === 'movie';
+    const lastProgress = getAnimeLastProgress(item);
+    if (!isMovie && lastProgress && lastProgress.episode) {
+      resumeBox.style.display = 'flex';
+      const epLabel = document.getElementById('animeLeftResumeEp');
+      const timeStr = lastProgress.currentTime > 5 ? formatTimeDisplay(lastProgress.currentTime) : '';
+      if (epLabel) epLabel.textContent = `Episode ${lastProgress.episode}${timeStr ? ' • ' + timeStr : ''}`;
+      const resumeBtn = document.getElementById('animeLeftResumeBtn');
+      if (resumeBtn) {
+        resumeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> ${timeStr ? 'Resume at ' + timeStr : 'Resume'}`;
+        resumeBtn.onclick = () => {
+          resumeAnime(item, lastProgress.season || 1, lastProgress.episode);
+        };
+      }
+    } else if (isMovie && lastProgress && lastProgress.currentTime > 10) {
+      resumeBox.style.display = 'flex';
+      const epLabel = document.getElementById('animeLeftResumeEp');
+      const timeStr = formatTimeDisplay(lastProgress.currentTime);
+      if (epLabel) epLabel.textContent = `Movie • ${timeStr}`;
+      const resumeBtn = document.getElementById('animeLeftResumeBtn');
+      if (resumeBtn) {
+        resumeBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Resume at ${timeStr}`;
+        resumeBtn.onclick = () => {
+          resumeAnime(item, 1, 1);
+        };
+      }
+    } else {
+      resumeBox.style.display = 'none';
+    }
   }
   // Interactive rating system: user rating per item, persisted to localStorage
   const ratingKey = `milkbox_anime_ratings`;
@@ -9003,12 +9696,22 @@ function renderAnimeEpisodeListDOM(){
     sel.title = 'Select episode range';
   }
   const curEp = playContext ? (playContext.episode || 1) : 1;
+  const currentItem = playContext ? playContext.item : null;
+  const lastProgress = currentItem ? getAnimeLastProgress(currentItem) : null;
+  const lastEpNum = lastProgress ? lastProgress.episode : null;
   list.innerHTML = filtered.slice(_animeEpRangeStart, end).map(ep => {
     const active = ep.num === curEp ? ' active' : '';
+    const isLast = (lastEpNum && ep.num === lastEpNum && ep.num !== curEp) ? ' last-watched' : '';
+    const epProg = (lastProgress && lastProgress.episodesProgress && lastProgress.episodesProgress[`${lastProgress.season || 1}_${ep.num}`])
+      || (lastEpNum === ep.num ? lastProgress : null);
+    const epTime = epProg && epProg.currentTime > 5 ? formatTimeDisplay(epProg.currentTime) : '';
+    const epTimeTag = epTime ? ` • ${epTime} watched` : '';
     const label = ep.title ? escapeHtml(ep.title) : `Episode ${ep.num}`;
     const digits = String(ep.num).length;
     const digitClass = digits >= 4 ? ' digits-4' : (digits === 3 ? ' digits-3' : '');
-    return `<button type="button" class="anime-ep${active}${digitClass}" data-ep="${ep.num}" title="${label}" aria-label="Episode ${ep.num}"><span class="anime-ep-num">${ep.num}</span>${isGrid ? '' : `<span class="anime-ep-title">${label}</span>`}</button>`;
+    const lastTag = isLast ? ' (Last Watched)' : '';
+    const timePill = (!isGrid && epTime) ? `<span class="anime-ep-time-pill" title="Watched to ${epTime}">⏱️ ${epTime}</span>` : '';
+    return `<button type="button" class="anime-ep${active}${isLast}${digitClass}" data-ep="${ep.num}" title="${label}${lastTag}${epTimeTag}" aria-label="Episode ${ep.num}"><span class="anime-ep-num">${ep.num}</span>${isGrid ? '' : `<span class="anime-ep-title">${label}</span>`}${timePill}</button>`;
   }).join('');
   const pr = document.getElementById('animeRangePrev');
   const nx = document.getElementById('animeRangeNext');
@@ -9018,6 +9721,7 @@ function renderAnimeEpisodeListDOM(){
     btn.addEventListener('click', () => {
       const n = parseInt(btn.dataset.ep,10);
       if (!playContext) return;
+      flushPlaybackTimestamp();
       const it = playContext.item;
       const se = playContext.season || it.season || 1;
       const srv = effectiveServerFor(it, 'tv');
@@ -9157,6 +9861,7 @@ function wireAnimeTheaterOnce(){
   const prev = document.getElementById('animeCtrlPrev');
   if (prev && !prev._wired){ prev._wired=1; prev.addEventListener('click', ()=>{
     if (!playContext) return;
+    flushPlaybackTimestamp();
     const cur = playContext.episode||1; if (cur<=1) return;
     const it = playContext.item; const se = playContext.season||it.season||1;
     const srv = effectiveServerFor(it,'tv');
@@ -9166,6 +9871,7 @@ function wireAnimeTheaterOnce(){
   const next = document.getElementById('animeCtrlNext');
   if (next && !next._wired){ next._wired=1; next.addEventListener('click', ()=>{
     if (!playContext) return;
+    flushPlaybackTimestamp();
     const cur = playContext.episode||1; const it = playContext.item; const se = playContext.season||it.season||1;
     const srv = effectiveServerFor(it,'tv');
     const total = _animeEpAll.length || 999;
@@ -9289,6 +9995,7 @@ document.addEventListener('keydown', (e)=>{
 });
 
 document.getElementById('closePlayer').addEventListener('click', () => {
+    stopPlaybackTimeTracking();
     const pf = document.getElementById('playerFrame');
     if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
     document.getElementById('playerModal').classList.remove('active');
@@ -9300,6 +10007,7 @@ document.getElementById('closePlayer').addEventListener('click', () => {
 });
 document.getElementById('playerModal').addEventListener('click', (e) => {
     if (e.target.id === 'playerModal') {
+        stopPlaybackTimeTracking();
         const pf = document.getElementById('playerFrame');
         if (pf) { stopCustomVideoPlayer(pf); pf.replaceChildren(); }
         document.getElementById('playerModal').classList.remove('active');
@@ -9310,6 +10018,10 @@ document.getElementById('playerModal').addEventListener('click', (e) => {
         }
     }
 });
+window.addEventListener('beforeunload', () => { flushPlaybackTimestamp(); });
+window.addEventListener('pagehide', () => { flushPlaybackTimestamp(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) flushPlaybackTimestamp(); });
+
 const epToggle = document.getElementById('episodeToggleBtn');
 if (epToggle) {
     epToggle.addEventListener('click', () => { document.getElementById('episodeSelector').classList.toggle('collapsed'); });
@@ -9892,3 +10604,9 @@ document.addEventListener('click', (e) => {
         renderCollectionPage();
     });
 });
+
+document.getElementById('clearAnimeCwBtn')?.addEventListener('click', () => {
+    clearAnimeContinueWatching();
+    toast('Anime Continue Watching cleared!', 'success');
+});
+
