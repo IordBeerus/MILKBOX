@@ -7203,6 +7203,7 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
     });
     renderCustomThemes();
     syncSettingsInputs();
+    try { checkGitHubSyncStatus(); } catch {}
 });
 
 // General preferences save
@@ -7308,6 +7309,83 @@ document.getElementById('importBackupFileInput')?.addEventListener('change', (e)
     e.target.value = '';
 });
 document.getElementById('clearCacheBtn')?.addEventListener('click', clearTempCache);
+
+// GitHub Repository Sync Controller
+async function checkGitHubSyncStatus() {
+    const statusVal = document.getElementById('githubSyncStatusVal');
+    const desc = document.getElementById('githubLastSyncDesc');
+    const repoVal = document.getElementById('githubRepoVal');
+    if (!statusVal) return;
+    try {
+        const res = await fetch('/api/github/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.repo && repoVal) {
+            repoVal.textContent = data.repo.replace(/^https?:\/\//, '').replace(/\.git$/, '');
+        }
+        if (data.lastSuccess) {
+            statusVal.textContent = 'Synced · Active (Every 5 mins)';
+            statusVal.style.color = '#4ade80';
+            if (desc) desc.textContent = `Last synced: ${new Date(data.lastSuccess).toLocaleTimeString()} · ${data.message || 'Up to date'}`;
+        } else if (data.success === false && data.message) {
+            statusVal.textContent = 'Sync notice';
+            statusVal.style.color = '#fbbf24';
+            if (desc) desc.textContent = data.message;
+        } else {
+            statusVal.textContent = 'Active (Every 5 mins)';
+            statusVal.style.color = '#4ade80';
+        }
+    } catch {}
+}
+
+async function triggerManualGitHubSync() {
+    playUiSound();
+    const btn = document.getElementById('githubSyncNowBtn');
+    const statusVal = document.getElementById('githubSyncStatusVal');
+    const desc = document.getElementById('githubLastSyncDesc');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span style="display:inline-block;animation:spin 0.8s linear infinite;">⏳</span> Syncing to GitHub…`;
+    }
+    if (statusVal) {
+        statusVal.textContent = 'Syncing with GitHub…';
+        statusVal.style.color = '#60a5fa';
+    }
+    try {
+        const res = await fetch('/api/github/sync', { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+            toast('Successfully synced with GitHub!', 'success');
+            if (statusVal) {
+                statusVal.textContent = 'Synced · Up to date';
+                statusVal.style.color = '#4ade80';
+            }
+            if (desc) desc.textContent = `Last synced just now (${result.message || 'Up to date'})`;
+        } else {
+            const err = result.message || result.error || 'Sync failed';
+            toast(`GitHub Sync: ${err}`, 'error');
+            if (statusVal) {
+                statusVal.textContent = 'Sync Notice';
+                statusVal.style.color = '#fbbf24';
+            }
+            if (desc) desc.textContent = err;
+        }
+    } catch (err) {
+        toast(`Sync request error: ${err.message}`, 'error');
+        if (statusVal) {
+            statusVal.textContent = 'Connection Error';
+            statusVal.style.color = '#f87171';
+        }
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Sync to GitHub`;
+        }
+    }
+}
+
+document.getElementById('githubSyncNowBtn')?.addEventListener('click', triggerManualGitHubSync);
+
 document.getElementById('resetAllSettingsBtn')?.addEventListener('click', () => {
     playUiSound();
     settings = Object.assign({}, defaultSettings);
@@ -10038,6 +10116,7 @@ document.querySelectorAll('.settings-tab').forEach(tab => {
         tab.classList.add('active');
         const panel = document.querySelector(`.settings-tab-panel[data-settings-panel="${tab.dataset.settingsTab}"]`);
         if (panel) panel.classList.add('active');
+        if (tab.dataset.settingsTab === 'data') { try { checkGitHubSyncStatus(); } catch {} }
     });
 });
 

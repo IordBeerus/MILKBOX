@@ -279,9 +279,18 @@ async function proxyTrailerSearch(req, res, requestPath, query) {
     return true;
 }
 
-const { syncToGitHub } = require('./sync-github.js');
+const { syncToGitHub, getSyncStatus } = require('./sync-github.js');
 
 async function handleGitHubSync(req, res, requestPath) {
+    if (requestPath === '/api/github/status') {
+        const status = getSyncStatus();
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store'
+        });
+        res.end(JSON.stringify(status));
+        return true;
+    }
     if (requestPath !== '/api/github/sync') return false;
     try {
         const result = syncToGitHub('Sync via MILKBOX API');
@@ -296,6 +305,7 @@ async function handleGitHubSync(req, res, requestPath) {
     }
     return true;
 }
+
 
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
@@ -376,4 +386,23 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(port, '0.0.0.0', () => {
     console.log(`MILKBOX running at http://localhost:${port}`);
+    // Startup auto-sync after server initializes
+    setTimeout(() => {
+        try {
+            console.log('[Auto-Sync] Initiating startup sync to GitHub...');
+            syncToGitHub('Startup auto-sync: MILKBOX');
+        } catch (e) {
+            console.warn('[Auto-Sync] Startup sync notice:', e.message);
+        }
+    }, 4000);
+
+    // Continuous auto-sync every 5 minutes
+    setInterval(() => {
+        try {
+            console.log('[Auto-Sync] Initiating periodic background sync to GitHub...');
+            syncToGitHub('Periodic auto-sync: MILKBOX');
+        } catch (e) {
+            console.warn('[Auto-Sync] Periodic sync notice:', e.message);
+        }
+    }, 5 * 60 * 1000);
 });
