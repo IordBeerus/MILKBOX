@@ -318,24 +318,83 @@
         return false;
     }
 
+    function notifyStateChanged() {
+        try {
+            window.dispatchEvent(new CustomEvent('adguard:state-changed', {
+                detail: { enabled, blockedCount }
+            }));
+        } catch {}
+    }
+
+    // Playback server iframe hardening engine
+    const CLOUD_SERVER_DOMAINS = /(?:phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo)/i;
+
+    function hardenPlaybackIframe(iframe) {
+        if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
+        if (!enabled) {
+            iframe.removeAttribute('sandbox');
+            return;
+        }
+        try {
+            const src = iframe.src || iframe.getAttribute('src') || '';
+            const isPlayerFrame = iframe.closest('#playerFrame') || iframe.closest('#animePlayerWrap') || iframe.closest('#playerContainer');
+            if (isPlayerFrame || CLOUD_SERVER_DOMAINS.test(src)) {
+                // Strict sandbox blocking popups and top-navigation redirects while preserving MSE/HLS playback
+                if (!iframe.getAttribute('sandbox')) {
+                    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation allow-encrypted-media');
+                }
+                if (!iframe.getAttribute('allow')) {
+                    iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
+                }
+            }
+        } catch {}
+    }
+
+    // Monitor user interaction with video playback containers
+    let lastPlayerInteractionTime = 0;
+    ['mousedown', 'touchstart', 'click', 'pointerdown'].forEach(evt => {
+        document.addEventListener(evt, (e) => {
+            if (e.target && (e.target.closest('#playerContainer') || e.target.closest('#animePlayerWrap') || e.target.closest('#playerFrame'))) {
+                lastPlayerInteractionTime = Date.now();
+            }
+        }, { capture: true, passive: true });
+    });
+
+    // Detect pop-under or unrequested tab spawn from cross-origin playback iframe
+    window.addEventListener('blur', () => {
+        if (!enabled) return;
+        const now = Date.now();
+        const active = document.activeElement;
+        const isFromPlayer = (now - lastPlayerInteractionTime < 700) || (active && (active.tagName === 'IFRAME' || active.closest('#playerContainer') || active.closest('#animePlayerWrap')));
+        if (isFromPlayer) {
+            showBlockedNotification('Playback server pop-up ad blocked');
+            setTimeout(() => {
+                try { window.focus(); } catch {}
+            }, 60);
+        }
+    });
+
     function scanAndNeutralizeOverlays() {
         if (!enabled) return;
         try {
             const anchors = document.querySelectorAll('a[target="_blank"], div[style*="fixed"], div[style*="absolute"]');
             for (let i = 0; i < anchors.length; i++) {
                 const el = anchors[i];
-                if (el.id === 'playerPopupShield' || el.closest('#playerContainer') || el.closest('.modal')) {
-                    continue; // Keep MILKBOX's legitimate player controls safe
+                if (el.id === 'playerPopupShield' || el.id === 'playerFrame' || el.closest('#playerSelector') || el.closest('.server-selector') || el.closest('.adguard-server-badge')) {
+                    continue; // Keep legitimate controls safe
                 }
                 if (isOverlayAnchor(el)) {
                     el.remove();
                     showBlockedNotification('Hidden ad overlay neutralized', el.getAttribute('href') || '');
                 }
             }
+
+            // Also harden any player iframe in the DOM
+            document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe').forEach(hardenPlaybackIframe);
         } catch {}
     }
 
-    // 6. Observe DOM mutations for dynamically injected ad overlays
+    // 6. Observe DOM mutations for dynamically injected ad overlays & playback iframes
     if (typeof MutationObserver !== 'undefined') {
         let overlayScanDebounce = null;
         const observer = new MutationObserver(mutations => {
@@ -351,6 +410,11 @@
                                 showBlockedNotification('Ad overlay stripped on injection', node.href);
                                 return;
                             }
+                            if (node.tagName === 'IFRAME') {
+                                hardenPlaybackIframe(node);
+                            } else if (node.querySelectorAll) {
+                                node.querySelectorAll('iframe').forEach(hardenPlaybackIframe);
+                            }
                         }
                     }
                 }
@@ -360,7 +424,7 @@
                 overlayScanDebounce = setTimeout(() => {
                     overlayScanDebounce = null;
                     scanAndNeutralizeOverlays();
-                }, 200);
+                }, 180);
             }
         });
 
@@ -402,19 +466,26 @@
     // Public API
     window.AdGuardPopupBlocker = {
         name: 'AdGuard PopupBlocker for MILKBOX',
-        version: '2.5.0-integrated',
+        version: '2.6.0-playback-protected',
         isEnabled: function() { return enabled; },
         setEnabled: function(val) {
             enabled = Boolean(val);
             try { localStorage.setItem(STORAGE_KEY_ENABLED, String(enabled)); } catch {}
             console.log(`[AdGuard PopupBlocker] Protection ${enabled ? 'enabled' : 'disabled'}`);
+            notifyStateChanged();
+            scanAndNeutralizeOverlays();
         },
         getBlockedCount: function() { return blockedCount; },
         resetCount: function() {
             blockedCount = 0;
             try { localStorage.setItem(STORAGE_KEY_COUNT, '0'); } catch {}
+            notifyStateChanged();
         },
-        notifyBlocked: showBlockedNotification,
+        hardenIframe: hardenPlaybackIframe,
+        notifyBlocked: function(msg, url) {
+            showBlockedNotification(msg, url);
+            notifyStateChanged();
+        },
         isAdUrl: isAdUrl
     };
 

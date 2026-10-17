@@ -1046,6 +1046,14 @@
                             <option value="kisskh">KissKH (All Genres) — via megavid.buzz</option>
                         </select>
                     </div>
+                    <button type="button" class="adguard-server-badge" id="adguardServerBadge" title="AdGuard Pop-up &amp; Ad Blocker: Protecting playback server streams. Click to toggle.">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            <path d="m9 12 2 2 4-4"></path>
+                        </svg>
+                        <span class="adguard-server-text" id="adguardServerText">AdGuard: ON</span>
+                        <span class="adguard-server-counter" id="adguardServerCounter">0</span>
+                    </button>
                 </div>
                 <span class="close-modal player-close" id="closePlayer">&times;</span>
             </div>
@@ -1104,6 +1112,7 @@
                         <button class="anime-ctrl" data-action="prev" id="animeCtrlPrev"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M6 18V6h2v12H6Zm3-6 9-6v12l-9-6Z"/></svg> Prev</button>
                         <button class="anime-ctrl" data-action="next" id="animeCtrlNext"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18 18V6h-2v12h2ZM8 12l9 6V6l-9 6Z"/></svg> Next</button>
                         <button class="anime-ctrl" data-action="report" id="animeCtrlReport"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10 3 3 19h18L14 3a2 2 0 0 0-4 0Z"/></svg> Report</button>
+                        <button class="anime-ctrl anime-ctrl-adguard" data-action="adguard" id="animeCtrlAdguard" title="AdGuard Pop-up &amp; Ad Blocker: Protecting video stream"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg> <span id="animeAdguardLabel">AdGuard: ON</span></button>
                     </div>
                 </section>
                 <aside class="anime-right" id="animeRight">
@@ -1173,12 +1182,16 @@
                             <h3 id="playerTitle">Now Playing</h3>
                             <p id="playerSubtitle"></p>
                             <div id="playerFrame"></div>
-                            <div id="playerPopupShield" style="display:none; position:absolute; inset:0; z-index:5; background:rgba(0,0,0,0.88); align-items:center; justify-content:center; cursor:pointer; flex-direction:column; gap:12px; border-radius:12px;">
-                                <div style="width:64px; height:64px; border-radius:50%; background:#e50914; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(229,9,20,0.45);">
-                                    <svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px" fill="#fff"><path d="M320-200v-560l440 280-440 280Z"/></svg>
+                            <div id="playerPopupShield" style="display:none; position:absolute; inset:0; z-index:5; background:rgba(10,12,16,0.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); align-items:center; justify-content:center; cursor:pointer; flex-direction:column; gap:12px; border-radius:12px;">
+                                <div style="width:60px; height:60px; border-radius:50%; background:linear-gradient(135deg, #10b981, #059669); display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(16,185,129,0.4);">
+                                    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                        <path d="m9 12 2 2 4-4"></path>
+                                    </svg>
                                 </div>
-                                <div style="color:#fff; font-weight:800; font-size:14px; letter-spacing:0.3px;">Click to Play — Ads Blocked</div>
-                                <div style="color:#9a9aa0; font-size:11px;">First click removes shield, second click controls video</div>
+                                <div style="color:#fff; font-weight:800; font-size:15px; letter-spacing:0.3px;">AdGuard Playback Shield Active</div>
+                                <div style="color:#4ade80; font-size:12px; font-weight:600;">Pop-ups, overlays &amp; spam redirects blocked</div>
+                                <div style="color:#9a9aa0; font-size:11px; margin-top:4px;">Click anywhere to start video controls</div>
                             </div>
                         </div>
                     </div>

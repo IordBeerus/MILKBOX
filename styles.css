@@ -2658,6 +2658,63 @@ body.player-active .mobile-nav-panel {
     padding: 10px;
 }
 
+.adguard-server-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: rgba(74, 222, 128, 0.12);
+    border: 1px solid rgba(74, 222, 128, 0.35);
+    color: #4ade80;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    user-select: none;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(74, 222, 128, 0.12);
+}
+.adguard-server-badge:hover {
+    background: rgba(74, 222, 128, 0.22);
+    border-color: rgba(74, 222, 128, 0.6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(74, 222, 128, 0.25);
+}
+.adguard-server-badge.disabled {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #9a9aa0;
+    box-shadow: none;
+}
+.adguard-server-badge .adguard-server-counter {
+    background: rgba(74, 222, 128, 0.25);
+    color: #fff;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 800;
+}
+.adguard-server-badge.disabled .adguard-server-counter {
+    background: rgba(255, 255, 255, 0.1);
+    color: #888;
+}
+.anime-ctrl.anime-ctrl-adguard {
+    border-color: rgba(74, 222, 128, 0.35);
+    color: #4ade80;
+}
+.anime-ctrl.anime-ctrl-adguard:hover {
+    background: rgba(74, 222, 128, 0.12);
+    border-color: rgba(74, 222, 128, 0.6);
+}
+.anime-ctrl.anime-ctrl-adguard.disabled {
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #888;
+}
+
 body.light-mode .server-selector {
     background: rgba(0, 0, 0, 0.03);
     border-color: rgba(0, 0, 0, 0.08);
