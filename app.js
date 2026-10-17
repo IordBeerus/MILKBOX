@@ -151,93 +151,105 @@ let currentInfoType = null;
     };
 })();
 // Popup/ad blocker for cloud servers — no sandbox (sandbox triggers "Iframe Sandbox Detected"), so block via JS
+// AdGuard Pop-up & Ad Blocker integration for playback servers and site navigation
 (function(){
-    const origOpen = window.open;
-    const isAdUrl = (u) => {
-        const s = String(u||'').toLowerCase();
-        return /doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|adsterra|a-ads|coinzilla/i.test(s) || /\/pop\/|\/popup\/|\/ad\//i.test(s);
+    window.isAdUrl = function(u) {
+        if (window.AdGuardPopupBlocker && typeof window.AdGuardPopupBlocker.isAdUrl === 'function') {
+            return window.AdGuardPopupBlocker.isAdUrl(u);
+        }
+        const s = String(u || '').toLowerCase();
+        return /doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|coinzilla|bet365|1xbet|parimatch|monetag|hilltopads|richpush|admaven|yllix|clickadu|infolinks|adcash|revenuehits|galaksion|bidvertiser|trafficstars|adxad|plugrush|ero-advertising|juicyads|rtmark|creativecdn|syndication|creative-serving|vidsrc-stream|vidcloud-ad|clickshield|onclickmega/i.test(s) || /\/pop(?:up|under)?[\/?#]/i.test(s) || /\/ad(?:s|server|tag)?[\/?#]/i.test(s);
     };
-    const allowUrl = (u) => {
-        const s = String(u||'');
-        return s === 'about:blank' || s === '' || s.startsWith('blob:') || s.startsWith('data:') || s.startsWith('https://www.youtube.com/embed/');
-    };
-    window.open = function(url, name, specs){
-        const u = String(url||'');
-        if (allowUrl(u) || (u === '' && name === '_blank')) return origOpen.call(window, url, name, specs);
-        // Block all http popups from cloud iframes — they are ads
-        console.warn('[MILKBOX] Popup blocked:', u);
-        return { closed:false, close(){}, focus(){}, blur(){}, location:{href:u}, document:{}, opener:null };
-    };
-    try { window.showModalDialog = window.open; } catch {}
-    // Also block <a target="_blank"> ad links and top navigation to ad sites
+
+    // Block <a target="_blank"> ad links and top navigation to ad sites
     document.addEventListener('click', (e) => {
+        if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) return;
         const a = e.target.closest('a');
-        if (a && a.href && isAdUrl(a.href)) {
+        if (a && a.href && window.isAdUrl(a.href)) {
             e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
-            console.warn('[MILKBOX] Ad link blocked:', a.href);
+            if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.notifyBlocked('Ad link blocked', a.href);
             return false;
         }
         const at = e.target.closest('a[target="_blank"]');
-        if (at && at.href && (isAdUrl(at.href) || at.href.startsWith('http'))) {
-            // Only block if it looks like ad, not our own navigation
-            if (isAdUrl(at.href)) { e.preventDefault(); console.warn('[MILKBOX] Link popup blocked:', at.href); }
+        if (at && at.href && (window.isAdUrl(at.href) || at.href.includes('/ad') || at.href.includes('/pop'))) {
+            e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+            if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.notifyBlocked('Pop-up link blocked', at.href);
+            return false;
         }
     }, true);
-    // Block location changes to ad sites (e.g. top.location = adUrl)
+
+    // Prevent top location hijacks from ad scripts
     const origAssign = window.location.assign.bind(window.location);
     const origReplace = window.location.replace.bind(window.location);
     try {
-        window.location.assign = function(url){ if (isAdUrl(String(url))) { console.warn('[MILKBOX] location.assign blocked:', url); return; } return origAssign(url); };
-        window.location.replace = function(url){ if (isAdUrl(String(url))) { console.warn('[MILKBOX] location.replace blocked:', url); return; } return origReplace(url); };
+        window.location.assign = function(url){
+            if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) return origAssign(url);
+            if (window.isAdUrl(String(url))) {
+                if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.notifyBlocked('Location redirect blocked', url);
+                return;
+            }
+            return origAssign(url);
+        };
+        window.location.replace = function(url){
+            if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) return origReplace(url);
+            if (window.isAdUrl(String(url))) {
+                if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.notifyBlocked('Location replace blocked', url);
+                return;
+            }
+            return origReplace(url);
+        };
     } catch {}
-    // Also block beforeunload navigation to ad sites
-    window.addEventListener('beforeunload', (e) => {
-        // No-op, but prevents some ad scripts from using beforeunload to open ad
-    }, true);
 })();
-// Shield that sits over the player on first load — first click dismisses shield instead of reaching the iframe's ad trigger
+
+// AdGuard Playback Shield — protects video streams on first click from triggering unrequested popups/overlays
 function showPopupShield(){
-    const s=document.getElementById('playerPopupShield');
-    if(!s) return;
-    s.style.display='flex';
-    s.style.background='rgba(0,0,0,0.88)';
-    s.style.pointerEvents='auto';
-    if (!s.innerHTML.trim()) s.innerHTML = `<div style="width:64px; height:64px; border-radius:50%; background:#e50914; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(229,9,20,0.45);"><svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px" fill="#fff"><path d="M320-200v-560l440 280-440 280Z"/></svg></div><div style="color:#fff; font-weight:800; font-size:14px; letter-spacing:0.3px;">Click to Play — Ads Blocked</div><div style="color:#9a9aa0; font-size:11px;">First click removes shield, second click controls video</div>`;
+    const s = document.getElementById('playerPopupShield');
+    if (!s) return;
+    if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) {
+        s.style.display = 'none';
+        return;
+    }
+    s.style.display = 'flex';
+    s.style.pointerEvents = 'auto';
 }
-function hidePopupShield(){ const s=document.getElementById('playerPopupShield'); if(s){ s.style.display='none'; } }
+
+function hidePopupShield(){
+    const s = document.getElementById('playerPopupShield');
+    if (s) s.style.display = 'none';
+}
+
 document.addEventListener('click', (e) => {
     const shield = document.getElementById('playerPopupShield');
     if (!shield || shield.style.display === 'none') return;
     if (e.target.closest('#playerPopupShield')) {
         e.preventDefault(); e.stopPropagation();
         hidePopupShield();
-        // also try to harden the just-exposed iframe against window.open
-        const ifr = document.querySelector('#playerFrame iframe');
-        if (ifr) {
-            try {
-                const cw = ifr.contentWindow;
-                if (cw) { try { cw.open = window.open; } catch {} }
-            } catch {}
+        if (window.AdGuardPopupBlocker) {
+            window.AdGuardPopupBlocker.notifyBlocked('Playback server pop-up absorbed by AdGuard Shield');
+            const ifr = document.querySelector('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe');
+            if (ifr) window.AdGuardPopupBlocker.hardenIframe(ifr);
         }
     }
 });
+
 function hardenCloudIframe(iframe){
     if (!iframe) return;
     try {
-        const cw = iframe.contentWindow;
-        if (cw) cw.open = window.open;
+        if (window.AdGuardPopupBlocker) {
+            window.AdGuardPopupBlocker.hardenIframe(iframe);
+        }
     } catch {}
-    // Show shield for cloud iframes so first click is intercepted (prevents ad popup on first interaction)
-    // Don't show for direct-file playback or megavid anime, which is low-ad; detect via src.
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(src);
-        if (isCloud) setTimeout(showPopupShield, 320);
-        else {
-            const pf = document.getElementById('playerFrame');
-            if (pf && /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo/i.test(pf.innerHTML)) setTimeout(showPopupShield, 320);
+        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo/i.test(src);
+        if (isCloud && (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled())) {
+            setTimeout(showPopupShield, 220);
         }
-    } catch { setTimeout(showPopupShield, 320); }
+    } catch {
+        if (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled()) {
+            setTimeout(showPopupShield, 220);
+        }
+    }
 }
 // ==================== SOURCE PROTECTION ====================
 // Makes it significantly harder to steal/view the site source. Note: client-side

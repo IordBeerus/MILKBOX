@@ -190,6 +190,16 @@
     // 1. Wrap window.open and Window.prototype.open
     const originalWindowOpen = window.open;
 
+    function isPlayerActiveNow() {
+        if (typeof document === 'undefined') return false;
+        const playerModal = document.getElementById('playerModal');
+        const animeTheater = document.getElementById('animeTheater');
+        const isPlayerActive = document.body.classList.contains('player-active') ||
+            (playerModal && playerModal.classList.contains('active')) ||
+            (animeTheater && animeTheater.style.display !== 'none');
+        return Boolean(isPlayerActive);
+    }
+
     function interceptedOpen(url, target, features) {
         if (!enabled) {
             return originalWindowOpen.call(window, url, target, features);
@@ -198,16 +208,34 @@
         const targetStr = String(url || '').trim();
         const now = Date.now();
         const hasRecentTrustedUserInteraction = (now - lastUserInteractionTime) <= TRUSTED_INTERACTION_WINDOW_MS;
+        const inPlayerContext = isPlayerActiveNow();
 
-        // Explicit allowlist: internal embeds, Discord, YouTube, empty target if user clicked
-        if (isAllowedInternalUrl(targetStr) && hasRecentTrustedUserInteraction) {
-            return originalWindowOpen.call(window, url, target, features);
+        // If player is active, aggressively block any pop-ups triggered from playback servers
+        if (inPlayerContext) {
+            const isExplicitSafeLink = targetStr.startsWith('https://www.youtube.com/embed/') ||
+                                       targetStr.startsWith('https://discord.gg/') ||
+                                       targetStr.startsWith('https://github.com/');
+            if (!isExplicitSafeLink) {
+                showBlockedNotification('Playback server pop-up ad blocked', targetStr || 'blank pop-up');
+                return createMockWindow(targetStr);
+            }
         }
 
         // Known ad URL -> always block
         if (isAdUrl(targetStr)) {
             showBlockedNotification('Ad URL blocked', targetStr);
             return createMockWindow(targetStr);
+        }
+
+        // Blank or about:blank popup without genuine interaction
+        if (targetStr === '' || targetStr === 'about:blank') {
+            showBlockedNotification('Blank pop-up ad blocked', targetStr);
+            return createMockWindow(targetStr);
+        }
+
+        // Explicit allowlist: internal embeds, Discord, YouTube
+        if (isAllowedInternalUrl(targetStr) && hasRecentTrustedUserInteraction) {
+            return originalWindowOpen.call(window, url, target, features);
         }
 
         // Automated window.open call without genuine user click event
@@ -318,12 +346,91 @@
         return false;
     }
 
+    function updateAdGuardUIElements() {
+        if (typeof document === 'undefined') return;
+
+        // 1. Playback server badge in generic player modal
+        const srvBadge = document.getElementById('adguardServerBadge');
+        const srvText = document.getElementById('adguardServerText');
+        const srvCounter = document.getElementById('adguardServerCounter');
+        if (srvBadge) {
+            srvBadge.classList.toggle('disabled', !enabled);
+            srvBadge.title = `AdGuard Pop-up & Ad Blocker: ${enabled ? 'Active (' + blockedCount + ' blocked)' : 'Disabled'}. Click to toggle.`;
+        }
+        if (srvText) {
+            srvText.textContent = `AdGuard: ${enabled ? 'ON' : 'OFF'}`;
+        }
+        if (srvCounter) {
+            srvCounter.textContent = String(blockedCount);
+        }
+
+        // 2. Anime theater control button
+        const animeBtn = document.getElementById('animeCtrlAdguard');
+        const animeLabel = document.getElementById('animeAdguardLabel');
+        if (animeBtn) {
+            animeBtn.classList.toggle('disabled', !enabled);
+            animeBtn.title = `AdGuard Pop-up & Ad Blocker: ${enabled ? 'Active (' + blockedCount + ' blocked)' : 'Disabled'}. Click to toggle.`;
+        }
+        if (animeLabel) {
+            animeLabel.textContent = `AdGuard: ${enabled ? 'ON' : 'OFF'} (${blockedCount})`;
+        }
+
+        // 3. Anime playback servers panel badge
+        const animeSrvBtn = document.getElementById('animeServerAdguardBtn');
+        const animeSrvText = document.getElementById('animeServerAdguardText');
+        const animeSrvCounter = document.getElementById('animeServerAdguardCounter');
+        if (animeSrvBtn) {
+            animeSrvBtn.classList.toggle('disabled', !enabled);
+            animeSrvBtn.title = `AdGuard Pop-up & Ad Blocker: ${enabled ? 'Active (' + blockedCount + ' blocked)' : 'Disabled'}. Click to toggle.`;
+        }
+        if (animeSrvText) {
+            animeSrvText.textContent = `AdGuard: ${enabled ? 'ON' : 'OFF'}`;
+        }
+        if (animeSrvCounter) {
+            animeSrvCounter.textContent = String(blockedCount);
+        }
+
+        // 4. Settings toggle
+        const toggle = document.getElementById('adguardBlockerToggle');
+        if (toggle && toggle.checked !== enabled) {
+            toggle.checked = enabled;
+        }
+        const desc = document.getElementById('adguardStatusDesc');
+        if (desc) {
+            desc.textContent = enabled
+                ? `Active · Built-in AdGuard engine protects video playback and site navigation (${blockedCount} blocked).`
+                : 'Disabled · Protection paused.';
+        }
+    }
+
     function notifyStateChanged() {
         try {
             window.dispatchEvent(new CustomEvent('adguard:state-changed', {
                 detail: { enabled, blockedCount }
             }));
         } catch {}
+        try {
+            updateAdGuardUIElements();
+        } catch {}
+    }
+
+    document.addEventListener('click', (e) => {
+        const targetBadge = e.target.closest('#adguardServerBadge, #animeCtrlAdguard, #animeServerAdguardBtn');
+        if (!targetBadge) return;
+        e.preventDefault();
+        e.stopPropagation();
+        window.AdGuardPopupBlocker.setEnabled(!enabled);
+        if (typeof window.toast === 'function') {
+            window.toast(`AdGuard Pop-up Blocker ${enabled ? 'enabled' : 'disabled'} on playback servers`, enabled ? 'success' : 'info');
+        }
+    });
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', updateAdGuardUIElements);
+        } else {
+            setTimeout(updateAdGuardUIElements, 50);
+        }
     }
 
     // Playback server iframe hardening engine

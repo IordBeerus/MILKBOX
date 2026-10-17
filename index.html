@@ -1141,7 +1141,14 @@
                             <button class="anime-subdub-btn" data-lang="sub" id="animeMovieSubBtn"><span style="color:#ff6b35">CC</span> Sub</button>
                             <button class="anime-subdub-btn" data-lang="dub" id="animeMovieDubBtn">Dub</button>
                         </div>
-                        <div class="anime-movie-msg">If the current server is not working, please try switching to other servers.</div>
+                        <div class="anime-servers-top-bar" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
+                            <div class="anime-movie-msg" style="margin:0;">Switch playback servers:</div>
+                            <button type="button" class="adguard-server-badge anime-server-adguard-btn" id="animeServerAdguardBtn" title="AdGuard Pop-up &amp; Ad Blocker: Protecting playback server streams. Click to toggle.">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                                <span id="animeServerAdguardText">AdGuard: ON</span>
+                                <span class="adguard-server-counter" id="animeServerAdguardCounter">0</span>
+                            </button>
+                        </div>
                         <div class="anime-movie-servers" id="animeMovieServers">
                             <button class="anime-server-btn active" data-srv="animekai">ANI</button>
                             <button class="anime-server-btn" data-srv="vidhawk">ANI 2</button>
