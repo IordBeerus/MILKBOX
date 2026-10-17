@@ -2715,6 +2715,13 @@ body.player-active .mobile-nav-panel {
     color: #888;
 }
 
+.anime-server-adguard-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+    border-radius: 8px;
+    margin-left: auto;
+}
+
 body.light-mode .server-selector {
     background: rgba(0, 0, 0, 0.03);
     border-color: rgba(0, 0, 0, 0.08);

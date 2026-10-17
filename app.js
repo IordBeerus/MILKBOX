@@ -293,37 +293,28 @@ function hardenCloudIframe(iframe){
     try { console.clear(); console.log('%c' + BLOCK_MSG + ' — unauthorized copying is not permitted.', 'color:#e50914;font-weight:800;'); } catch {}
 })();
 
-// Persistent ad shield — after the first play, every mousedown inside the player briefly shows a transparent shield
-// so the ad popup triggered by that click is swallowed and never reaches window.open
+// AdGuard container-level overlay stripping and playback protection
 (function(){
     const container = document.getElementById('playerContainer');
     if (!container) return;
-    let shieldTimer = null;
-    let blockTimer = null;
-    const origOpen = window.open;
     container.addEventListener('mousedown', (e) => {
+        if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) return;
         const shield = document.getElementById('playerPopupShield');
-        const pf = document.getElementById('playerFrame');
-        if (!shield || !pf) return;
-        // Only intercept clicks that would reach the iframe (not the shield's own play button)
-        if (shield.style.display !== 'none') return;
-        if (!pf.contains(e.target) && !container.contains(e.target)) return;
-        // Show transparent shield for 750ms to swallow the ad click
-        shield.style.display = 'flex';
-        shield.style.background = 'transparent';
-        shield.style.pointerEvents = 'auto';
-        shield.innerHTML = '';
-        clearTimeout(shieldTimer);
-        shieldTimer = setTimeout(() => {
-            shield.style.display = 'none';
-            shield.style.background = '';
-            shield.innerHTML = `<div style="width:64px; height:64px; border-radius:50%; background:#e50914; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(229,9,20,0.45);"><svg xmlns="http://www.w3.org/2000/svg" height="28px" viewBox="0 -960 960 960" width="28px" fill="#fff"><path d="M320-200v-560l440 280-440 280Z"/></svg></div><div style="color:#fff; font-weight:800; font-size:14px; letter-spacing:0.3px;">Click to Play — Ads Blocked</div><div style="color:#9a9aa0; font-size:11px;">First click removes shield, second click controls video</div>`;
-        }, 750);
-        // Hard block window.open for the next 900ms (covers the ad's async open)
-        window.open = function(){ return { closed:false, close(){}, focus(){}, blur(){}, location:{href:''}, document:{}, opener:null }; };
-        clearTimeout(blockTimer);
-        blockTimer = setTimeout(() => { window.open = origOpen; }, 900);
-        // Don't prevent the click from reaching the player controls after the shield hides — the synthetic delay above handles it
+        if (shield && shield.style.display !== 'none') return;
+        // Strip any transparent ad anchor overlay that may have been injected above the video
+        try {
+            const overlays = container.querySelectorAll('a[target="_blank"], div[style*="fixed"], div[style*="absolute"]');
+            overlays.forEach(el => {
+                if (el.id === 'playerPopupShield' || el.id === 'playerFrame') return;
+                const style = window.getComputedStyle(el);
+                if (style.opacity === '0' || style.visibility === 'hidden' || style.backgroundColor.includes('rgba(0, 0, 0, 0)')) {
+                    el.remove();
+                    if (window.AdGuardPopupBlocker) {
+                        window.AdGuardPopupBlocker.notifyBlocked('Hidden ad overlay neutralized');
+                    }
+                }
+            });
+        } catch {}
     }, true);
 })();
 
@@ -3326,6 +3317,14 @@ function toggleMyList(item, type) {
 }
 
 // ==================== PLAY ====================
+function makePlaybackIframe(url, extraAttrs = '') {
+    const isAdGuardEnabled = !window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled();
+    const sandboxAttr = isAdGuardEnabled
+        ? 'sandbox="allow-scripts allow-same-origin allow-forms allow-presentation allow-encrypted-media"'
+        : '';
+    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" ${sandboxAttr} ${extraAttrs}></iframe>`;
+}
+
 // Phantom — an aggregator with 40+ sources, built-in source picker.
 function phantomIframe(tmdbId, type, season, episode) {
     let url;
@@ -3334,7 +3333,7 @@ function phantomIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidphantom.com/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // Vidsrc — TMDB-powered embed for movie / TV playback. vidsrc.pm returns the full player
@@ -3346,7 +3345,7 @@ function vidsrcIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 function cinesrcIframe(tmdbId, type, season, episode) {
@@ -3356,7 +3355,7 @@ function cinesrcIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://www.cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 function vidsrcSbsIframe(tmdbId, type, season, episode) {
@@ -3366,7 +3365,7 @@ function vidsrcSbsIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidsrc.sbs/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // VidCore — https://www.vidcore.org free ad-free TMDB embed (4K, HLS, 99.9% uptime).
@@ -3377,7 +3376,7 @@ function vidcoreIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidcore.org/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // Videasy — https://www.videasy.to player (player.videasy.to) - supports movies, TV, anime.
@@ -3389,7 +3388,7 @@ function videasyIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://player.videasy.to/movie/${encodeURIComponent(tmdbId)}?color=e50914&overlay=true`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // SuperEmbed — https://www.superembed.stream/#install
@@ -3403,7 +3402,7 @@ function superembedIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://moviesapi.to/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // MoviesAPI — https://moviesapi.to (replaces dead 2embed.cc/family).
@@ -3414,7 +3413,7 @@ function twoembedIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://moviesapi.to/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // AniDB — https://anidb.app — anime ONLY, supports sub/dub via lang param
@@ -3479,7 +3478,7 @@ function anidbIframe(anidbId, type, season, episode, lang) {
     const ep = episode || 1;
     const l = lang === 'dub' ? 'dub' : 'sub';
     const url = `https://anidb.app/anime/${encodeURIComponent(anidbId)}?episode=${encodeURIComponent(ep)}&lang=${l}&t=${Date.now()}#player`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function animekaiIframe(source, id, type, episode, lang) {
     // megavid.buzz anime player — source is 'mal' or 'ani', id is the numeric MAL/AniList id.
@@ -3491,8 +3490,7 @@ function animekaiIframe(source, id, type, episode, lang) {
     const src = source === 'ani' ? 'ani' : 'mal';
     const base = `https://megavid.buzz/${src}/${encodeURIComponent(id)}`;
     const path = isMovie ? `${base}/${l}` : `${base}/${encodeURIComponent(ep)}/${l}`;
-    const qs = lang === 'dub' ? '?color=2ad4b8&autoplay=true&captions=0' : '?color=2ad4b8&autoplay=true';
-    return `<iframe src="${escapeHtml(path + qs)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" referrerpolicy="origin-when-cross-origin"></iframe>`;
+    return makePlaybackIframe(path + qs, 'referrerpolicy="origin-when-cross-origin"');
 }
 let currentAnimekaiMalId = null;
 let currentAnimekaiSlug = null;
@@ -3776,13 +3774,13 @@ function autoembedIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://autoembed.app/movie/tmdb/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // AutoEmbed.app anime API — uses the resolved anime id and episode number.
 function autoembedAnimeIframe(id, episode) {
     const url = `https://autoembed.app/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // YapGrid — https://yapgrid.com (replaces dead player.smashy.stream)
@@ -3793,7 +3791,7 @@ function smashystreamIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://yapgrid.com/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // EmbedFlix — https://embedflix.net (replaces dead vidfast.pro)
@@ -3804,7 +3802,7 @@ function vidfastIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://embedflix.net/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // VidLink — https://vidlink.pro
@@ -3815,7 +3813,7 @@ function vidlinkIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidlink.pro/movie/${encodeURIComponent(tmdbId)}?primaryColor=e50914&secondaryColor=a8a8a8&iconColor=e50914&icons=default&player=default&title=true&poster=true&autoplay=false`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // Vidsrc (alt) — vidsrc.to (replaces dead embed.su; .to still serves the player page)
@@ -3826,7 +3824,7 @@ function embedsuIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidsrc.to/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // SuperEmbed alt — uses Vidsrc (verified HEAD 200, not Charter-blocked) as fallback so SuperEmbed never shows an error
@@ -3837,92 +3835,92 @@ function nontongoIframe(tmdbId, type, season, episode) {
     } else {
         url = `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 // New embed mirrors (verified Aug 2026, not on site) — TMDB iframe APIs
 function vidsparkIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidspark.to/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidspark.to/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidrockIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidrock.ru/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidrock.ru/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidflixIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidflix.club/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidflix.club/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidluxIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidlux.xyz/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidlux.xyz/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidsrcmeIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidsrcme.ru/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidsrcme.ru/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidsrcinIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidsrc.in/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidsrc.in/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidsrcioIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidsrc.io/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidsrc.io/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vsembedIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vsembed.ru/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vsembed.ru/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function twoembedccIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://www.2embed.cc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://www.2embed.cc/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function embedsuIframe2(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://www.embed.su/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://www.embed.su/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidfastvcIframe2(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function wfslolIframe2(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://wfs.lol/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://wfs.lol/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function vidsrctopIframe2(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vid-src.top/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://vid-src.top/embed/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function toustreamIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://toustream.xyz/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     else url = `https://toustream.xyz/movie/${encodeURIComponent(tmdbId)}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 // Anime-only — VidHawk (Kari) — AniList/MAL embed per https://vidhawk.buzz — sub/dub, edge HLS, AniList + MAL
 function vidhawkIframe2(source, id, episode, lang) {
@@ -3930,14 +3928,14 @@ function vidhawkIframe2(source, id, episode, lang) {
     const l = lang === 'dub' ? 'dub' : 'sub';
     const base = `https://vidhawk.buzz/embed/${src}/${encodeURIComponent(id)}/${encodeURIComponent(episode)}/${l}?server=kari`;
     const url = l === 'dub' ? base + '&captions=0' : base;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 // Anime-only — Anixo (anixo.buzz) — AniList embed per https://anixo.buzz — sub/dub, HLS, OP/ED skip
 function anixoIframe(anilistId, episode, lang) {
     const l = lang === 'dub' ? 'dub' : 'sub';
     const base = `https://anixo.buzz/embed/ani/${encodeURIComponent(anilistId)}/${encodeURIComponent(episode)}/${l}?color=%232ad4b8`;
     const url = l === 'dub' ? base + '&captions=0' : base;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 function tryDisableCaptionsForDub() {
     if (currentAnimeLang !== 'dub') return;
@@ -3963,7 +3961,7 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
     if (autoplay) qs.push(`autoplay=true`);
     if (epNum) qs.push(`ep=${encodeURIComponent(epNum)}`);
     if (qs.length) url += `?${qs.join('&')}`;
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>`;
+    return makePlaybackIframe(url);
 }
 
 // Current play context + selected server for the player.
