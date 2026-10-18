@@ -341,6 +341,32 @@ async function handleGitHubSync(req, res, requestPath) {
 }
 
 
+async function proxyMiruro(req, res, requestPath, query) {
+    if (!requestPath.startsWith('/api/miruro/') && requestPath !== '/api/miruro') return false;
+    const subPath = requestPath.slice('/api/miruro'.length) || '/';
+    const miruroApiBase = process.env.MIRURO_API_URL || 'https://miruro-api.onrender.com';
+    const target = new URL(`${miruroApiBase.replace(/\/$/, '')}${subPath}`);
+    for (const [key, value] of query) target.searchParams.append(key, value);
+
+    try {
+        const headers = {
+            'Accept': 'application/json',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
+        };
+        const upstream = await fetch(target, { headers, signal: AbortSignal.timeout(8000) });
+        const body = await upstream.text();
+        res.writeHead(upstream.status === 502 || upstream.status === 503 ? 500 : upstream.status, {
+            'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store'
+        });
+        res.end(body);
+    } catch (error) {
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ ok: false, error: 'Miruro API proxy notice', message: error.message }));
+    }
+    return true;
+}
+
 const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
@@ -349,6 +375,7 @@ const server = http.createServer(async (req, res) => {
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
+    if (await proxyMiruro(req, res, requestPath, query)) return;
     if (await downloadYouTube(req, res, requestPath, query)) return;
     if (await proxyTrailerSearch(req, res, requestPath, query)) return;
     if (await handleGitHubSync(req, res, requestPath)) return;
