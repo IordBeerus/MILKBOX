@@ -1,8 +1,22 @@
 // ==================== DATA STORE ====================
 const HOSTED_LIBRARY_URL = '/library.json';
-let movies = JSON.parse(localStorage.getItem('sf_movies')) || [];
-let tvShows = JSON.parse(localStorage.getItem('sf_tvshows')) || [];
-let myList = JSON.parse(localStorage.getItem('sf_mylist')) || [];
+
+function safeGetStoredJson(key, fallback) {
+    try {
+        const item = localStorage.getItem(key);
+        if (!item || typeof item !== 'string') return fallback;
+        const trimmed = item.trim();
+        if (!trimmed || trimmed.startsWith('<')) return fallback;
+        const parsed = JSON.parse(trimmed);
+        return parsed != null ? parsed : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+let movies = safeGetStoredJson('sf_movies', []);
+let tvShows = safeGetStoredJson('sf_tvshows', []);
+let myList = safeGetStoredJson('sf_mylist', []);
 const defaultSettings = {
     playerServer: 'auto',
     autoPlayNext: true,
@@ -34,10 +48,10 @@ const defaultSettings = {
     mangaLang: 'en',
     mangaReadingDirection: 'vertical'
 };
-let settings = Object.assign({}, defaultSettings, JSON.parse(localStorage.getItem('sf_settings')) || {});
+let settings = Object.assign({}, defaultSettings, safeGetStoredJson('sf_settings', {}));
 if (settings.highContrast) document.body.classList.add('high-contrast-mode');
 if (settings.cardZoom === false) document.body.classList.add('no-card-zoom');
-let customThemes = JSON.parse(localStorage.getItem('sf_custom_themes')) || [];
+let customThemes = safeGetStoredJson('sf_custom_themes', []);
 function saveCustomThemes() { localStorage.setItem('sf_custom_themes', JSON.stringify(customThemes)); }
 
 // IndexedDB storage for uploaded background files (large videos/images can't fit in localStorage).

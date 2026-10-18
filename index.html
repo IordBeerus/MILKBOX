@@ -1803,6 +1803,16 @@
                             <span>Auto-Sync Status</span>
                             <span class="settings-stat-val" id="githubSyncStatusVal" style="color:#4ade80;">Active (Every 5 mins)</span>
                         </div>
+                        <div class="settings-row" style="flex-wrap:wrap;gap:8px;">
+                            <div class="settings-row-info" style="min-width:220px;flex:1;">
+                                <div class="settings-row-label">Personal Access Token</div>
+                                <div class="settings-row-desc">GitHub token (starts with <code>ghp_</code>) with repo write permissions. Kept local &amp; untracked.</div>
+                            </div>
+                            <div class="settings-row-control" style="display:flex;gap:8px;align-items:center;width:100%;max-width:380px;">
+                                <input type="password" id="githubTokenInput" placeholder="ghp_••••••••••••••••••••••••••••••••••••" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.15);border-radius:6px;padding:6px 10px;color:#fff;font-size:12px;font-family:monospace;">
+                                <button type="button" class="settings-apply-btn" id="saveGithubTokenBtn" style="white-space:nowrap;padding:6px 12px;font-size:12px;">Save Token</button>
+                            </div>
+                        </div>
                         <div class="settings-row">
                             <div class="settings-row-info">
                                 <div class="settings-row-label">Sync to GitHub Now</div>

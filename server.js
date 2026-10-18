@@ -44,7 +44,7 @@ async function proxyMangaDex(req, res, requestPath, query) {
         res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
     } catch (error) {
-        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'MangaDex proxy failed', message: error.message }));
     }
     return true;
@@ -53,7 +53,8 @@ async function proxyMangaDex(req, res, requestPath, query) {
 async function resolvePlayback(req, res, requestPath, query) {
     if (requestPath !== '/api/playback/resolve') return false;
     const respond = (status, body) => {
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+        const safeStatus = (status === 502 || status === 503) ? 500 : status;
+        res.writeHead(safeStatus, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify(body));
     };
     if (req.method !== 'GET') {
@@ -79,7 +80,7 @@ async function resolvePlayback(req, res, requestPath, query) {
 
     const apiUrl = process.env.MILKBOX_PLAYBACK_API_URL;
     if (!apiUrl) {
-        respond(503, { error: 'MILKBOX_PLAYBACK_API_URL is not configured.' });
+        respond(500, { error: 'MILKBOX_PLAYBACK_API_URL is not configured.' });
         return true;
     }
 
@@ -93,22 +94,22 @@ async function resolvePlayback(req, res, requestPath, query) {
         if (process.env.MILKBOX_PLAYBACK_API_KEY) headers.Authorization = `Bearer ${process.env.MILKBOX_PLAYBACK_API_KEY}`;
         const upstream = await fetch(target, { headers, signal: AbortSignal.timeout(15000) });
         if (!upstream.ok) {
-            respond(502, { error: `Playback API request failed (${upstream.status}).` });
+            respond(500, { error: `Playback API request failed (${upstream.status}).` });
             return true;
         }
         const data = await upstream.json();
         if (!data || typeof data.url !== 'string') {
-            respond(502, { error: 'Playback API response must contain a string "url" field.' });
+            respond(500, { error: 'Playback API response must contain a string "url" field.' });
             return true;
         }
         const playbackUrl = new URL(data.url);
         if (!['http:', 'https:'].includes(playbackUrl.protocol) || playbackUrl.username || playbackUrl.password) {
-            respond(502, { error: 'Playback API returned an invalid media URL.' });
+            respond(500, { error: 'Playback API returned an invalid media URL.' });
             return true;
         }
         respond(200, { url: playbackUrl.href, title: typeof data.title === 'string' ? data.title : '' });
     } catch (error) {
-        respond(502, { error: 'Playback API request failed. Check the configured URL and API response.' });
+        respond(500, { error: 'Playback API request failed. Check the configured URL and API response.' });
     }
     return true;
 }
@@ -118,7 +119,7 @@ async function proxyTmdb(req, res, requestPath, query) {
     if (requestPath !== marker && !requestPath.startsWith(`${marker}/`)) return false;
     const tmdbCredential = process.env.TMDB_API_KEY || process.env.TMDB_ACCESS_TOKEN;
     if (!tmdbCredential) {
-        res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB_API_KEY or TMDB_ACCESS_TOKEN is not configured' }));
         return true;
     }
@@ -136,7 +137,7 @@ async function proxyTmdb(req, res, requestPath, query) {
         res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
     } catch (error) {
-        res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB proxy failed', message: error.message }));
     }
     return true;
@@ -279,7 +280,7 @@ async function proxyTrailerSearch(req, res, requestPath, query) {
     return true;
 }
 
-const { syncToGitHub, getSyncStatus } = require('./sync-github.js');
+const { syncToGitHub, getSyncStatus, saveToken } = require('./sync-github.js');
 
 async function handleGitHubSync(req, res, requestPath) {
     if (requestPath === '/api/github/status') {
@@ -291,17 +292,50 @@ async function handleGitHubSync(req, res, requestPath) {
         res.end(JSON.stringify(status));
         return true;
     }
+    if (requestPath === '/api/github/save-token') {
+        if (req.method !== 'POST') {
+            res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+            return true;
+        }
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', () => {
+            try {
+                const parsed = JSON.parse(body || '{}');
+                const rawToken = parsed.token || '';
+                if (!rawToken || !rawToken.trim().startsWith('ghp_')) {
+                    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ error: 'Token must be a valid GitHub Personal Access Token starting with ghp_' }));
+                    return;
+                }
+                const saved = saveToken(rawToken.trim());
+                if (saved) {
+                    const syncResult = syncToGitHub('Initial sync after token update');
+                    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ success: true, message: 'Token saved and synced successfully', syncResult }));
+                } else {
+                    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+                    res.end(JSON.stringify({ error: 'Failed to save token to system' }));
+                }
+            } catch (err) {
+                res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ error: err.message || 'Invalid request body' }));
+            }
+        });
+        return true;
+    }
     if (requestPath !== '/api/github/sync') return false;
     try {
         const result = syncToGitHub('Sync via MILKBOX API');
-        res.writeHead(result.success ? 200 : (result.requiresAuth ? 401 : 500), {
+        res.writeHead(200, {
             'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': 'no-store'
         });
         res.end(JSON.stringify(result));
     } catch (err) {
-        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: 'GitHub sync failed', message: err.message }));
+        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ success: false, error: 'GitHub sync failed', message: err.message }));
     }
     return true;
 }
