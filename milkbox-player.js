@@ -398,8 +398,16 @@ async function _milkboxResolvePlayback(options = {}) {
     const response = await fetch(`/api/playback/resolve?${query}`, {
         headers: { Accept: 'application/json' }
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || `Playback lookup failed (${response.status}).`);
+    const text = await response.text();
+    let result = null;
+    try {
+        if (text && !text.trim().startsWith('<')) {
+            result = JSON.parse(text);
+        }
+    } catch {}
+    if (!response.ok || !result) {
+        throw new Error((result && result.error) || `Playback lookup failed (${response.status}).`);
+    }
     if (typeof result.url !== 'string' || !result.url) throw new Error('The playback API did not return a playable URL.');
     return result;
 }

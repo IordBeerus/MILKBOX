@@ -7350,13 +7350,20 @@ async function checkGitHubSyncStatus() {
     const statusVal = document.getElementById('githubSyncStatusVal');
     const desc = document.getElementById('githubLastSyncDesc');
     const repoVal = document.getElementById('githubRepoVal');
+    const tokenInput = document.getElementById('githubTokenInput');
     if (!statusVal) return;
     try {
         const res = await fetch('/api/github/status');
         if (!res.ok) return;
-        const data = await res.json();
+        const text = await res.text();
+        if (!text || text.trim().startsWith('<')) return;
+        let data;
+        try { data = JSON.parse(text); } catch { return; }
         if (data.repo && repoVal) {
             repoVal.textContent = data.repo.replace(/^https?:\/\//, '').replace(/\.git$/, '');
+        }
+        if (data.hasToken && tokenInput && !tokenInput.value) {
+            tokenInput.placeholder = '•••••••••••••••••••••••• (Configured & Saved)';
         }
         if (data.lastSuccess) {
             statusVal.textContent = 'Synced · Active (Every 5 mins)';
@@ -7388,8 +7395,15 @@ async function triggerManualGitHubSync() {
     }
     try {
         const res = await fetch('/api/github/sync', { method: 'POST' });
-        const result = await res.json();
-        if (result.success) {
+        const text = await res.text();
+        let result = null;
+        try {
+            if (text && !text.trim().startsWith('<')) {
+                result = JSON.parse(text);
+            }
+        } catch {}
+
+        if (result && result.success) {
             toast('Successfully synced with GitHub!', 'success');
             if (statusVal) {
                 statusVal.textContent = 'Synced · Up to date';
@@ -7397,7 +7411,7 @@ async function triggerManualGitHubSync() {
             }
             if (desc) desc.textContent = `Last synced just now (${result.message || 'Up to date'})`;
         } else {
-            const err = result.message || result.error || 'Sync failed';
+            const err = (result && (result.message || result.error)) || `Sync notice (${res.status})`;
             toast(`GitHub Sync: ${err}`, 'error');
             if (statusVal) {
                 statusVal.textContent = 'Sync Notice';
@@ -7419,7 +7433,45 @@ async function triggerManualGitHubSync() {
     }
 }
 
+async function handleSaveGithubToken() {
+    playUiSound();
+    const input = document.getElementById('githubTokenInput');
+    const btn = document.getElementById('saveGithubTokenBtn');
+    if (!input || !btn) return;
+    const token = input.value.trim();
+    if (!token || !token.startsWith('ghp_')) {
+        toast('Please enter a valid GitHub token starting with ghp_', 'error');
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    try {
+        const res = await fetch('/api/github/save-token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const text = await res.text();
+        let data = null;
+        try { if (text && !text.trim().startsWith('<')) data = JSON.parse(text); } catch {}
+        if (res.ok && data && data.success) {
+            toast('GitHub token saved and synced successfully!', 'success');
+            input.value = '';
+            input.placeholder = '•••••••••••••••••••••••• (Configured & Saved)';
+            checkGitHubSyncStatus();
+        } else {
+            toast((data && data.error) || 'Failed to save token', 'error');
+        }
+    } catch (e) {
+        toast(`Error saving token: ${e.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save Token';
+    }
+}
+
 document.getElementById('githubSyncNowBtn')?.addEventListener('click', triggerManualGitHubSync);
+document.getElementById('saveGithubTokenBtn')?.addEventListener('click', handleSaveGithubToken);
 
 document.getElementById('resetAllSettingsBtn')?.addEventListener('click', () => {
     playUiSound();
