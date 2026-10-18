@@ -3504,6 +3504,9 @@ function animekaiIframe(source, id, type, episode, lang) {
     const src = source === 'ani' ? 'ani' : 'mal';
     const base = `https://megavid.buzz/${src}/${encodeURIComponent(id)}`;
     const path = isMovie ? `${base}/${l}` : `${base}/${encodeURIComponent(ep)}/${l}`;
+    const queryParams = ['color=%232ad4b8', 'autoplay=true'];
+    if (l === 'dub') queryParams.push('captions=0');
+    const qs = queryParams.length ? `?${queryParams.join('&')}` : '';
     return makePlaybackIframe(path + qs, 'referrerpolicy="origin-when-cross-origin"');
 }
 let currentAnimekaiMalId = null;
