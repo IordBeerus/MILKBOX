@@ -3896,7 +3896,7 @@ body.light-mode .btn-icon:hover { background: rgba(0, 0, 0, 0.09); color: #111; 
     border-color: rgba(255, 46, 99, 0.4);
     --bg-shadow: rgba(0, 0, 0, 0.6);
 }
-.card-img { border-radius: 0; }
+.card-img { border-radius: 0; font-size: 0; color: transparent; }
 .card-badge {
     background: var(--mb-grad);
     border-radius: 6px;
@@ -7292,39 +7292,12 @@ section#tvShowsSection .card-sub > span:nth-of-type(1) {
     border-radius: inherit;
 }
 
-.card-movie-logo {
-    position: absolute;
-    bottom: 8px;
-    left: 10px;
-    max-width: 65%;
-    max-height: 36px;
-    width: auto;
-    height: auto;
-    object-fit: contain;
-    object-position: left bottom;
-    z-index: 4;
-    pointer-events: none;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.9));
-    transition: transform 0.22s ease, opacity 0.22s ease;
-}
-
-.card.card-landscape:hover .card-movie-logo {
-    transform: scale(0.96) translateY(-2px);
-    opacity: 0.35;
-}
-
+.card-movie-logo,
 .card-movie-logo-portrait {
-    position: absolute;
-    bottom: 12px;
-    left: 10px;
-    max-width: 75%;
-    max-height: 42px;
-    z-index: 3;
-    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.9));
-}
-
-.card:hover .card-movie-logo-portrait {
-    opacity: 0.25;
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
 
 .card-badge-tag {

@@ -1256,10 +1256,8 @@ let logoFetchRunning = 0;
 const MAX_CONCURRENT_LOGO_FETCHES = 2;
 
 function queueLogoFetch(item, cardEl) {
-    if (!item || !item.tmdbId || item.logo || item._logoFetching) return;
-    item._logoFetching = true;
-    logoFetchQueue.push({ item, cardEl });
-    processLogoQueue();
+    // Card thumbnails remain clean and unobstructed without logo overlays
+    return;
 }
 
 function processLogoQueue() {
@@ -1376,7 +1374,7 @@ function createCard(item, type, isLandscape = true) {
                 </div>
             </div>
             <div class="card-details">
-                <div class="card-title">${safeTitle}</div>
+                <div class="card-title" title="${safeTitle}">${safeTitle}</div>
                 <div class="card-sub">
                     <span class="card-star">★</span>
                     <span class="card-rating-num">${ratingNum}</span>
@@ -1390,7 +1388,7 @@ function createCard(item, type, isLandscape = true) {
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" loading="lazy" decoding="async" fetchpriority="low" onerror="if(this.src!=='${safePoster}'&&'${safePoster}'){this.src='${safePoster}';}else{this.style.display='none';this.nextElementSibling.style.display='flex';}">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -1419,7 +1417,7 @@ function createCard(item, type, isLandscape = true) {
                 <button class="card-action-btn" data-action="info" title="More Info"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="#FFFFFF"><path d="M480-360 280-560l56-56 144 144 144-144 56 56-200 200Z"/></svg></button>
             </div>
             <div class="card-info">
-                <div class="card-title">${safeTitle}</div>
+                <div class="card-title" title="${safeTitle}">${safeTitle}</div>
                 <div class="card-meta">
                     <span class="card-match">${matchPct}% Match</span>
                     <span class="card-cert">${certBadge}</span>
@@ -1980,16 +1978,16 @@ async function browseProvider(providerId) {
 const COLLECTION_DEFS = (typeof window !== 'undefined' && Array.isArray(window.COLLECTION_DEFS) && window.COLLECTION_DEFS.length)
     ? window.COLLECTION_DEFS
     : [
-        { label: 'Marvel Cinematic Universe', studio: 'Marvel Studios', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/mDfJG3LC3Dqb67AZ52x3Z0jOS0n.jpg', tmdbCompanyIds: [420], strictRegexStr: '^.*(iron man|captain america|thor|avengers|guardians of the galaxy|ant-man|doctor strange|black panther|captain marvel|black widow|shang-chi|eternals|deadpool & wolverine|the marvels).*$' },
+        { label: 'Marvel Cinematic Universe', studio: 'Marvel Studios', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/mDfJG3LC3Dqb67AZ52x3Z0jU0uB.jpg', tmdbCompanyIds: [420], strictRegexStr: '^.*(iron man|captain america|thor|avengers|guardians of the galaxy|ant-man|doctor strange|black panther|captain marvel|black widow|shang-chi|eternals|deadpool & wolverine|the marvels).*$' },
         { label: 'DC Universe & Batman', studio: 'DC Studios', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg', tmdbCompanyIds: [9993, 128064], strictRegexStr: '^.*(the dark knight|batman begins|the batman|man of steel|batman v superman|wonder woman|justice league|joker|aquaman|shazam|suicide squad).*$' },
-        { label: 'Pixar Animation Studios', studio: 'Pixar', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/lxD.jpg', tmdbCompanyIds: [3], strictRegexStr: '^.*(toy story|finding (nemo|dory)|the incredibles|monsters inc|inside out|coco|up|wall-e|ratatouille|cars|soul|luca).*$' },
+        { label: 'Pixar Animation Studios', studio: 'Pixar', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/3Rfvhy1Nl6sSGJwyjb0QiZzZYlB.jpg', tmdbCompanyIds: [3], strictRegexStr: '^.*(toy story|finding (nemo|dory)|the incredibles|monsters inc|inside out|coco|up|wall-e|ratatouille|cars|soul|luca).*$' },
         { label: 'Studio Ghibli', studio: 'Studio Ghibli', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/Ab8mkHmkYADjU7wQiOkia9BzGvS.jpg', tmdbCompanyIds: [10342], strictRegexStr: '^.*(spirited away|princess mononoke|howl\'s moving castle|my neighbor totoro|kiki\'s delivery service|grave of the fireflies|ponyo).*$' },
         { label: 'Star Wars Saga', studio: 'Lucasfilm Ltd.', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/8ZTVqvKDQ8emSGUEMjsS4yHAwrp.jpg', tmdbCompanyIds: [1], tmdbCollectionIds: [10], strictRegexStr: '^.*star wars.*$' },
         { label: 'Fast & Furious Saga', studio: 'Universal Pictures', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/4XM8DUTQb3lhLemJC51Jx4a2EuA.jpg', tmdbCollectionIds: [9485], strictRegexStr: '^.*((the )?fast (and|&) (the )?furious|2 fast 2 furious|tokyo drift|fast five|fast & furious 6|furious 7|the fate of the furious|hobbs &(amp;)? shaw|f9: the fast saga|fast x).*$', negativeRegexStr: '(fast times|faster|breakfast|stand fast)' },
-        { label: 'Harry Potter & Wizarding World', studio: 'Warner Bros. Pictures', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/5rrGVmRUACiQIuvjN0ix9AC3IRa.jpg', tmdbCollectionIds: [1241, 435259], strictRegexStr: '^.*(harry potter|fantastic beasts).*$' },
-        { label: 'Middle-earth: The Lord of the Rings', studio: 'New Line Cinema / Warner Bros.', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/x2RS3uTcsJJ9Ifj2cgxKi20o9mm.jpg', tmdbCollectionIds: [119, 121938], strictRegexStr: '^.*(lord of the rings|the hobbit).*$' },
+        { label: 'Harry Potter & Wizarding World', studio: 'Warner Bros. Pictures', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/hziiv14OpD73u9gAak4XDDfBKa2.jpg', tmdbCollectionIds: [1241, 435259], strictRegexStr: '^.*(harry potter|fantastic beasts).*$' },
+        { label: 'Middle-earth: The Lord of the Rings', studio: 'New Line Cinema / Warner Bros.', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/oiwc338EoBgS4sEI2ixAny4KQKg.jpg', tmdbCollectionIds: [119, 121938], strictRegexStr: '^.*(lord of the rings|the hobbit).*$' },
         { label: 'Spider-Man Universe', studio: 'Sony Pictures / Marvel', category: 'franchise', cover: 'https://image.tmdb.org/t/p/w1920/14QbnygCuTO0vl7CAFmPf1fgZfV.jpg', tmdbCollectionIds: [55830, 8945, 531241, 573436], strictRegexStr: '^.*spider-?man.*$' },
-        { label: 'A24 Studios', studio: 'A24', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/j559jG9V29x448aB3jF7H4k1V7t.jpg', tmdbCompanyIds: [41077], strictRegexStr: '^.*(everything everywhere all at once|hereditary|midsommar|the whale|moonlight|lady bird|uncut gems|the lighthouse|past lives|civil war).*$' }
+        { label: 'A24 Studios', studio: 'A24', category: 'studio', cover: 'https://image.tmdb.org/t/p/w1920/fIwiFha3WPu5nHkBeMQ4GzEk0Hv.jpg', tmdbCompanyIds: [41077], strictRegexStr: '^.*(everything everywhere all at once|hereditary|midsommar|the whale|moonlight|lady bird|uncut gems|the lighthouse|past lives|civil war).*$' }
     ];
 
 let customCollections = (()=>{ try { return JSON.parse(localStorage.getItem('milkbox_custom_collections')||'[]'); } catch { return []; } })();
@@ -2202,7 +2200,8 @@ function renderCollections() {
             return `<div class="collection-card${isCustom ? ' is-custom' : ''}" data-collection="${safeLabel}" title="${safeLabel} — click to view">
                 ${deleteBtn}
                 <span class="collection-tag-pill ${isStudio ? 'is-studio' : ''}">${tagLabel}</span>
-                ${cover ? `<img class="collection-backdrop" src="${escapeHtml(cover)}" alt="${safeLabel}" loading="lazy">` : `<div class="collection-cover-fallback">📦</div>`}
+                ${cover ? `<img class="collection-backdrop" src="${escapeHtml(cover)}" alt="" loading="lazy" onerror="this.style.display='none';const fb=this.parentElement.querySelector('.collection-cover-fallback');if(fb)fb.style.display='flex';">` : ''}
+                <div class="collection-cover-fallback" style="${cover ? 'display:none' : ''}">📦</div>
                 ${isCustom ? `<div class="collection-custom-badge" title="Custom collection">You</div>` : ''}
                 <div class="collection-overlay">
                     ${studioName ? `<div class="collection-studio-badge">🏛️ ${escapeHtml(studioName)}</div>` : ''}
@@ -5224,8 +5223,22 @@ function openEdit(item, type) {
     document.getElementById('editModal').classList.add('active');
 }
 
+function decodeHtmlEntities(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#0*39;|&apos;|&#39;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&#(\d+);/g, (_, dec) => {
+            try { return String.fromCharCode(parseInt(dec, 10)); } catch { return _; }
+        });
+}
+
 function escapeHtml(str) {
-    return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const clean = decodeHtmlEntities(str);
+    return clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // Upgrade a TMDB image URL to its highest available resolution so banners and
@@ -8936,7 +8949,7 @@ const FALLBACK_ANIME_MOVIES = [
     { id: 'am_2', tmdbId: '372058', title: 'Your Name.', year: '2016', rating: '8.5', genre: ['anime', 'romance', 'drama'], poster: 'https://image.tmdb.org/t/p/w500/vfJFJPepRKapMd5G2ro7klIRysq.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/mMtUybQ6hL24FXo0F3Z4j2KG7kZ.jpg', description: 'High schoolers Mitsuha and Taki are complete strangers living separate lives until they swap bodies.', type: 'movie' },
     { id: 'am_3', tmdbId: '128', title: 'Princess Mononoke', year: '1997', rating: '8.3', genre: ['anime', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/cMYCDADoLKLbB83g4WnJegaZimC.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/gl0jzn4BupSbL2qMVeqrjKkF9Js.jpg', description: 'Ashitaka finds himself in the middle of a war between the forest gods and Tatara, a mining colony.', type: 'movie' },
     { id: 'am_4', tmdbId: '635302', title: 'Demon Slayer: Mugen Train', year: '2020', rating: '8.2', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/h8Rb9gBr48ODIwYUttZNYeMWeUU.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/qjGrUmKW78MCFG8PTLDBp67S27p.jpg', description: 'Tanjiro and the Demon Slayer Corps investigate mysterious disappearances aboard the Mugen Train.', type: 'movie' },
-    { id: 'am_5', tmdbId: '378064', title: 'A Silent Voice', year: '2016', rating: '8.4', genre: ['anime', 'drama', 'romance'], poster: 'https://image.tmdb.org/t/p/w500/tuFaWiqX0TXoWu7DGNcmX3UW7sT.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/5lAMQMW2XCsVaqXPSIIgiNVCuKL.jpg', description: 'A young man sets out to make amends with the deaf girl he bullied in elementary school.', type: 'movie' },
+    { id: 'am_5', tmdbId: '378064', title: 'A Silent Voice', year: '2016', rating: '8.4', genre: ['anime', 'drama', 'romance'], poster: 'https://image.tmdb.org/t/p/w500/tuFaWiqX0TXoWu7DGNcmX3UW7sT.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/5lAMQMWpXMsirvtLLvW7cJgEPkU.jpg', description: 'A young man sets out to make amends with the deaf girl he bullied in elementary school.', type: 'movie' },
     { id: 'am_6', tmdbId: '4935', title: "Howl's Moving Castle", year: '2004', rating: '8.4', genre: ['anime', 'fantasy', 'adventure'], poster: 'https://image.tmdb.org/t/p/w500/13kOl2v0nD2OLbVSHnHk8GUFEhO.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/nv5wwZou159v5OC61i4ElR7OqyY.jpg', description: 'Sophie is cursed with an old body by a spiteful witch and seeks out Howl to break it.', type: 'movie' },
     { id: 'am_7', tmdbId: '916224', title: 'Suzume', year: '2022', rating: '7.9', genre: ['anime', 'adventure', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/yStW1TXF5s7Tbtu9KjIZEaWl6HL.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/4tdV5AeojEdbvn6VpeQrbuDlmzs.jpg', description: 'A 17-year-old girl journeys across disaster-stricken Japan to close mysterious doors.', type: 'movie' },
     { id: 'am_8', tmdbId: '810693', title: 'Jujutsu Kaisen 0', year: '2021', rating: '8.2', genre: ['anime', 'action', 'fantasy'], poster: 'https://image.tmdb.org/t/p/w500/23oJaeBh0FDk2mQ2P240PU9Xxfh.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/rcEDPOOOUTLFxLLQJggfLffbofe.jpg', description: 'Yuta Okkotsu gains control of an extremely powerful cursed spirit and enrolls at Tokyo Prefectural Jujutsu High School.', type: 'movie' },
