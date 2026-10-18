@@ -342,28 +342,92 @@ async function handleGitHubSync(req, res, requestPath) {
 
 
 async function proxyMiruro(req, res, requestPath, query) {
-    if (!requestPath.startsWith('/api/miruro/') && requestPath !== '/api/miruro') return false;
+    if (!requestPath.startsWith('/api/miruro') && !requestPath.startsWith('/api/anikoto')) return false;
+
+    // Direct Anikoto API proxy
+    if (requestPath.startsWith('/api/anikoto/')) {
+        const sub = requestPath.slice('/api/anikoto'.length);
+        const target = new URL(`https://anikotoapi.site${sub}`);
+        for (const [key, value] of query) target.searchParams.append(key, value);
+        try {
+            const upstream = await fetch(target, { headers: { 'Accept': 'application/json' }, signal: AbortSignal.timeout(10000) });
+            const data = await upstream.text();
+            res.writeHead(upstream.status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+            res.end(data);
+        } catch (err) {
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ ok: false, error: err.message }));
+        }
+        return true;
+    }
+
     const subPath = requestPath.slice('/api/miruro'.length) || '/';
+    const infoMatch = subPath.match(/^\/info\/(\d+)$/);
     const miruroApiBase = process.env.MIRURO_API_URL || 'https://miruro-api.onrender.com';
-    const target = new URL(`${miruroApiBase.replace(/\/$/, '')}${subPath}`);
-    for (const [key, value] of query) target.searchParams.append(key, value);
 
     try {
+        const target = new URL(`${miruroApiBase.replace(/\/$/, '')}${subPath}`);
+        for (const [key, value] of query) target.searchParams.append(key, value);
         const headers = {
             'Accept': 'application/json',
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/110.0.0.0 Safari/537.36'
         };
-        const upstream = await fetch(target, { headers, signal: AbortSignal.timeout(8000) });
-        const body = await upstream.text();
-        res.writeHead(upstream.status === 502 || upstream.status === 503 ? 500 : upstream.status, {
-            'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
-            'Cache-Control': 'no-store'
-        });
-        res.end(body);
-    } catch (error) {
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ ok: false, error: 'Miruro API proxy notice', message: error.message }));
+        const upstream = await fetch(target, { headers, signal: AbortSignal.timeout(5000) });
+        if (upstream.ok) {
+            const body = await upstream.text();
+            res.writeHead(200, {
+                'Content-Type': upstream.headers.get('content-type') || 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store'
+            });
+            res.end(body);
+            return true;
+        }
+    } catch {}
+
+    // Fallback: Miruro native AniList GraphQL query per walterwhite-69/Miruro-API specification
+    if (infoMatch) {
+        const anilistId = parseInt(infoMatch[1], 10);
+        try {
+            const gql = `query ($id: Int) {
+                Media(id: $id, type: ANIME) {
+                    id
+                    idMal
+                    title { romaji english native }
+                    description(asHtml: false)
+                    coverImage { large extraLarge color }
+                    bannerImage
+                    format
+                    season
+                    seasonYear
+                    episodes
+                    duration
+                    status
+                    averageScore
+                    meanScore
+                    popularity
+                    genres
+                    studios { nodes { id name isAnimationStudio siteUrl } }
+                    nextAiringEpisode { episode airingAt timeUntilAiring }
+                    streamingEpisodes { title thumbnail url site }
+                }
+            }`;
+            const aniRes = await fetch('https://graphql.anilist.co', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify({ query: gql, variables: { id: anilistId } }),
+                signal: AbortSignal.timeout(8000)
+            });
+            const aniData = await aniRes.json();
+            if (aniData && aniData.data && aniData.data.Media) {
+                res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+                res.end(JSON.stringify(aniData.data.Media));
+                return true;
+            }
+        } catch {}
     }
+
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: true, notice: 'Miruro API server standby', path: subPath }));
     return true;
 }
 

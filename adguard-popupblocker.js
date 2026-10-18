@@ -434,7 +434,7 @@
     }
 
     // Playback server iframe hardening engine
-    const CLOUD_SERVER_DOMAINS = /(?:phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro)/i;
+    const CLOUD_SERVER_DOMAINS = /(?:phantom|cinesrc|vidsrc|vidcore|videasy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto)/i;
 
     function hardenPlaybackIframe(iframe) {
         if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
