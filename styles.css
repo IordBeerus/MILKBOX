@@ -7154,17 +7154,43 @@ body.anime-focus .player-modal{ background:rgba(0,0,0,0.88); }
 .content-grid .card.card-landscape .card-img,
 .slider .card.card-landscape .card-img,
 .card.card-landscape .card-img,
-.card.card-landscape .card-backdrop-img,
-.card.card-landscape .card-placeholder {
+.card.card-landscape .card-backdrop-img {
     width: 100% !important;
     height: 100% !important;
     max-height: none !important;
     aspect-ratio: 16 / 9 !important;
     object-fit: cover !important;
-    display: block !important;
+    display: block;
     border-radius: 0 !important;
     flex: none !important;
     transform: translateZ(0);
+    font-size: 0;
+    color: transparent;
+}
+
+.card.card-landscape .card-placeholder {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    aspect-ratio: 16 / 9 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0 !important;
+    flex: none !important;
+    transform: translateZ(0);
+    background: #181822;
+}
+
+.card-img.img-failed,
+.card-backdrop-img.img-failed,
+.card-img.is-hidden,
+.card-img[style*="display: none"],
+.card-img[style*="display:none"],
+.card-placeholder.is-hidden,
+.card-placeholder[style*="display: none"],
+.card-placeholder[style*="display:none"] {
+    display: none !important;
 }
 
 .card.card-landscape .card-actions {
