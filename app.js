@@ -3973,14 +3973,7 @@ function anixoIframe(anilistId, episode, lang) {
     const url = l === 'dub' ? base + '&captions=0' : base;
     return makePlaybackIframe(url);
 }
-// Anime-only — Miruro (miruro.to / miruro.tv) — AniList embed per Miruro-API with sub/dub options
-function miruroIframe(anilistId, episode, lang) {
-    const l = lang === 'dub' ? 'dub' : 'sub';
-    const ep = episode || 1;
-    const base = `https://www.miruro.to/watch?id=${encodeURIComponent(anilistId)}&ep=${encodeURIComponent(ep)}&category=${l}`;
-    return makePlaybackIframe(base, 'referrerpolicy="origin-when-cross-origin"');
-}
-// Anime-only — MegaPlay (megaplay.buzz) — HiAnime / Zoro library per Miruro-API & Anikoto API with AniList & MAL routing
+// Anime-only — MegaPlay (megaplay.buzz) — HiAnime / Zoro library per AniList & MAL routing
 function megaplayIframe(source, id, episode, lang) {
     const src = source === 'mal' ? 'mal' : 'ani';
     const l = lang === 'dub' ? 'dub' : 'sub';
@@ -4018,6 +4011,7 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
 // Current play context + selected server for the player.
 let playContext = null;
 let playerServer = settings.playerServer || 'milkbox';
+if (playerServer === 'miruro') { playerServer = 'tmdb'; settings.playerServer = 'tmdb'; try { saveData(); } catch {} }
 
 function serverBtnActive() {
     const sel = document.getElementById('serverSelect');
@@ -4035,7 +4029,7 @@ function effectiveServerFor(item, type) {
 }
 
 // Ordered list used for automatic server fallback (TMDB-based sources only).
-const SERVER_ORDER = ['tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','miruro','megaplay','autoembedanime','animekai', 'kisskh'];
+const SERVER_ORDER = ['tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
 let fallbackLoaded = false;
@@ -4211,19 +4205,6 @@ const SERVER_IFRAME = {
         }
         return anixoIframe(aid, episode || 1, currentAnimeLang);
     },
-    miruro: (tmdbId, type, season, episode) => {
-        const pc = playContext?.item;
-        if (!pc || !isAnime(pc)) return vidsrcIframe(tmdbId, type, season, episode);
-        const k = String(pc.id);
-        const aid = pc.anilistId || pc.anilist_id || storedAnimeIds[k] || currentAnimekaiMalId;
-        const ep = episode || 1;
-        const lang = currentAnimeLang || 'sub';
-        if (!aid || !/^\d+$/.test(String(aid))) {
-            const mid = aid || pc.malId || tmdbId;
-            return miruroIframe(mid, ep, lang);
-        }
-        return miruroIframe(aid, ep, lang);
-    },
     megaplay: (tmdbId, type, season, episode) => {
         const pc = playContext?.item;
         if (!pc || !isAnime(pc)) return vidsrcIframe(tmdbId, type, season, episode);
@@ -4363,9 +4344,9 @@ function renderPlay() {
             } else if (srv === 'autoembed') {
                 frame.innerHTML = SERVER_IFRAME.autoembed(item.tmdbId, type, season, ep);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • AutoEmbed ${base.toUpperCase()} (${malId})`;
-            } else if (srv === 'vidhawk' || srv === 'anixo' || srv === 'miruro' || srv === 'megaplay') {
+            } else if (srv === 'vidhawk' || srv === 'anixo' || srv === 'megaplay') {
                 frame.innerHTML = (SERVER_IFRAME[srv] || SERVER_HANDLERS[srv])(item.tmdbId, type, season, ep);
-                const srvName = srv === 'miruro' ? 'Miruro' : (srv === 'megaplay' ? 'MegaPlay (Zoro)' : (srv === 'vidhawk' ? 'VidHawk' : 'Anixo'));
+                const srvName = srv === 'megaplay' ? 'MegaPlay (Zoro)' : (srv === 'vidhawk' ? 'VidHawk' : 'Anixo');
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • ${srvName} ${base.toUpperCase()} (${malId})`;
             } else {
                 // megavid /mal/ and /ani/ endpoints — anime movies have NO episode segment
@@ -4501,11 +4482,9 @@ function playItem(item, type) {
         if (autoembedAnimeOpt) autoembedAnimeOpt.style.display = '';
         const vidhawkOpt = document.getElementById('serverOptVidhawk');
         const anixoOpt = document.getElementById('serverOptAnixo');
-        const miruroOpt = document.getElementById('serverOptMiruro');
         const megaplayOpt = document.getElementById('serverOptMegaplay');
         if (vidhawkOpt) vidhawkOpt.style.display = '';
         if (anixoOpt) anixoOpt.style.display = '';
-        if (miruroOpt) miruroOpt.style.display = '';
         if (megaplayOpt) megaplayOpt.style.display = '';
         currentAnidbId = null;
         currentAnimekaiMalId = null;
@@ -4567,13 +4546,11 @@ function playItem(item, type) {
         if (autoembedAnimeOpt) autoembedAnimeOpt.style.display = 'none';
         const vidhawkOpt2 = document.getElementById('serverOptVidhawk');
         const anixoOpt2 = document.getElementById('serverOptAnixo');
-        const miruroOpt2 = document.getElementById('serverOptMiruro');
         const megaplayOpt2 = document.getElementById('serverOptMegaplay');
         if (vidhawkOpt2) vidhawkOpt2.style.display = 'none';
         if (anixoOpt2) anixoOpt2.style.display = 'none';
-        if (miruroOpt2) miruroOpt2.style.display = 'none';
         if (megaplayOpt2) megaplayOpt2.style.display = 'none';
-        if (['animekai','vidhawk','anixo','autoembedanime','miruro','megaplay'].includes(playerServer)) { playerServer = 'tmdb'; settings.playerServer = playerServer; try { saveData(); } catch {} }
+        if (['animekai','vidhawk','anixo','autoembedanime','megaplay'].includes(playerServer)) { playerServer = 'tmdb'; settings.playerServer = playerServer; try { saveData(); } catch {} }
         currentAnidbId = null;
         currentAnimekaiMalId = null;
     }
