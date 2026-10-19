@@ -60,22 +60,6 @@ The app should be opened through the local server instead of opening index.html 
 
 Install MILKBOX as a PWA directly from your browser.
 
-## GitHub Sync
-
-To sync updates to GitHub:
-
-1. Add your GitHub Personal Access Token to `.env`:
-   ```bash
-   GITHUB_TOKEN=ghp_yourPersonalAccessTokenHere
-   ```
-2. Run the sync command:
-   ```bash
-   npm run push
-   # or
-   npm run sync:github
-   ```
-   Or trigger a sync via the `/api/github/sync` endpoint.
-
 Open MILKBOX in a browser that supports installing web apps and choose **Install MILKBOX** from the browser menu. In supported browsers, the **Install** button is also available in **Settings → General**. On iPhone or iPad, use **Share → Add to Home Screen**.
 
 Deployed sites must use HTTPS for app installation; `localhost` is supported for local development. MILKBOX uses a network-only service worker to enable Chrome's in-app installation prompt without caching site content. The installed app requires an internet connection.
