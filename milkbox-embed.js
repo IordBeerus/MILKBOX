@@ -1,9 +1,9 @@
 (function () {
     'use strict';
 
-    // State
+    
     const state = {
-        type: 'movie', // 'movie' | 'tv' | 'anime'
+        type: 'movie', 
         tmdbId: null,
         anilistId: null,
         season: 1,
@@ -23,7 +23,7 @@
         upNextSeconds: 5
     };
 
-    // DOM Elements
+    
     const elements = {
         player: document.getElementById('mbPlayer'),
         iframe: document.getElementById('mbStreamIframe'),
@@ -81,7 +81,7 @@
         epList: document.getElementById('mbEpList')
     };
 
-    // Available Streaming Servers
+    
     const SERVERS = [
         { id: 'x8rrmovies', name: 'x8rr Movies (Ad-Free HLS)', icon: '🍿' },
         { id: 'milkbox', name: 'Milkbox Pink (Core)', icon: '⚡' },
@@ -92,7 +92,7 @@
         { id: 'autoembed', name: 'AutoEmbed VIP', icon: '✨' }
     ];
 
-    // Format seconds into MM:SS or H:MM:SS
+    
     function formatTime(sec) {
         if (!Number.isFinite(sec) || sec < 0) return '0:00';
         const s = Math.floor(sec);
@@ -104,24 +104,21 @@
             : `${m}:${String(r).padStart(2, '0')}`;
     }
 
-    // Escape HTML helper
+    
     function escapeHtml(str) {
         const d = document.createElement('div');
         d.textContent = str == null ? '' : String(str);
         return d.innerHTML;
     }
 
-    // Parse URL Route according to specification:
-    // /movie/{tmdbId}
-    // /tv/{tmdbId}/{season}/{episode}
-    // /anime/{anilistId}/{episode}
+    
     function parseRoute() {
         const path = window.location.pathname.replace(/\/+$/, '');
         const search = new URLSearchParams(window.location.search);
         const qServer = search.get('server');
         if (qServer) state.currentServer = qServer;
 
-        // 1. Movie Route: /movie/{tmdbId}
+        
         const movieMatch = path.match(/^\/movie\/([0-9]+)$/i);
         if (movieMatch) {
             state.type = 'movie';
@@ -129,7 +126,7 @@
             return;
         }
 
-        // 2. TV Route: /tv/{tmdbId}/{season}/{episode}
+        
         const tvMatch = path.match(/^\/tv\/([0-9]+)\/([0-9]+)\/([0-9]+)$/i);
         if (tvMatch) {
             state.type = 'tv';
@@ -139,7 +136,7 @@
             return;
         }
 
-        // 3. Anime Route: /anime/{anilistId}/{episode}
+        
         const animeMatch = path.match(/^\/anime\/([0-9]+)\/([0-9]+)$/i);
         if (animeMatch) {
             state.type = 'anime';
@@ -148,7 +145,7 @@
             return;
         }
 
-        // Fallback query parameters: ?tmdb=...&type=movie, ?id=...&type=tv&s=1&e=1, etc.
+        
         const qTmdb = search.get('tmdb') || search.get('id');
         const qType = (search.get('type') || (search.has('season') || search.has('s') ? 'tv' : 'movie')).toLowerCase();
         const qAni = search.get('anilist') || search.get('ani') || (qType === 'anime' ? qTmdb : null);
@@ -163,7 +160,7 @@
             state.season = parseInt(search.get('s') || search.get('season') || '1', 10);
             state.episode = parseInt(search.get('e') || search.get('episode') || '1', 10);
         } else {
-            // Default demo fallback (Fight Club)
+            
             state.type = 'movie';
             state.tmdbId = '550';
         }
@@ -175,7 +172,7 @@
         });
     }
 
-    // Build the stream URL for the selected server
+    
     function buildStreamUrl(server, type, id, season, episode) {
         const accent = 'ff2e63';
 
@@ -234,7 +231,7 @@
         }
     }
 
-    // Load stream via Milkbox Stream Provider API
+    
     let hlsInstance = null;
     let nativeEventsBound = false;
 
@@ -290,7 +287,7 @@
         const curLevel = hlsInstance.currentLevel;
         const isAuto = hlsInstance.autoLevelEnabled || curLevel === -1;
 
-        // Active quality indicator
+       
         let activeText = 'Auto';
         if (!isAuto && curLevel >= 0 && levels[curLevel]) {
             const h = levels[curLevel].height || 720;
@@ -373,7 +370,7 @@
         const id = state.type === 'anime' ? state.anilistId : state.tmdbId;
 
         try {
-            // Query our own stream provider API
+            
             const apiUrl = `/api/stream/resolve?type=${encodeURIComponent(state.type)}&id=${encodeURIComponent(id)}&season=${state.season}&episode=${state.episode}&server=${state.currentServer}`;
             const res = await fetch(apiUrl);
             if (res.ok) {
@@ -387,7 +384,7 @@
                     elements.mediaTitle.textContent = state.type === 'movie' ? state.title : `${state.title} · S${state.season}:E${state.episode}`;
                 }
 
-                // If x8rr streams are available from resolve or directly
+                
                 if (data.directStreams && Array.isArray(data.directStreams) && data.directStreams.length > 0) {
                     state.x8rrStreams = data.directStreams;
                 } else if (state.currentServer === 'x8rrmovies' && state.type !== 'anime') {
@@ -410,7 +407,7 @@
                     ? (currentMirror.proxiedUrl || currentMirror.url)
                     : data.directStream;
 
-                // If stream provider returned direct stream and Hls is supported
+                
                 if (activeStreamUrl && window.Hls && window.Hls.isSupported()) {
                     if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
                     elements.iframe.style.display = 'none';
@@ -463,7 +460,7 @@
                     return;
                 }
 
-                // If not native HLS, hide quality menu and switch to iframe embed
+                
                 if (elements.qualityWrap) elements.qualityWrap.style.display = 'none';
                 const targetUrl = data.streamUrl || buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
                 if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
@@ -484,22 +481,22 @@
             elements.iframe.src = fallbackUrl;
         }
 
-        // Update server label
+        
         const srv = SERVERS.find(s => s.id === state.currentServer) || SERVERS[0];
         elements.serverBadgeLabel.textContent = srv.name;
         elements.serverActiveLabel.textContent = srv.name;
 
-        // Render Server dropdown items
+        
         renderServerMenu();
 
-        // Arm watchdog
+        
         clearTimeout(state.loadTimeout);
         state.loadTimeout = setTimeout(() => {
             hideLoader();
         }, 12000);
     }
 
-    // Fetch Metadata from TMDB or AniList
+    
     async function fetchMetadata() {
         try {
             if (state.type === 'movie' && state.tmdbId) {
@@ -529,7 +526,7 @@
                     elements.mediaTitle.textContent = `${state.title} · S${state.season}:E${state.episode}`;
                     document.title = `${state.title} S${state.season}:E${state.episode} — Milkbox Player`;
 
-                    // Populate Seasons
+                    
                     if (Array.isArray(data.seasons)) {
                         elements.seasonSelect.innerHTML = data.seasons
                             .filter(s => s.season_number > 0)
@@ -537,7 +534,7 @@
                             .join('');
                     }
 
-                    // Fetch episode list for current season
+                    
                     fetchSeasonEpisodes(state.season);
                 }
             } else if (state.type === 'anime' && state.anilistId) {
@@ -563,7 +560,7 @@
         }
     }
 
-    // Fetch TV Season Episodes
+    
     async function fetchSeasonEpisodes(seasonNum) {
         elements.epList.innerHTML = '<div class="mb-drawer-loading">Loading episodes…</div>';
         try {
@@ -580,7 +577,7 @@
         }
     }
 
-    // Render TV Episodes in Drawer
+    
     function renderEpisodesList(episodes) {
         if (!episodes || !episodes.length) {
             elements.epList.innerHTML = '<div class="mb-drawer-loading">No episodes found.</div>';
@@ -605,7 +602,7 @@
         }).join('');
     }
 
-    // Render Anime Episode Grid in Drawer
+    
     function renderAnimeEpisodes(count) {
         const items = [];
         for (let i = 1; i <= count; i++) {
@@ -623,7 +620,7 @@
         elements.epList.innerHTML = items.join('');
     }
 
-    // Render Server Switcher Menu
+    
     function renderServerMenu() {
         let html = '<div class="mb-menu-header">Providers</div>';
         html += SERVERS.map(s => `
@@ -649,7 +646,7 @@
         elements.serverList.innerHTML = html;
     }
 
-    // Navigate to next episode
+    
     function goToEpisode(season, episode) {
         state.season = season;
         state.episode = episode;
@@ -673,7 +670,7 @@
 
         elements.prevEpBtn.style.display = state.episode > 1 ? 'flex' : 'none';
 
-        // Update active in episode drawer
+        
         document.querySelectorAll('.mb-ep-item').forEach(el => {
             const epNum = parseInt(el.dataset.episode, 10);
             el.classList.toggle('active', epNum === state.episode);
@@ -682,7 +679,7 @@
         loadStream();
     }
 
-    // Trigger Up Next Countdown Card
+    
     function triggerUpNext() {
         if (state.type === 'movie') return;
         const nextEp = state.episode + 1;
@@ -708,7 +705,7 @@
         elements.upNextCard.hidden = true;
     }
 
-    // Loader helpers
+    
     function showLoader(msg) {
         elements.loaderText.textContent = msg || 'Loading stream…';
         elements.loader.hidden = false;
@@ -718,7 +715,7 @@
         elements.loader.hidden = true;
     }
 
-    // Error helpers
+    
     function showError(msg) {
         hideLoader();
         if (msg) elements.errorDesc.textContent = msg;
@@ -729,16 +726,16 @@
         elements.errorCard.hidden = true;
     }
 
-    // PostMessage Communication with Embed
+    
     window.addEventListener('message', (e) => {
         try {
             const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
             if (!data) return;
 
-            // Stream loaded signal
+            
             hideLoader();
 
-            // Watch Party command from parent
+            
             if (data && data.type === 'mb:command') {
                 if (data.action === 'play') {
                     state.isPlaying = true;
@@ -756,7 +753,7 @@
                 return;
             }
 
-            // Time update signal
+            
             if (typeof data.currentTime === 'number') {
                 state.currentTime = data.currentTime;
                 elements.timeCur.textContent = formatTime(state.currentTime);
@@ -769,7 +766,7 @@
                 }
             }
 
-            // Video ended signal -> auto next episode
+            
             const raw = typeof e.data === 'string' ? e.data : JSON.stringify(e.data);
             if (/\b(ended|finish|complete|video_ended|onEnded)\b/i.test(raw)) {
                 triggerUpNext();
@@ -777,7 +774,7 @@
         } catch {}
     });
 
-    // Iframe load listener
+    
     elements.iframe.addEventListener('load', () => {
         setTimeout(hideLoader, 1500);
     });
@@ -786,7 +783,7 @@
         showError('Unable to connect to stream. Click below to try an alternate server.');
     });
 
-    // Event Listeners: Playback Controls
+    
     elements.playBtn.addEventListener('click', () => {
         state.isPlaying = !state.isPlaying;
         togglePlayState(state.isPlaying);
@@ -806,14 +803,14 @@
             if (play) elements.nativeVideo.play().catch(() => {});
             else elements.nativeVideo.pause();
         } else {
-            // Dispatch play/pause postMessage to embed
+            
             try {
                 const cmd = play ? 'play' : 'pause';
                 elements.iframe.contentWindow.postMessage({ type: cmd, event: cmd }, '*');
             } catch {}
         }
 
-        // Notify parent Watch Party controller
+        
         try {
             window.parent.postMessage({
                 type: 'mb:sync',
@@ -823,7 +820,7 @@
         } catch {}
     }
 
-    // Next / Prev Episode buttons
+    
     elements.prevEpBtn.addEventListener('click', () => {
         if (state.episode > 1) goToEpisode(state.season, state.episode - 1);
     });
@@ -832,7 +829,7 @@
         goToEpisode(state.season, state.episode + 1);
     });
 
-    // Up Next Card Actions
+    
     elements.upNextPlayBtn.addEventListener('click', () => {
         hideUpNext();
         goToEpisode(state.season, state.episode + 1);
@@ -840,7 +837,7 @@
 
     elements.upNextCancelBtn.addEventListener('click', hideUpNext);
 
-    // Skip Buttons
+    
     elements.skipBackBtn.addEventListener('click', () => {
         if (elements.nativeVideo && elements.nativeVideo.style.display !== 'none') {
             elements.nativeVideo.currentTime = Math.max(0, elements.nativeVideo.currentTime - 10);
@@ -861,7 +858,7 @@
         } catch {}
     });
 
-    // Volume Slider & Mute
+   
     elements.volSlider.addEventListener('input', (e) => {
         state.volume = parseFloat(e.target.value);
         state.isMuted = state.volume === 0;
@@ -887,7 +884,7 @@
         } catch {}
     }
 
-    // Scrub Bar Interaction
+    
     elements.scrubWrap.addEventListener('mousemove', (e) => {
         const rect = elements.scrubWrap.getBoundingClientRect();
         const pos = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -910,7 +907,7 @@
         } catch {}
     });
 
-    // Server Menu
+    
     elements.serverMenuBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         elements.speedMenu.hidden = true;
@@ -934,7 +931,7 @@
         loadStream();
     });
 
-    // Quality Menu
+    
     if (elements.qualityBtn) {
         elements.qualityBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -955,7 +952,7 @@
         });
     }
 
-    // Error Actions
+    
     elements.nextSourceBtn.addEventListener('click', () => {
         const curIdx = SERVERS.findIndex(s => s.id === state.currentServer);
         const next = SERVERS[(curIdx + 1) % SERVERS.length];
@@ -965,7 +962,7 @@
 
     elements.retryBtn.addEventListener('click', loadStream);
 
-    // Speed Menu
+   
     elements.speedBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         elements.serverMenu.hidden = true;
@@ -990,14 +987,14 @@
         } catch {}
     });
 
-    // Close Dropdowns on outside click
+    
     document.addEventListener('click', () => {
         elements.serverMenu.hidden = true;
         elements.speedMenu.hidden = true;
         if (elements.qualityMenu) elements.qualityMenu.hidden = true;
     });
 
-    // Fullscreen Toggle
+    
     elements.fullscreenBtn.addEventListener('click', () => {
         if (!document.fullscreenElement) {
             elements.player.requestFullscreen().catch(() => {});
@@ -1012,7 +1009,7 @@
         elements.fullscreenBtn.querySelector('.mb-icon-fs-exit').style.display = isFs ? 'block' : 'none';
     });
 
-    // Episodes Drawer
+    
     elements.epDrawerBtn.addEventListener('click', () => {
         elements.epDrawer.hidden = false;
     });
@@ -1035,7 +1032,7 @@
         goToEpisode(se, ep);
     });
 
-    // Autohide Controls on Idle
+    
     function resetIdleTimer() {
         elements.player.classList.remove('is-idle');
         clearTimeout(state.idleTimer);
@@ -1049,7 +1046,7 @@
     elements.player.addEventListener('mousedown', resetIdleTimer);
     elements.player.addEventListener('touchstart', resetIdleTimer);
 
-    // Keyboard Shortcuts
+    
     document.addEventListener('keydown', (e) => {
         if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
         switch (e.key) {
@@ -1084,7 +1081,7 @@
         }
     });
 
-    // Initialize Player
+    
     parseRoute();
     fetchMetadata();
     loadStream();
