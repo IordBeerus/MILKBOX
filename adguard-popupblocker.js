@@ -1,9 +1,4 @@
-/**
- * MILKBOX AdGuard PopupBlocker Engine
- * Integrated directly into MILKBOX — no extension or userscript manager required.
- * Based on the core architecture and popup interception mechanisms of
- * https://github.com/AdguardTeam/PopupBlocker
- */
+
 (function(window) {
     'use strict';
 
@@ -24,7 +19,7 @@
         blockedCount = parseInt(localStorage.getItem(STORAGE_KEY_COUNT) || '0', 10) || 0;
     } catch {}
 
-    // Track user interaction timeline to distinguish trusted clicks from automated popups
+    
     let lastUserInteractionTime = 0;
     const TRUSTED_INTERACTION_WINDOW_MS = 600;
 
@@ -41,7 +36,7 @@
         } catch {}
     });
 
-    // Known ad networks, pop-under scripts, and redirects frequently used by free embed hosts
+    
     const AD_DOMAINS_REGEX = /(?:doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|a-ads|coinzilla|bet365|1xbet|parimatch|monetag|hilltopads|richpush|admaven|yllix|clickadu|infolinks|adcash|revenuehits|galaksion|bidvertiser|trafficstars|adxad|plugrush|ero-advertising|juicyads|chaturbate|bongacams|stripchat|livejasmin|rtmark|creativecdn|syndication|creative-serving|vidsrc-stream|vidcloud-ad|clickshield|onclickmega|tracking|trackingdesk|affiliates?|promotions?|landingpage|redirect|trackurl)/i;
 
     function isAdUrl(rawUrl) {
@@ -103,7 +98,7 @@
         };
     }
 
-    // Discreet AdGuard notification toast
+   
     let toastTimer = null;
     let toastContainer = null;
 
@@ -189,7 +184,7 @@
         }, 2800);
     }
 
-    // 1. Wrap window.open and Window.prototype.open
+
     const originalWindowOpen = window.open;
 
     function isPlayerActiveNow() {
@@ -209,7 +204,7 @@
 
         const targetStr = String(url || '').trim();
 
-        // Google OAuth and Authentication popups must ALWAYS be allowed through
+   
         if (targetStr.startsWith('https://accounts.google.com/') || targetStr.startsWith('https://drive.google.com/')) {
             return originalWindowOpen.call(window, url, target, features);
         }
@@ -218,7 +213,7 @@
         const hasRecentTrustedUserInteraction = (now - lastUserInteractionTime) <= TRUSTED_INTERACTION_WINDOW_MS;
         const inPlayerContext = isPlayerActiveNow();
 
-        // If player is active, aggressively block any pop-ups triggered from playback servers
+       
         if (inPlayerContext) {
             const isExplicitSafeLink = targetStr.startsWith('https://www.youtube.com/embed/') ||
                                        targetStr.startsWith('https://discord.gg/') ||
@@ -229,30 +224,30 @@
             }
         }
 
-        // Known ad URL -> always block
+       
         if (isAdUrl(targetStr)) {
             showBlockedNotification('Ad URL blocked', targetStr);
             return createMockWindow(targetStr);
         }
 
-        // Blank or about:blank popup without genuine interaction
+        
         if (targetStr === '' || targetStr === 'about:blank') {
             showBlockedNotification('Blank pop-up ad blocked', targetStr);
             return createMockWindow(targetStr);
         }
 
-        // Explicit allowlist: internal embeds, Discord, YouTube
+        
         if (isAllowedInternalUrl(targetStr) && hasRecentTrustedUserInteraction) {
             return originalWindowOpen.call(window, url, target, features);
         }
 
-        // Automated window.open call without genuine user click event
+        
         if (!hasRecentTrustedUserInteraction) {
             showBlockedNotification('Unrequested pop-up prevented', targetStr);
             return createMockWindow(targetStr);
         }
 
-        // If target looks like external ad opener
+        
         if (target === '_blank' && !targetStr.startsWith(window.location.origin) && !isAllowedInternalUrl(targetStr)) {
             showBlockedNotification('Pop-under blocked', targetStr);
             return createMockWindow(targetStr);
@@ -270,12 +265,12 @@
         console.warn('[AdGuard PopupBlocker] Could not wrap window.open:', e);
     }
 
-    // 2. Wrap window.showModalDialog
+    
     try {
         window.showModalDialog = interceptedOpen;
     } catch {}
 
-    // 3. Prevent programmatic/simulated clicks on ad links and overlay anchors
+    
     const originalElementClick = window.HTMLElement && window.HTMLElement.prototype ? window.HTMLElement.prototype.click : null;
 
     if (originalElementClick) {
@@ -300,7 +295,7 @@
         };
     }
 
-    // 4. Intercept clicks on ad links and transparent clickjacking overlays
+ 
     document.addEventListener('click', function(e) {
         if (!enabled) return;
 
@@ -315,7 +310,7 @@
                 return false;
             }
 
-            // Check if this anchor is a suspicious overlay anchor (full-screen transparent clickjack)
+           
             if (isOverlayAnchor(anchor)) {
                 e.preventDefault();
                 e.stopPropagation();
@@ -327,7 +322,7 @@
         }
     }, true);
 
-    // 5. AdGuard overlay anchor detector
+   
     function isOverlayAnchor(el) {
         if (!el || !(el instanceof HTMLElement)) return false;
         try {
@@ -342,7 +337,7 @@
             const winWidth = window.innerWidth || document.documentElement.clientWidth || 800;
             const winHeight = window.innerHeight || document.documentElement.clientHeight || 600;
 
-            // Covers > 50% of the viewport with a high z-index
+           
             const coversWidth = rect.width >= (winWidth * 0.5);
             const coversHeight = rect.height >= (winHeight * 0.5);
             const isTransparent = style.opacity === '0' || style.backgroundColor.includes('rgba(0, 0, 0, 0)') || style.visibility === 'hidden';
@@ -357,7 +352,6 @@
     function updateAdGuardUIElements() {
         if (typeof document === 'undefined') return;
 
-        // 1. Playback server badge in generic player modal
         const srvBadge = document.getElementById('adguardServerBadge');
         const srvText = document.getElementById('adguardServerText');
         const srvCounter = document.getElementById('adguardServerCounter');
@@ -372,7 +366,7 @@
             srvCounter.textContent = String(blockedCount);
         }
 
-        // 2. Anime theater control button
+        
         const animeBtn = document.getElementById('animeCtrlAdguard');
         const animeLabel = document.getElementById('animeAdguardLabel');
         if (animeBtn) {
@@ -383,7 +377,7 @@
             animeLabel.textContent = `AdGuard: ${enabled ? 'ON' : 'OFF'} (${blockedCount})`;
         }
 
-        // 3. Anime playback servers panel badge
+        
         const animeSrvBtn = document.getElementById('animeServerAdguardBtn');
         const animeSrvText = document.getElementById('animeServerAdguardText');
         const animeSrvCounter = document.getElementById('animeServerAdguardCounter');
@@ -398,7 +392,7 @@
             animeSrvCounter.textContent = String(blockedCount);
         }
 
-        // 4. Settings toggle
+   
         const toggle = document.getElementById('adguardBlockerToggle');
         if (toggle && toggle.checked !== enabled) {
             toggle.checked = enabled;
@@ -441,15 +435,13 @@
         }
     }
 
-    // Playback server iframe hardening engine
+    
     const CLOUD_SERVER_DOMAINS = /(?:phantom|cinesrc|vidsrc|vidcore|videasy|vidy|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto)/i;
 
     function hardenPlaybackIframe(iframe) {
         if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
         try {
-            // DO NOT set sandbox on cloud playback iframes.
-            // Modern streaming providers (VidSrc, CineSRC, VidLink, etc.) detect sandbox and refuse to play ("Disable sandbox").
-            // Popups and ad redirects are blocked via JS interceptors without triggering sandbox detection.
+            
             iframe.removeAttribute('sandbox');
             if (!iframe.getAttribute('allow')) {
                 iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
@@ -457,7 +449,7 @@
         } catch {}
     }
 
-    // Monitor user interaction with video playback containers
+    
     let lastPlayerInteractionTime = 0;
     ['mousedown', 'touchstart', 'click', 'pointerdown'].forEach(evt => {
         document.addEventListener(evt, (e) => {
@@ -467,8 +459,7 @@
         }, { capture: true, passive: true });
     });
 
-    // Cross-origin playback iframe interaction safety (no focus stealing on video controls)
-    // Note: window.open interceptor already safely neutralizes pop-under tabs without disrupting video clicks.
+    
 
     function scanAndNeutralizeOverlays() {
         if (!enabled) return;
@@ -477,7 +468,7 @@
             for (let i = 0; i < anchors.length; i++) {
                 const el = anchors[i];
                 if (el.id === 'playerPopupShield' || el.id === 'playerFrame' || el.closest('#playerSelector') || el.closest('.server-selector') || el.closest('.adguard-server-badge')) {
-                    continue; // Keep legitimate controls safe
+                    continue; 
                 }
                 if (isOverlayAnchor(el)) {
                     el.remove();
@@ -485,12 +476,12 @@
                 }
             }
 
-            // Also harden any player iframe in the DOM
+            
             document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe').forEach(hardenPlaybackIframe);
         } catch {}
     }
 
-    // 6. Observe DOM mutations for dynamically injected ad overlays & playback iframes
+    
     if (typeof MutationObserver !== 'undefined') {
         let overlayScanDebounce = null;
         const observer = new MutationObserver(mutations => {
@@ -533,7 +524,7 @@
         }
     }
 
-    // 7. Prevent location hijacks to ad networks
+    
     try {
         const origAssign = window.location.assign ? window.location.assign.bind(window.location) : null;
         const origReplace = window.location.replace ? window.location.replace.bind(window.location) : null;
@@ -559,7 +550,7 @@
         }
     } catch {}
 
-    // Public API
+    
     window.AdGuardPopupBlocker = {
         name: 'AdGuard PopupBlocker for MILKBOX',
         version: '2.6.0-playback-protected',
