@@ -1,4 +1,4 @@
-// Data Store
+
 const HOSTED_LIBRARY_URL = '/library.json';
 
 function safeGetStoredJson(key, fallback) {
@@ -55,7 +55,7 @@ if (settings.cardZoom === false) document.body.classList.add('no-card-zoom');
 let customThemes = safeGetStoredJson('sf_custom_themes', []);
 function saveCustomThemes() { localStorage.setItem('sf_custom_themes', JSON.stringify(customThemes)); }
 
-// IndexedDB storage for uploaded background files (large videos/images can't fit in localStorage).
+
 let _bgDb = null;
 function bgDb() {
     if (_bgDb) return Promise.resolve(_bgDb);
@@ -99,9 +99,7 @@ function sStoredLabel(src) {
     return '(uploaded ' + kind + ' — ' + storedBgName(src) + ')';
 }
 
-// Tracks the active background blob URL so it can be revoked when replaced.
 let _activeBgUrl = null;
-// Rename old default branding so their saved settings reflect the new site name/logo.
 (function migrateBranding() {
     let changed = false;
     if (settings.cloakLogoText === 'LUCKYFLIX') { settings.cloakLogoText = 'MILKBOX'; changed = true; }
@@ -115,7 +113,7 @@ let uploadedUrlEps = [];
 let uploadedFileEps = [];
 let currentInfoItem = null;
 let currentInfoType = null;
-// LightSpeed / Chrome block bypass — proxy TMDB + GitHub when filtered
+
 (function(){
     const nativeFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : (typeof fetch === 'function' ? fetch.bind(globalThis) : null);
     if (!nativeFetch) return;
@@ -128,12 +126,12 @@ let currentInfoType = null;
     window.fetch = async function(input, init){
         const url = typeof input === 'string' ? input : input?.url || String(input);
         if (!isProxied(url)) return origFetch(input, init);
-        // Try direct first
+      
         try {
             const res = await origFetch(input, init);
             if (res.ok) {
                 const ct = res.headers.get('content-type') || '';
-                // LightSpeed often returns 200 with HTML block page instead of JSON
+                
                 if (ct.includes('application/json') || ct.includes('image/')) return res;
                 const clone = res.clone();
                 try {
@@ -147,14 +145,14 @@ let currentInfoType = null;
         } catch (e) {
             try { window._lightspeedDetected = true; localStorage.setItem('milkbox_lightspeed', '1'); } catch {}
             console.warn('[MILKBOX] LightSpeed detected for', url, '— retrying via proxy');
-            // Try Google proxy (usually not categorized)
+            
             try {
                 const r2 = await origFetch(googleProxy(url), init);
                 if (r2.ok) {
-                    // Google proxy wraps JSON in some cases, but for our APIs it returns raw
+                    
                     const ct2 = r2.headers.get('content-type') || '';
                     if (ct2.includes('application/json') || r2.headers.get('content-length')) return r2;
-                    // If Google proxy also blocked, try allorigins
+                    
                 }
             } catch {}
             try {
@@ -165,8 +163,7 @@ let currentInfoType = null;
         }
     };
 })();
-// Popup/ad blocker for cloud servers — no sandbox (sandbox triggers "Iframe Sandbox Detected"), so block via JS
-// AdGuard Pop-up & Ad Blocker integration for playback servers and site navigation
+
 (function(){
     window.isAdUrl = function(u) {
         if (window.AdGuardPopupBlocker && typeof window.AdGuardPopupBlocker.isAdUrl === 'function') {
@@ -176,7 +173,7 @@ let currentInfoType = null;
         return /doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|coinzilla|bet365|1xbet|parimatch|monetag|hilltopads|richpush|admaven|yllix|clickadu|infolinks|adcash|revenuehits|galaksion|bidvertiser|trafficstars|adxad|plugrush|ero-advertising|juicyads|rtmark|creativecdn|syndication|creative-serving|vidsrc-stream|vidcloud-ad|clickshield|onclickmega/i.test(s) || /\/pop(?:up|under)?[\/?#]/i.test(s) || /\/ad(?:s|server|tag)?[\/?#]/i.test(s);
     };
 
-    // Block <a target="_blank"> ad links and top navigation to ad sites
+   
     document.addEventListener('click', (e) => {
         if (window.AdGuardPopupBlocker && !window.AdGuardPopupBlocker.isEnabled()) return;
         const a = e.target.closest('a');
@@ -193,7 +190,7 @@ let currentInfoType = null;
         }
     }, true);
 
-    // Prevent top location hijacks from ad scripts
+    
     const origAssign = window.location.assign.bind(window.location);
     const origReplace = window.location.replace.bind(window.location);
     try {
@@ -216,7 +213,7 @@ let currentInfoType = null;
     } catch {}
 })();
 
-// AdGuard Playback Shield — protects video streams on first click from triggering unrequested popups/overlays
+
 function showPopupShield(){
     const s = document.getElementById('playerPopupShield');
     if (!s) return;
@@ -266,24 +263,20 @@ function hardenCloudIframe(iframe){
         }
     }
 }
-// Source Protection
-// Makes it significantly harder to steal/view the site source. Note: client-side
-// code can never be 100% hidden — this blocks the easy vectors (right-click,
-// view-source shortcuts, devtools shortcuts, drag/select of code, and deters
-// casual copying). For strongest protection, deploy a minified/obfuscated build.
+
 (function(){
     const BLOCK_MSG = 'MILKBOX — source protected';
-    // Disable right-click context menu (except on inputs where it is needed for paste)
+    
     document.addEventListener('contextmenu', (e) => {
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
         e.preventDefault();
         try { toast(BLOCK_MSG); } catch {}
     }, true);
-    // Block common devtools / view-source / save shortcuts
+   
     document.addEventListener('keydown', (e) => {
         const k = (e.key || '').toLowerCase();
-        // F12, Ctrl+Shift+I/J/C, Ctrl+U, Ctrl+S, Ctrl+Shift+K (Firefox)
+        
         if (e.key === 'F12' ||
             (e.ctrlKey && e.shiftKey && ['i','j','c','k'].includes(k)) ||
             (e.ctrlKey && ['u','s'].includes(k))) {
@@ -291,24 +284,24 @@ function hardenCloudIframe(iframe){
             try { toast(BLOCK_MSG); } catch {}
             return false;
         }
-        // Cmd + Opt + I/J on macOS
+        
         if (e.metaKey && e.altKey && ['i','j'].includes(k)) {
             e.preventDefault(); e.stopPropagation();
             return false;
         }
     }, true);
-    // Block drag of images and text selection via triple-click on code areas (keep inputs usable)
+    
     document.addEventListener('dragstart', (e) => {
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) return;
-        // allow dragging inside player for controls, but block elsewhere
+        
         if (!e.target.closest || !e.target.closest('#playerFrame')) e.preventDefault();
     }, true);
-    // Clear console on load, add warning
+    
     try { console.clear(); console.log('%c' + BLOCK_MSG + ' — unauthorized copying is not permitted.', 'color:#e50914;font-weight:800;'); } catch {}
 })();
 
-// AdGuard container-level overlay stripping and playback protection
+
 (function(){
     const container = document.getElementById('playerContainer');
     if (!container) return;
@@ -338,31 +331,28 @@ function saveData() {
     try {
         localStorage.setItem('sf_mylist', JSON.stringify(myList));
         localStorage.setItem('sf_settings', JSON.stringify(settings));
-        // Cache a reasonable slice in localStorage for instant offline startup;
-        // full expansive library is always loaded and preserved in active memory from library.json
+        
         const mCache = movies.slice(0, 300);
         const tCache = tvShows.slice(0, 300);
         localStorage.setItem('sf_movies', JSON.stringify(mCache));
         localStorage.setItem('sf_tvshows', JSON.stringify(tCache));
     } catch (_) {
-        // Quota exceeded: keep full library safely intact in active runtime memory
+        
     }
 }
 
-// Estimated byte size of the current serialized library.
+
 function libraryBytes() {
     try { return JSON.stringify(movies).length + JSON.stringify(tvShows).length + JSON.stringify(myList).length + JSON.stringify(settings).length; }
     catch (e) { return 0; }
 }
 
-// When storage quota warns, keep memory intact
+
 function trimLibraryForStorage() {
-    // In-memory catalog is preserved so user never loses their titles
+    
 }
 
-// Shortens long stored descriptions on auto-loaded TMDB titles (only items with a
-// tmdbId are touched; user-typed custom items keep their full blurb). Running this
-// frees a lot of localStorage space so even more titles fit. Idempotent.
+
 function compactLibraryDescriptions() {
     const compact = (it) => {
         if (!it || !it.tmdbId || !it.description) return null;
@@ -381,8 +371,7 @@ function compactLibraryDescriptions() {
 
 let isLibraryLoading = !(movies.length || tvShows.length);
 
-// Auto-loads the full library on every open so the Load Library button isn't needed:
-// first tries the hosted JSON, then always auto-runs the TMDB genre loader to top up any missing titles.
+
 async function autoLoadHostedLibrary() {
     let loaded = false;
     try {
@@ -428,12 +417,11 @@ async function autoLoadHostedLibrary() {
                         }
                     }
                 }
-            } catch (e) { /* fall through to TMDB auto-load */ }
+            } catch (e) {  }
         }
-        // Free up storage by compacting old long TMDB descriptions (idempotent; only
-        // touches auto-loaded titles) so the top-up below can keep even more titles.
-        try { compactLibraryDescriptions(); } catch (e) { /* non-fatal */ }
-        // Only auto-load popular TMDB library if the library is still empty after hosted load
+       
+        try { compactLibraryDescriptions(); } catch (e) {  }
+      
         if (!(movies.length || tvShows.length)) {
             try {
                 await loadPopularContent(true);
@@ -548,11 +536,11 @@ function isLightColor(hex) {
     return lum > 150;
 }
 
-// Tab Cloak
+
 const LOCKED_LOGO = 'https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';
 const LOCKED_LOGO_FALLBACK = 'data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2212%22%20fill%3D%22%23ffb6d8%22/%3E%3Ctext%20x%3D%2232%22%20y%3D%2242%22%20font-family%3D%22Arial%22%20font-size%3D%2232%22%20font-weight%3D%22900%22%20fill%3D%22white%22%20text-anchor%3D%22middle%22%3EM%3C/text%3E%3C/svg%3E';
 function applyCloak() {
-    // uploaded icon (data URL) is preferred — never blocked, no external URL needed
+    
     try {
         const logoImg = document.querySelector('.logo-wrap .logo-image');
         const uploaded = settings.cloakLogoData || '';
@@ -565,7 +553,7 @@ function applyCloak() {
         }
         const inp = document.getElementById('cloakLogoImage');
         if (inp) { inp.value = uploaded ? '(uploaded image — not blocked)' : LOCKED_LOGO; inp.disabled = true; inp.style.opacity = '0.5'; inp.title = 'Use the upload below — no URL needed'; }
-        // keep settings consistent
+        
         if (!uploaded) settings.cloakLogoImage = LOCKED_LOGO;
     } catch {}
     const title = settings.cloakTitle || 'MILKBOX';
@@ -643,7 +631,7 @@ function updateLogoPreview() {
     }
 }
 
-// Background
+
 function computeShadowColor(hex) {
     const m = String(hex || '').match(/^#?([0-9a-f]{6})$/i);
     if (!m) return 'rgba(0,0,0,0.5)';
@@ -652,7 +640,7 @@ function computeShadowColor(hex) {
     let b = parseInt(m[1].substr(4, 2), 16);
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     if (lum > 150) return 'rgba(0,0,0,0.45)';
-    // Darken the color for a natural shadow that blends with dark themes
+    
     r = Math.round(r * 0.55);
     g = Math.round(g * 0.55);
     b = Math.round(b * 0.55);
@@ -673,8 +661,7 @@ function hexToRgb(hex) {
     ];
 }
 
-// Sample the average color of a background image so the hero shadow can match it
-// Falls back to a strong dark shadow if the image can't be read (e.g. cross-origin block).
+
 function getImageAverageColor(url, callback) {
     try {
         const img = new Image();
@@ -708,7 +695,7 @@ function getImageAverageColor(url, callback) {
     }
 }
 
-// Compute a readable shadow color that matches the given rgb base color
+
 function matchShadowFromRgb(r, g, b) {
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     if (lum > 150) return 'rgba(0,0,0,0.5)';
@@ -823,20 +810,19 @@ function applyBackground() {
 
     const colorRgb = hexToRgb(color);
 
-    // Reset hero shadow to a neutral dark until the image can be sampled.
+    
     body.style.setProperty('--bg-shadow', 'rgba(0,0,0,0.5)');
     body.style.setProperty('--hero-shadow', 'rgba(0,0,0,0.8)');
     if (image) {
         body.style.setProperty('--hero-fade', 'rgba(0,0,0,0.9)');
         body.style.setProperty('--hero-fade-top', 'rgba(0,0,0,0)');
     } else {
-        // Custom (or theme) background color: derive the hero shadow from the exact color
+        
         const shadow = colorRgb ? matchShadowFromRgb(colorRgb[0], colorRgb[1], colorRgb[2]) : computeShadowColor(color);
         body.style.setProperty('--bg-shadow', shadow);
         body.style.setProperty('--hero-shadow', shadow);
         body.style.setProperty('--hero-fade', color);
-        // Top of the fade uses the same color at 0 alpha so it blends seamlessly
-        // for any background color (fixes the gray haze on white/light colors).
+        
         body.style.setProperty('--hero-fade-top', colorRgb ? `rgba(${colorRgb[0]},${colorRgb[1]},${colorRgb[2]},0)` : 'rgba(0,0,0,0)');
     }
 
@@ -846,15 +832,14 @@ function applyBackground() {
     body.classList.toggle('has-overlay-blur', (settings.overlayBlur ?? 2) > 0);
     body.style.setProperty('--overlay-opacity', (settings.overlayOpacity ?? 60) / 100);
     body.style.setProperty('--overlay-blur', (settings.overlayBlur ?? 2) + 'px');
-    // Expose the active theme background + matching text color as CSS vars so any
-    // component (content-wrapper, section titles, etc.) can follow the current theme.
+    
     body.style.setProperty('--theme-bg', color);
     body.style.setProperty('--theme-bg-grad-soft', isLight ? '#ffffff' : '#0e0e14');
     body.style.setProperty('--theme-text', '#ffffff');
     body.style.setProperty('--theme-text-soft', isLight ? '#cfcfcf' : '#a1a1aa');
 
     if (image && isStoredBg(image)) {
-        // Load the stored file from IndexedDB and render it via a fast blob URL.
+        
         bgLoadFile(storedBgName(image)).then(blob => {
             if (!blob) { _renderBackground(''); return; }
             if (_activeBgUrl) URL.revokeObjectURL(_activeBgUrl);
@@ -935,7 +920,7 @@ function updateSeasonalAtmosphere() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Re-initialize particles if theme type changed
+    
     if (!_seasonalParticles || _seasonalActiveType !== activeTheme) {
         _seasonalActiveType = activeTheme;
         _seasonalParticles = [];
@@ -943,7 +928,7 @@ function updateSeasonalAtmosphere() {
 
         for (let i = 0; i < count; i++) {
             if (activeTheme === 'halloween') {
-                // Fiery orange/amber floating embers
+                
                 const colors = ['rgba(255, 117, 24, ', 'rgba(255, 164, 71, ', 'rgba(255, 82, 0, ', 'rgba(255, 209, 102, '];
                 _seasonalParticles.push({
                     x: Math.random() * window.innerWidth,
@@ -959,7 +944,7 @@ function updateSeasonalAtmosphere() {
                     mode: 'ember'
                 });
             } else if (activeTheme === 'christmas') {
-                // Holiday gold stardust and soft white snow flurries
+                
                 const colors = ['rgba(255, 255, 255, ', 'rgba(254, 240, 138, ', 'rgba(251, 191, 36, ', 'rgba(254, 202, 202, '];
                 _seasonalParticles.push({
                     x: Math.random() * window.innerWidth,
@@ -975,7 +960,7 @@ function updateSeasonalAtmosphere() {
                     mode: 'snow'
                 });
             } else if (activeTheme === 'newyear') {
-                // Golden champagne sparks and violet starlight sparkles
+               
                 const colors = ['rgba(253, 224, 71, ', 'rgba(251, 191, 36, ', 'rgba(217, 119, 6, ', 'rgba(165, 180, 252, ', 'rgba(255, 255, 255, '];
                 _seasonalParticles.push({
                     x: Math.random() * window.innerWidth,
@@ -991,7 +976,7 @@ function updateSeasonalAtmosphere() {
                     mode: 'spark'
                 });
             } else if (activeTheme === 'snow') {
-                // Arctic glacial snowflakes falling with horizontal drift
+                
                 const colors = ['rgba(255, 255, 255, ', 'rgba(224, 242, 254, ', 'rgba(186, 230, 253, ', 'rgba(125, 211, 252, '];
                 _seasonalParticles.push({
                     x: Math.random() * window.innerWidth,
@@ -1007,7 +992,7 @@ function updateSeasonalAtmosphere() {
                     mode: 'snow'
                 });
             } else if (activeTheme === 'sakura') {
-                // Drifting cherry blossom petals
+               
                 const colors = ['rgba(251, 207, 232, ', 'rgba(244, 114, 182, ', 'rgba(251, 113, 133, ', 'rgba(255, 255, 255, '];
                 _seasonalParticles.push({
                     x: Math.random() * window.innerWidth,
@@ -1047,21 +1032,21 @@ function updateSeasonalAtmosphere() {
             p.pulse += 0.02;
 
             if (p.mode === 'ember' || p.mode === 'spark') {
-                // Drifts upwards
+                
                 p.y -= p.speedY;
                 p.x += Math.sin(p.pulse) * 0.35 + p.speedX;
                 p.alpha = p.baseAlpha * (0.6 + 0.4 * Math.sin(p.pulse * 2));
 
                 if (p.y < -15) { p.y = h + 15; p.x = Math.random() * w; }
             } else if (p.mode === 'snow') {
-                // Drifts downwards
+                
                 p.y += p.speedY;
                 p.x += Math.sin(p.pulse) * 0.45 + p.speedX;
                 p.alpha = p.baseAlpha * (0.7 + 0.3 * Math.sin(p.pulse * 1.5));
 
                 if (p.y > h + 15) { p.y = -15; p.x = Math.random() * w; }
             } else if (p.mode === 'petal') {
-                // Drifts downwards with breeze and rotation
+                
                 p.y += p.speedY;
                 p.x += Math.sin(p.pulse) * 0.7 + p.speedX;
                 p.rot += p.rotSpeed;
@@ -1123,7 +1108,7 @@ function updateBgPreview() {
     box.style.backgroundColor = color;
     if (image) {
         if (isStoredBg(image)) {
-            // Can't inline a stored blob in CSS background shorthand; tint the swatch.
+            
             box.style.backgroundImage = '';
             box.style.opacity = 1;
         } else {
@@ -1139,11 +1124,11 @@ function updateBgPreview() {
 
 function getSeasonalThemeName() {
     const month = new Date().getMonth();
-    if (month === 9) return 'halloween'; // October
-    if (month === 10 || month === 11) return 'christmas'; // November & December
-    if (month === 0) return 'newyear'; // January
-    if (month === 1) return 'snow'; // February
-    if (month === 2 || month === 3) return 'sakura'; // March & April
+    if (month === 9) return 'halloween'; 
+    if (month === 10 || month === 11) return 'christmas'; 
+    if (month === 0) return 'newyear'; 
+    if (month === 1) return 'snow'; 
+    if (month === 2 || month === 3) return 'sakura'; 
     return '';
 }
 
@@ -1159,7 +1144,7 @@ function applySeasonalThemeIfNeeded() {
 
 function applyTheme(themeName) {
     const themes = {
-        // Dark themes
+        
         default:  { bgColor: '#141414', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         midnight: { bgColor: '#0a0a1a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         crimson:  { bgColor: '#1a0a0a', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -1204,7 +1189,7 @@ function applyTheme(themeName) {
         moss:     { bgColor: '#1a2410', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         storm:    { bgColor: '#1b2226', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         galaxy:   { bgColor: '#0d0626', bgImage: '', bgOpacity: 30, bgBlur: 0 },
-        // Light themes
+        
         light:    { bgColor: '#f0f0f0', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         paper:    { bgColor: '#fdf6e3', bgImage: '', bgOpacity: 30, bgBlur: 0 },
         cloud:    { bgColor: '#f1f5f9', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -1229,7 +1214,7 @@ function applyTheme(themeName) {
     toast(`Applied "${themeName}" theme`, 'success');
 }
 
-// Hero Logo
+
 function getHeroLogoSource() {
     return settings.heroLogoData || settings.heroLogo;
 }
@@ -1265,7 +1250,7 @@ function applyHeroLogo() {
     }
 }
 
-// Render
+
 function initGenreOptions() {
     ['movieGenreOptions', 'tvGenreOptions'].forEach(id => {
         const ctn = document.getElementById(id);
@@ -1336,9 +1321,7 @@ function parseRuntimeMins(v) {
     return m||null;
 }
 
-// Persist a CAM/HDCAM/HD quality label to every movie that doesn't have one yet.
-// Runs once so each existing movie keeps a stable, stored badge. TV is skipped
-// (always HD), and manually set qualities are never overwritten.
+
 function scanMovieQualities(noRender) {
     let changed = false;
     movies.forEach(m => {
@@ -1354,7 +1337,7 @@ function scanMovieQualities(noRender) {
     return changed;
 }
 
-// Skeleton Loader Helpers
+
 function createSkeletonCard(isLandscape = true) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'skeleton-card skeleton-landscape' : 'skeleton-card';
@@ -1389,13 +1372,13 @@ function renderSkeletonGrid(containerOrId, count = 15, isLandscape = true) {
     el.appendChild(frag);
 }
 
-// Throttled lazy logo queue to prevent network storms and render thread blockage
+
 const logoFetchQueue = [];
 let logoFetchRunning = 0;
 const MAX_CONCURRENT_LOGO_FETCHES = 2;
 
 function queueLogoFetch(item, cardEl) {
-    // Card thumbnails remain clean and unobstructed without logo overlays
+    
     return;
 }
 
@@ -1595,7 +1578,7 @@ function createCard(item, type, isLandscape = true) {
     return card;
 }
 
-// Paginated state for rows that have more titles than fit on one page.
+
 const SLIDER_PAGE_SIZE = 14;
 const sliderState = {};
 
@@ -1669,7 +1652,7 @@ function renderMyList() {
     renderSlider('myListSlider', myList, 'mixed', 'myListPager', 'myList');
 }
 
-// Paginated catalog grids (Movies / TV / Anime tab views)
+
 const CATALOG_PER_PAGE = 15;
 const catalogPage = { movies: 1, tvshows: 1, animeMovie: 1, animeTv: 1 };
 
@@ -1687,16 +1670,14 @@ function hasMovieInfo(m) {
     return (poster && genre) || (desc && genre) || (poster && desc);
 }
 
-// Media-base completeness (year within 1895-2026 plus rating, backdrop and
-// poster). Used for live feeds, which get their brand logos enriched later.
+
 function baseComplete(m) {
     if (!m) return false;
     if (!m.title && !m.name) return false;
     return Boolean((m.poster || '').trim() || (m.backdrop || '').trim() || (m.description || '').trim() || m.tmdbId || m.id);
 }
 
-// Full library completeness: baseComplete plus a brand logo. Items missing any
-// of these (rating / logo / backdrop / poster) aren't shown anywhere.
+
 function completeItem(m) {
     return baseComplete(m);
 }
@@ -1742,7 +1723,7 @@ function renderCatalogGrid(section, source) {
     }
 }
 
-// Catalog pager clicks (shared handler with live pager markup via distinct data-catpage).
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn[data-catpage]');
     if (!btn) return;
@@ -1753,7 +1734,7 @@ document.addEventListener('click', (e) => {
     renderCatalogGrid(key, currentSection === 'home' ? 'home' : '');
 });
 
-// Genre category rows for the Home page (only genres with enough content are shown).
+
 const GENRE_ROWS = [
     { key: 'action', label: 'Action' },
     { key: 'adventure', label: 'Adventure' },
@@ -1868,7 +1849,7 @@ async function fetchProviderLogos() {
         results.forEach(r => {
             providerLogoMap[String(r.provider_id)] = r.logo_path;
         });
-        // also fetch tv providers to fill gaps
+        
         try {
             const tvData = await tmdbJson('/watch/providers/tv?watch_region=US');
             (tvData.results||[]).forEach(r=>{
@@ -1894,7 +1875,7 @@ async function fetchProviderLogos() {
                 });
                 knownIds.add(id);
             });
-    } catch(e) { /* use fallback */ }
+    } catch(e) {  }
     providerLogosFetched = true;
 }
 
@@ -2026,7 +2007,7 @@ async function browseProvider(providerId) {
     renderProviders();
     toast(`Browsing ${prov.label}...`);
     const providerGridClick = currentSection === 'providers';
-    // Provider-page clicks keep the filtered results above the provider grid.
+    
     (() => {
         if (providerGridClick) {
             document.querySelectorAll('.nav-link').forEach(l=>l.classList.remove('active'));
@@ -2052,10 +2033,10 @@ async function browseProvider(providerId) {
         show('moviesSection',false); show('tvShowsSection',false); show('myListSection',false); show('homeGenres',false); show('trendingSection',false); show('streamingSection',true); show('theatersSection',false); show('popularSection',false); show('mangaSection',false); show('providerSection',true);
         const hero=document.getElementById('heroSection'); if(hero) hero.style.display='';
         }
-        // block the default streaming fetch that handleNavClick would have done
+        
         liveFed['streaming']=1;
     })();
-    // fetch provider-filtered streaming content
+   
     try {
         await tmdbEnsureConfig();
         const grid = document.getElementById('streamingGrid');
@@ -2113,7 +2094,7 @@ async function browseProvider(providerId) {
     }
 }
 
-// Collections and Studios (Home bottom)
+
 const COLLECTION_DEFS = (typeof window !== 'undefined' && Array.isArray(window.COLLECTION_DEFS) && window.COLLECTION_DEFS.length)
     ? window.COLLECTION_DEFS
     : [
@@ -2138,26 +2119,26 @@ function collectionForTitle(title, item) {
     const t = String(title || '').toLowerCase().trim();
     if (!t) return null;
     for (const def of COLLECTION_DEFS) {
-        // Exclude unwanted keywords (e.g. Fast Times at Ridgemont High, Rocky Horror, Alien vs Ninja)
+        
         if (def.negativeRegexStr) {
             try {
                 if (new RegExp(def.negativeRegexStr, 'i').test(t)) continue;
             } catch (_) {}
         }
-        // Match against authentic curated list by TMDB ID or title
+        
         if (def.curatedMovies && def.curatedMovies.some(m => {
             if (item && item.tmdbId && m.tmdbId && String(item.tmdbId) === String(m.tmdbId)) return true;
             return m.title.toLowerCase() === t;
         })) {
             return def.label;
         }
-        // Strict regex matching for franchise/company titles
+        
         if (def.strictRegexStr) {
             try {
                 if (new RegExp(def.strictRegexStr, 'i').test(t)) return def.label;
             } catch (_) {}
         }
-        // Legacy keys fallback with strict word boundaries
+        
         if (def.keys && def.keys.some(k => {
             const word = k.toLowerCase().trim();
             if (word.length <= 4) return new RegExp('\\b' + word + '\\b', 'i').test(t);
@@ -2166,7 +2147,7 @@ function collectionForTitle(title, item) {
             return def.label;
         }
     }
-    // Check custom collections
+    
     for (const c of customCollections) {
         if (c.keys && c.keys.some(k => t.includes(String(k).toLowerCase()))) return c.label;
     }
@@ -2182,14 +2163,14 @@ async function fetchTmdbCollectionForDefinition(def) {
     let items = [];
     try {
         await tmdbEnsureConfig();
-        // 1. Fetch from official TMDB company ID if studio
+        
         if (def.tmdbCompanyIds && def.tmdbCompanyIds.length) {
             const companyParam = encodeURIComponent(def.tmdbCompanyIds.join('|'));
             const data = await tmdbJson(`/discover/movie?with_companies=${companyParam}&sort_by=popularity.desc&page=1`);
             const results = (data.results || []).map(r => liveItemToItem(r, 'movie')).filter(it => it.title && (it.poster || it.backdrop));
             items.push(...results);
         }
-        // 2. Fetch from official TMDB collection IDs if franchise
+        
         if (def.tmdbCollectionIds && def.tmdbCollectionIds.length) {
             for (const colId of def.tmdbCollectionIds) {
                 try {
@@ -2199,7 +2180,7 @@ async function fetchTmdbCollectionForDefinition(def) {
                 } catch (_) {}
             }
         }
-        // 3. Fallback search by label
+        
         if (!items.length && (!def.tmdbCollectionIds || !def.tmdbCollectionIds.length) && (!def.tmdbCompanyIds || !def.tmdbCompanyIds.length)) {
             const query = def.label;
             const search = await tmdbJson(`/search/collection?query=${encodeURIComponent(query)}&page=1`);
@@ -2212,7 +2193,7 @@ async function fetchTmdbCollectionForDefinition(def) {
         }
     } catch (_) {}
 
-    // Deduplicate
+    
     const seen = new Set();
     const unique = [];
     items.forEach(it => {
@@ -2269,13 +2250,13 @@ function renderCollections() {
     const allPool = [...movies, ...tvShows];
     const buckets = new Map();
 
-    // 1. Populate each collection with authentic curated movies immediately
+    
     COLLECTION_DEFS.forEach(def => {
         const initial = (def.curatedMovies || []).map(m => Object.assign({}, m));
         buckets.set(def.label, initial);
     });
 
-    // 2. Safely merge verified matching library items
+    
     pool.forEach(item => {
         const col = collectionForTitle(item.title, item);
         if (!col) return;
@@ -2287,7 +2268,7 @@ function renderCollections() {
         }
     });
 
-    // 3. User-created custom collections
+    
     const customLabels = new Set(customCollections.map(c => c.label));
     customCollections.forEach(c => {
         const label = c.label;
@@ -2356,7 +2337,7 @@ function renderCollections() {
     let cols = Array.from(buckets.entries()).filter(([label, arr]) => arr.length >= 1 || customLabels.has(label)).sort((a, b) => b[1].length - a[1].length);
     doRender(cols);
 
-    // enrich with TMDB scan in background
+    
     (async () => {
         if (renderId !== collectionsRenderId) return;
         const before = new Map(Array.from(buckets.entries()).map(([k, v]) => [k, v.length]));
@@ -2373,7 +2354,7 @@ function renderCollections() {
     return cols;
 }
 
-// Category filter pill click handler for collections
+
 document.addEventListener('click', (e) => {
     const pill = e.target.closest('.coll-filter-pill');
     if (!pill) return;
@@ -2456,7 +2437,7 @@ function openCreateCollectionModal(editCollection = null) {
     renderList();
     if (search) search.oninput = () => renderList(search.value);
 
-    // Delegated checkbox change for library items
+    
     list.onchange = (e) => {
         const cb = e.target.closest('input[type="checkbox"]');
         if (!cb) return;
@@ -2471,7 +2452,7 @@ function openCreateCollectionModal(editCollection = null) {
         updateCollectionModalSummary();
     };
 
-    // Chip click remove delegation
+    
     if (chips) {
         chips.onclick = (e) => {
             const rmBtn = e.target.closest('.collection-chip-remove');
@@ -2509,7 +2490,7 @@ function openCreateCollectionModal(editCollection = null) {
     if (tmdbSearch) tmdbSearch.value = '';
     if (tmdbResults) tmdbResults.innerHTML = '<div style="padding:12px;color:#777;font-size:13px">Type to search TMDB for movies & shows — including titles that are not in your library</div>';
 
-    // Delegated checkbox change for TMDB items
+    
     if (tmdbResults) {
         tmdbResults.onchange = (e) => {
             const cb = e.target.closest('input[type="checkbox"]');
@@ -2681,7 +2662,7 @@ document.getElementById('createCollectionModal')?.addEventListener('click', (e) 
     if (e.target.id === 'createCollectionModal') closeCreateCollectionModal();
 });
 
-// Add To Custom Collection Modal (Quick Dialog)
+
 let _itemToAddColl = null;
 function openAddToCollectionModal(item) {
     _itemToAddColl = item;
@@ -2821,7 +2802,7 @@ function renderGenreRows() {
         suffix = '';
     }
 
-    // Single pass over the pool: bucket items by normalized genre
+    
     const genreIndex = new Map();
     for (let i = 0; i < pool.length; i++) {
         const gs = genArr(pool[i].genre);
@@ -2903,10 +2884,10 @@ function renderGenreRows() {
         else if (genreIndex.has(k)) renderRowCards(k);
     };
 
-    // Render first 4 genre rows immediately so above-the-fold content is instantly available
+    
     allKeys.slice(0, 4).forEach(renderRowCards);
 
-    // Observe remaining genre rows to render smoothly on scroll without main-thread freeze
+   
     if (_genreHydrationObserver) {
         try { _genreHydrationObserver.disconnect(); } catch (_) {}
     }
@@ -2928,7 +2909,7 @@ function renderGenreRows() {
         });
     }
 
-    // Background idle hydrator to progressively hydrate the rest in quiet frames
+    
     if (_genreIdleTimer) clearTimeout(_genreIdleTimer);
     let idleIndex = 4;
     function hydrateNextIdle() {
@@ -3062,8 +3043,7 @@ function isAnime(item) {
     return item && genreMatchesAnime(item.genre);
 }
 
-// Detect anime from raw TMDB fields: animation genre + Japan origin, or Japanese language + animation genre,
-// or Japanese language + no poster (common for smaller anime series).
+
 function isTmdbAnime(genreIds, originCountry, originalLanguage) {
     const hasAnimation = (genreIds || []).includes(16);
     const fromJapan = (originCountry || []).includes('JP');
@@ -3077,7 +3057,7 @@ function animeHeroItems() {
     return [...(animeLive.movies || []), ...(animeLive.tv || [])].filter(isAnime);
 }
 
-// Hero banner for the Anime tab - only cycles through anime items.
+
 function showAnimeHero(force = false) {
     const heroSection = document.getElementById('heroSection');
     if (heroSection) heroSection.style.display = '';
@@ -3112,7 +3092,7 @@ function showAnimeHero(force = false) {
     }
 }
 
-// Re-render the current view, preserving the Anime filter and hero when on the Anime tab.
+
 function refreshCurrent() {
     if (currentSection === 'anime') {
         renderAnime();
@@ -3148,7 +3128,7 @@ function refreshCurrent() {
     }
 }
 
-// Hero banner for the My List tab - only cycles through items in My List.
+
 function showMyListHero(force = false) {
     const heroSection = document.getElementById('heroSection');
     if (heroSection) heroSection.style.display = '';
@@ -3182,7 +3162,7 @@ function showMyListHero(force = false) {
     }
 }
 
-// Hero banner for the TV Shows tab - only cycles through TV shows.
+
 function showTvHero(force = false) {
     const heroSection = document.getElementById('heroSection');
     if (heroSection) heroSection.style.display = '';
@@ -3217,7 +3197,7 @@ function showTvHero(force = false) {
     }
 }
 
-// Hero banner for the Movies tab - only cycles through movies.
+
 function showMovieHero(force = false) {
     const heroSection = document.getElementById('heroSection');
     if (heroSection) heroSection.style.display = '';
@@ -3262,7 +3242,7 @@ let heroTrailerDurationTimer = null;
 let heroTrailerEndHandled = false;
 let heroTrailerMsgListenerBound = false;
 
-// Netflix Hero Trailer Playback
+
 let heroTrailerToken = 0;
 let heroTrailerTimer = null;
 let heroTrailerMuted = true;
@@ -3273,7 +3253,7 @@ async function fetchItemTrailerKey(item) {
     const cacheKey = String(item.id || item.tmdbId || item.title || '').toLowerCase();
     if (heroTrailerCache.has(cacheKey)) return heroTrailerCache.get(cacheKey);
 
-    // 1. Direct trailer property if already set
+    
     if (item.trailerKey) {
         heroTrailerCache.set(cacheKey, item.trailerKey);
         return item.trailerKey;
@@ -3290,7 +3270,7 @@ async function fetchItemTrailerKey(item) {
         } catch {}
     }
 
-    // 2. TMDB videos if tmdbId is present
+    
     if (item.tmdbId) {
         try {
             const kind = (item.type === 'tv' || item.episodes) ? 'tv' : 'movie';
@@ -3307,11 +3287,11 @@ async function fetchItemTrailerKey(item) {
                 return pick.key;
             }
         } catch (e) {
-            /* continue to search fallback */
+            
         }
     }
 
-    // 3. Fallback: Search via backend /api/trailer/search
+    
     try {
         const queryTerm = `${item.title || ''} official trailer`;
         const res = await fetch(`/api/trailer/search?q=${encodeURIComponent(queryTerm)}`);
@@ -3371,7 +3351,7 @@ function advanceHeroToNextTitle() {
     clearHeroAdvanceTimers();
     if (!heroQueue || !heroQueue.length) return;
 
-    // Do not auto-advance if user has opened a player modal or is in a section without hero
+    
     const playerModal = document.getElementById('playerModal');
     if (playerModal && playerModal.classList.contains('active')) return;
     if (['providers', 'manga', 'music'].includes(currentSection)) return;
@@ -3388,7 +3368,7 @@ function onHeroTrailerEnded() {
     const wrap = document.getElementById('heroTrailerWrap');
     if (wrap) wrap.classList.remove('active');
 
-    // Smooth Netflix-style transition to next title after trailer finishes
+    
     heroTrailerAdvanceTimer = setTimeout(() => {
         advanceHeroToNextTitle();
     }, 1200);
@@ -3410,7 +3390,7 @@ function setupHeroTrailerMessageListener() {
             }
             if (!msg || typeof msg !== 'object') return;
 
-            // YouTube delivers duration in infoDelivery; arm fallback duration timer
+            
             if (msg.info && typeof msg.info.duration === 'number' && msg.info.duration > 3) {
                 if (!heroTrailerDurationTimer && !heroTrailerEndHandled) {
                     const durMs = Math.round((msg.info.duration + 1.5) * 1000);
@@ -3420,7 +3400,7 @@ function setupHeroTrailerMessageListener() {
                 }
             }
 
-            // YouTube ended state (0 is YT.PlayerState.ENDED)
+            
             const isEnded = (msg.event === 'onStateChange' && msg.info === 0) ||
                             (msg.info && msg.info.playerState === 0) ||
                             (msg.event === 'infoDelivery' && msg.info && msg.info.playerState === 0);
@@ -3484,7 +3464,7 @@ function playHeroTrailerForItem(featured, force = false) {
     const wrap = document.getElementById('heroTrailerWrap');
     const existingIframe = document.getElementById('heroTrailerIframe');
 
-    // If trailer is already active for this exact item and force is not requested, keep playing without reloading
+    
     if (!force && existingIframe && currentHeroTrailerKey && wrap && wrap.classList.contains('active')) {
         sendHeroTrailerCommand('playVideo');
         return;
@@ -3499,7 +3479,7 @@ function playHeroTrailerForItem(featured, force = false) {
     }
     const token = ++heroTrailerToken;
 
-    // Fast trailer start on tab switch (250ms), smooth 1000ms on first boot
+    
     const delay = force ? 250 : 1000;
     heroTrailerTimer = setTimeout(async () => {
         if (token !== heroTrailerToken) return;
@@ -3507,7 +3487,7 @@ function playHeroTrailerForItem(featured, force = false) {
         if (token !== heroTrailerToken) return;
 
         if (!key) {
-            // No trailer found: show poster for 25s, then advance to next title
+            
             clearHeroAdvanceTimers();
             heroTrailerAdvanceTimer = setTimeout(() => {
                 advanceHeroToNextTitle();
@@ -3518,7 +3498,7 @@ function playHeroTrailerForItem(featured, force = false) {
         const currentWrap = document.getElementById('heroTrailerWrap');
         if (!currentWrap) return;
 
-        // If the same key is already in the player iframe and not forced, simply unpause
+        
         if (!force && currentHeroTrailerKey === key && document.getElementById('heroTrailerIframe')) {
             currentWrap.classList.add('active');
             sendHeroTrailerCommand('playVideo');
@@ -3528,7 +3508,7 @@ function playHeroTrailerForItem(featured, force = false) {
         currentHeroTrailerKey = key;
         const muteFlag = heroTrailerMuted ? 1 : 0;
         const originParam = encodeURIComponent(window.location.origin || 'http://localhost:3000');
-        // No loop=1 so the trailer plays completely until it ends and fires ended event
+        
         const iframeSrc = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(key)}?autoplay=1&mute=${muteFlag}&controls=0&playsinline=1&enablejsapi=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&origin=${originParam}`;
 
         currentWrap.innerHTML = `
@@ -3542,7 +3522,7 @@ function playHeroTrailerForItem(featured, force = false) {
             iframe.onload = () => {
                 if (token === heroTrailerToken) {
                     currentWrap.classList.add('active');
-                    // Instruct YouTube embed to emit event messages to parent
+                    
                     try {
                         iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening' }), '*');
                         iframe.contentWindow.postMessage(JSON.stringify({
@@ -3580,7 +3560,7 @@ function renderHeroItem(force = false) {
     if (!featured) return;
 
     const featuredId = String(featured.id || featured.tmdbId || featured.title || '');
-    // If the hero display is already showing this item, do not re-render DOM or restart trailer
+    
     if (!force && currentHeroItemId === featuredId) {
         resumeHeroTrailer();
         return;
@@ -3627,10 +3607,10 @@ function renderHeroItem(force = false) {
     }
     document.getElementById('heroInfoBtn').onclick = () => showInfo(featured, featured.type || 'movie');
 
-    // Start background trailer playback for this featured item
+    
     playHeroTrailerForItem(featured, force);
 
-    // Netflix Billboard Metadata Strip
+
     const brandTypeEl = document.getElementById('heroBrandType');
     if (brandTypeEl) brandTypeEl.textContent = (featured.type === 'tv' || featured.episodes) ? 'SERIES' : 'FILM';
 
@@ -3695,7 +3675,7 @@ function renderHeroItem(force = false) {
     }
     updateHeroSoundButtonUI();
 
-    // Show the featured movie/show/anime logo (if set) and only show text title when there is no logo
+    
     const heroSection = document.getElementById('heroSection');
     const hasItemLogo = Boolean(featured.logo && String(featured.logo).trim());
     if (hasItemLogo) {
@@ -3728,8 +3708,7 @@ function renderHeroItem(force = false) {
         heroTitle.style.display = '';
         if (heroSection) heroSection.classList.remove('has-hero-logo');
         applyHeroLogo();
-        // Auto-fetch a TMDB brand logo for this title (non-blocking) so banners
-        // show a logo even if it wasn't loaded with the library.
+        
         if (featured.tmdbId && !featured.logo) fetchItemLogo(featured).then(() => {
             const hl = document.getElementById('heroLogo');
             const ht = document.getElementById('heroTitle');
@@ -3757,7 +3736,7 @@ function renderHeroItem(force = false) {
             }
         }).catch(() => {});
     }
-    // Subtle fade/slide transition, Netflix-style
+    
     const sec = document.getElementById('heroSection');
     if (sec) {
         sec.classList.remove('hero-swap');
@@ -3766,7 +3745,7 @@ function renderHeroItem(force = false) {
 }
 
 function updateHero(force = false) {
-    // Disable any recurring auto-cycle timer so hero and trailer never auto-reload periodically
+    
     if (heroTimer) {
         clearInterval(heroTimer);
         heroTimer = null;
@@ -3843,21 +3822,19 @@ function toggleMyList(item, type) {
 
 // Play
 function makePlaybackIframe(url, extraAttrs = '') {
-    // Cloud streaming providers block playback if iframe sandbox is present ("Disable sandbox").
-    // Ad and popup protection is enforced via JS interceptors without triggering sandbox errors.
+    
     return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" ${extraAttrs}></iframe>`;
 }
 
-// Scramjet (Wisp & Reverse Proxy) Playback
-// Scramjet proxy client configuration using MercuryWorkshop Wisp gateway + server reverse proxy
+
 const SCRAMJET_WISP_URL = 'wss://wisp.classroom.lat/';
 window._scramjetWispGateway = SCRAMJET_WISP_URL;
 window._scramjetActiveSource = 'vidsrc';
-window._scramjetProxyMode = 'direct'; // Default to direct native embed to prevent CORS blocks on module scripts
+window._scramjetProxyMode = 'direct'; 
 window._scramjetContext = null;
 
 try {
-    // Reset any stale proxy setting so playback starts cleanly in direct mode
+    
     if (localStorage.getItem('milkbox_scramjet_mode') === 'proxy') {
         localStorage.setItem('milkbox_scramjet_mode', 'direct');
     }
@@ -4016,7 +3993,7 @@ function scramjetIframe(tmdbId, type, season, episode) {
     `;
 }
 
-// Phantom — an aggregator with 40+ sources, built-in source picker.
+
 function phantomIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4027,8 +4004,7 @@ function phantomIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// Vidsrc — TMDB-powered embed for movie / TV playback. vidsrc.pm returns the full player
-// (vidsrc.pm is the verified 2026 domain; vidsrc.to now only serves a thin redirect shell).
+
 function vidsrcIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4059,7 +4035,7 @@ function vidsrcSbsIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// VidCore — https://www.vidcore.org free ad-free TMDB embed (4K, HLS, 99.9% uptime).
+
 function vidcoreIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4070,7 +4046,7 @@ function vidcoreIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// Videasy — https://www.videasy.to player (player.videasy.to) - supports movies, TV, anime.
+
 function videasyIframe(tmdbId, type, season, episode) {
     const autoNext = settings.autoPlayNext !== false;
     let url;
@@ -4102,13 +4078,7 @@ function milkboxIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// P-Stream — https://embed.pstream.cfd/docs
-// Fast, multi-source streaming embed player for movies, TV series, and anime.
-// Official docs: https://embed.pstream.cfd/docs
-// Addresses:
-// - Movie: https://embed.pstream.cfd/movie/{tmdbId}
-// - TV:    https://embed.pstream.cfd/tv/{tmdbId}/{season}/{episode}
-// - Anime: https://embed.pstream.cfd/anime/{anilistId or aa+malId}/{episode}
+
 function pstreamIframe(tmdbId, type, season, episode) {
     const autoPlay = settings.autoPlay !== false;
     const autoNext = settings.autoPlayNext !== false;
@@ -4153,8 +4123,7 @@ function pstreamIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url, 'referrerpolicy="no-referrer-when-downgrade"');
 }
 
-// x8rr/movies — https://github.com/x8rr/movies
-// Lightweight movie & TV streaming API with direct WASM decryption and clean HLS proxy.
+
 function x8rrmoviesIframe(tmdbId, type, season, episode) {
     const isTV = type === 'tv';
     const se = season || 1;
@@ -4202,7 +4171,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
             toast(`x8rr Movies: Playing ad-free 1080p stream (${stream.serverLabel || stream.providerName})`, 'success');
             return;
         }
-        // Fall back to clean embed
+        
         toast('x8rr Movies: Direct stream unavailable, loading proxy player…');
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
         armAutoFallback(frame, 'x8rrmovies');
@@ -4214,11 +4183,10 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
     }
 }
 
-// Vidy — https://www.vidy.st (playground: https://www.vidy.st/#playground)
-// Fast, zero-configuration embed player with TMDB movies/TV and AniList anime support.
+
 function vidyIframe(tmdbId, type, season, episode) {
     const autoNext = settings.autoPlayNext !== false;
-    const accentColor = 'ff2e63'; // Milkbox brand accent hex
+    const accentColor = 'ff2e63'; 
     let url;
     const pc = playContext?.item;
     if (pc && isAnime(pc)) {
@@ -4236,10 +4204,7 @@ function vidyIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// SuperEmbed — https://www.superembed.stream/#install
-// Docs simple: https://multiembed.mov/?video_id=522931&tmdb=1 | tv https://multiembed.mov/?video_id=114472&tmdb=1&s=1&e=2
-// multiembed.mov is Charter-blocked (302 to cujo.io) and TLS handshake fails in this env, so SuperEmbed now uses a verified working mirror
-// that actually loads movies (HEAD 200) — moviesapi.to (same multi-source backend as SuperEmbed). Keeps docs URL as comment.
+
 function superembedIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4250,7 +4215,7 @@ function superembedIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// MoviesAPI — https://moviesapi.to (replaces dead 2embed.cc/family).
+
 function twoembedIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4261,7 +4226,7 @@ function twoembedIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// AniDB — https://anidb.app — anime ONLY, supports sub/dub via lang param
+
 let currentAnimeLang = localStorage.getItem('milkbox_anime_lang') || 'sub';
 let currentAnidbId = null;
 function normalizeTitle(s) { return String(s||'').toLowerCase().replace(/[^a-z0-9]/g,'').trim(); }
@@ -4319,16 +4284,13 @@ async function fetchAnidbId(title, altTitles=[], year='') {
     return null;
 }
 function anidbIframe(anidbId, type, season, episode, lang) {
-    // anidb player — uses anime id + episode, lang=sub/dub — cache-busted so switching actually reloads
     const ep = episode || 1;
     const l = lang === 'dub' ? 'dub' : 'sub';
     const url = `https://anidb.app/anime/${encodeURIComponent(anidbId)}?episode=${encodeURIComponent(ep)}&lang=${l}&t=${Date.now()}#player`;
     return makePlaybackIframe(url);
 }
 function animekaiIframe(source, id, type, episode, lang) {
-    // megavid.buzz anime player — source is 'mal' or 'ani', id is the numeric MAL/AniList id.
-    // Anime movies have NO episode segment; tv shows include it. Append ?color & autoplay like the docs.
-    // For dub, add &captions=0 to prevent forced English subs (player defaults captions on for isMega).
+    
     const isMovie = type === 'movie';
     const ep = episode || 1;
     const l = lang === 'dub' ? 'dub' : 'sub';
@@ -4343,13 +4305,13 @@ function animekaiIframe(source, id, type, episode, lang) {
 let currentAnimekaiMalId = null;
 let currentAnimekaiSlug = null;
 let currentKissKhId = null;
-// Per-item KissKH episode IDs so each anime plays ITS OWN episode id (not the same one every time)
+
 const currentKissKhIds = {};
-// Resolved MAL/AniList id per item so the same anime isn't re-scanned every time it's played.
+
 const storedAnimeIds = {};
-// Whether each resolved id is a MAL id ('mal') or an AniList id ('ani') — they are different id spaces.
+
 const storedAnimeSrc = {};
-// Scan TMDB's "movie database" external_ids for the item's IMDb id (used to disambiguate the right anime).
+
 async function fetchImdbIdFromTmdb(tmdbId, type) {
     if (!tmdbId) return null;
     const path = type === 'tv' ? `/tv/${encodeURIComponent(tmdbId)}/external_ids` : `/movie/${encodeURIComponent(tmdbId)}/external_ids`;
@@ -4359,9 +4321,7 @@ async function fetchImdbIdFromTmdb(tmdbId, type) {
     } catch { return null; }
 }
 async function fetchAnimekaiMalId(title, altTitles=[], year='', type='', imdbId='') {
-    // Use Mal ID directly if already known on the item, otherwise search Jikan/Anilist and pick
-    // the closest year-matched hit. Resolves both a MAL id (for /mal/) and an AniList id (for /ani/).
-    // Returns { id, src } where src is 'mal' or 'ani'. Preview-safe: yields + timeouts to avoid 400ms watchdog.
+    
     const queries = [title, ...altTitles].filter(Boolean).slice(0,3);
     if (!queries.length) return null;
     let anilistId = null, anilistMal = null;
@@ -4374,7 +4334,7 @@ async function fetchAnimekaiMalId(title, altTitles=[], year='', type='', imdbId=
     for (let qi = 0; qi < queries.length; qi++) {
         const qRaw = queries[qi];
         await new Promise(r => setTimeout(r, 0));
-        // Try AniList FIRST
+        
         try {
             const r2 = await fetchWithTimeout(`https://graphql.anilist.co`, { method:'POST', headers:{'Content-Type':'application/json', Accept:'application/json'}, body: JSON.stringify({ query: `query($q:String,$type:MediaType){Media(search:$q,type:$type){id idMal siteUrl title{romaji english native} startDate{year} } }`, variables:{q:qRaw, type: type==='movie' ? 'ANIME' : 'ANIME'}})}, 2800);
             if (r2 && r2.ok) {
@@ -4394,7 +4354,7 @@ async function fetchAnimekaiMalId(title, altTitles=[], year='', type='', imdbId=
             }
         } catch {}
         await new Promise(r => setTimeout(r, 12));
-        // try MAL (Jikan) next
+        
         try {
             const r = await fetchWithTimeout(`https://api.jikan.moe/v4/anime?q=${encodeURIComponent(qRaw)}&limit=6&order_by=popularity&sort=desc&sfw=true${type==='movie'?'&type=movie':''}`, {}, 2800);
             if (r && r.ok) {
@@ -4422,22 +4382,17 @@ async function fetchAnimekaiMalId(title, altTitles=[], year='', type='', imdbId=
                 if (fallback && fallback.mal_id) return { id: String(fallback.mal_id), src: 'mal' };
             }
         } catch {}
-        // respect Jikan rate-limit (3 req/s) — small pause between queries
+      
         if (qi < queries.length - 1) await new Promise(r => setTimeout(r, 420));
     }
-    // Last resort: a previously-seen reasonable AniList hit (idMal or the AniList id for /ani/)
+    
     if (anilistMal) return { id: String(anilistMal), src: 'mal' };
     if (anilistId) return { id: String(anilistId), src: 'ani' };
     return null;
 }
-// Kisskh Api (All Genres — Drama, Movie, Bl, Kshow, Anime)
-// KissKH hosts a JSON search API on its own domain; megavid.buzz only exposes /kisskh/{episode-id}
-// embeds (NO public megavid search). We resolve the correct KissKH episode id for a title ourselves
-// by querying kisskh.co, then pass that numeric id to megavid's embed. All genres are searchable — the
-// "type" sent to search determines drama/movie/etc. cache misses hit the local server proxy first
-// (server.js adds /api/kisskh/...), then kisskh.co direct, then allorigins.
+
 const kisskhDramaCache = {};
-const kisskhEpisodeMap = {}; // dramaId -> { [episodeNumber]: episodeId }
+const kisskhEpisodeMap = {}; 
 
 async function kisskhApi(path) {
     const direct = `https://kisskh.co/api/${path}`;
@@ -4460,7 +4415,7 @@ async function kisskhApi(path) {
     throw lastErr || new Error('KissKH unreachable');
 }
 
-// Search KissKH (any genre) for a title and return the best-matching drama entry { id, title, type }.
+
 async function kisskhSearchBest(title, year='') {
     const q = String(title || '').trim().slice(0, 120);
     if (!q) return null;
@@ -4485,7 +4440,7 @@ async function kisskhSearchBest(title, year='') {
         if (rNorm === qNorm) score = 100;
         else if (rNorm.includes(qNorm) || qNorm.includes(rNorm)) score = 75;
         else {
-            // token overlap
+            
             const a = new Set(q.toLowerCase().split(/\s+/).filter(w => w.length > 2));
             const b = new Set(rt.toLowerCase().split(/\s+/).filter(w => w.length > 2));
             let hits = 0;
@@ -4501,7 +4456,7 @@ async function kisskhSearchBest(title, year='') {
     return drama;
 }
 
-// Fetch the episode-id map (episode number -> numeric episode id) for a KissKH drama.
+
 async function kisskhEpisodesFor(dramaId) {
     if (!dramaId) return {};
     if (kisskhEpisodeMap[dramaId] && kisskhEpisodeMap[dramaId].expires > Date.now()) return kisskhEpisodeMap[dramaId].map;
@@ -4515,11 +4470,7 @@ async function kisskhEpisodesFor(dramaId) {
     return map;
 }
 
-// Resolve the KissKH episode id for any item across genres. Priority:
-//  1) explicit kisskhId / kisskh_ep / episodeId stored on the item or per-item cache
-//  2) ep= parsed from any URL string (item.url / kisskhUrl / title field)
-//  3) search kisskh.co for the title (any genre) and look up the requested episode number
-// Returns the numeric episode id (string) or null.
+
 async function resolveKissKhEpisodeId(item, episode, type) {
     if (!item) return null;
     const itemKey = String(item.id || item.title || '');
@@ -4532,7 +4483,7 @@ async function resolveKissKhEpisodeId(item, episode, type) {
         const m = String(raw).match(/[?&]ep=(\d+)/);
         if (m) return m[1];
     }
-    // 3) search the KissKH catalog (all genres) for this title, then map episode -> id
+    
     try {
         const drama = await kisskhSearchBest(item.title, item.year);
         if (!drama || !drama.id) return null;
@@ -4541,7 +4492,7 @@ async function resolveKissKhEpisodeId(item, episode, type) {
         let epId = map[want];
         if (!epId && type === 'movie') epId = Object.keys(map)[0] || null;
         if (!epId) {
-            // fall back to the closest episode number
+            
             const nums = Object.keys(map).map(Number).filter(n => !isNaN(n)).sort((a, b) => a - b);
             epId = nums.length ? map[nums[nums.length - 1]] : null;
         }
@@ -4551,7 +4502,7 @@ async function resolveKissKhEpisodeId(item, episode, type) {
 }
 
 async function fetchKissKhId(title, year='', rawUrl='') {
-    // parse ep= from a pasted URL (also handles a URL embedded in a title field)
+    
     if (rawUrl) {
         const m = String(rawUrl).match(/[?&]ep=(\d+)/);
         if (m) return m[1];
@@ -4560,7 +4511,7 @@ async function fetchKissKhId(title, year='', rawUrl='') {
     if (!q) return null;
     const tM = q.match(/[?&]ep=(\d+)/);
     if (tM) return tM[1];
-    // search-based resolution for any genre
+    
     const drama = await kisskhSearchBest(q, year);
     if (!drama || !drama.id) return null;
     const map = await kisskhEpisodesFor(drama.id);
@@ -4614,7 +4565,7 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// AutoEmbed — https://autoembed.co (autoembed.cc domain is dead)
+
 function autoembedIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4625,13 +4576,13 @@ function autoembedIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// AutoEmbed.app anime API — uses the resolved anime id and episode number.
+
 function autoembedAnimeIframe(id, episode) {
     const url = `https://autoembed.app/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}`;
     return makePlaybackIframe(url);
 }
 
-// YapGrid — https://yapgrid.com (replaces dead player.smashy.stream)
+
 function smashystreamIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4642,7 +4593,7 @@ function smashystreamIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// EmbedFlix — https://embedflix.net (replaces dead vidfast.pro)
+
 function vidfastIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4653,7 +4604,7 @@ function vidfastIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// VidLink — https://vidlink.pro
+
 function vidlinkIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4664,7 +4615,7 @@ function vidlinkIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// Vidsrc (alt) — vidsrc.to (replaces dead embed.su; .to still serves the player page)
+
 function embedsuIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4675,7 +4626,7 @@ function embedsuIframe(tmdbId, type, season, episode) {
     return makePlaybackIframe(url);
 }
 
-// SuperEmbed alt — uses Vidsrc (verified HEAD 200, not Charter-blocked) as fallback so SuperEmbed never shows an error
+
 function nontongoIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
@@ -4685,7 +4636,7 @@ function nontongoIframe(tmdbId, type, season, episode) {
     }
     return makePlaybackIframe(url);
 }
-// New embed mirrors (verified Aug 2026, not on site) — TMDB iframe APIs
+
 function vidsparkIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') url = `https://vidspark.to/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
@@ -4770,7 +4721,7 @@ function toustreamIframe(tmdbId, type, season, episode) {
     else url = `https://toustream.xyz/movie/${encodeURIComponent(tmdbId)}`;
     return makePlaybackIframe(url);
 }
-// Anime-only — VidHawk (Kari) — AniList/MAL embed per https://vidhawk.buzz — sub/dub, edge HLS, AniList + MAL
+
 function vidhawkIframe2(source, id, episode, lang) {
     const src = source === 'mal' ? 'mal' : 'ani';
     const l = lang === 'dub' ? 'dub' : 'sub';
@@ -4778,14 +4729,14 @@ function vidhawkIframe2(source, id, episode, lang) {
     const url = l === 'dub' ? base + '&captions=0' : base;
     return makePlaybackIframe(url);
 }
-// Anime-only — Anixo (anixo.buzz) — AniList embed per https://anixo.buzz — sub/dub, HLS, OP/ED skip
+
 function anixoIframe(anilistId, episode, lang) {
     const l = lang === 'dub' ? 'dub' : 'sub';
     const base = `https://anixo.buzz/embed/ani/${encodeURIComponent(anilistId)}/${encodeURIComponent(episode)}/${l}?color=%232ad4b8`;
     const url = l === 'dub' ? base + '&captions=0' : base;
     return makePlaybackIframe(url);
 }
-// Anime-only — MegaPlay (megaplay.buzz) — HiAnime / Zoro library per AniList & MAL routing
+
 function megaplayIframe(source, id, episode, lang) {
     const src = source === 'mal' ? 'mal' : 'ani';
     const l = lang === 'dub' ? 'dub' : 'sub';
@@ -4797,7 +4748,7 @@ function tryDisableCaptionsForDub() {
     if (currentAnimeLang !== 'dub') return;
     const ifr = document.querySelector('#playerFrame iframe');
     if (!ifr) return;
-    // Try JWPlayer API via postMessage (megavid) and Anixo/VidHawk APIs
+    
     const msgs = [
         { type: 'setCurrentCaptions', index: 0 },
         { type: 'aniko:setCaptions', index: 0 },
@@ -4806,11 +4757,11 @@ function tryDisableCaptionsForDub() {
         { channel: 'kisskh', event: 'captions', index: 0 }
     ];
     msgs.forEach(m => { try { ifr.contentWindow.postMessage(JSON.stringify(m), '*'); } catch {} try { ifr.contentWindow.postMessage(m, '*'); } catch {} });
-    // Also try direct JWPlayer call if same-origin (unlikely for cross-origin, but try)
+    
     try { ifr.contentWindow.jwplayer && ifr.contentWindow.jwplayer('player').setCurrentCaptions(0); } catch {}
 }
 function kisskhIframe(episodeId, color, autoplay, epNum) {
-    // megavid docs: /kisskh/{episode-id} with optional ?color=%232ad4b8&autoplay=true — drama/K-show/anime
+    
     let url = `https://megavid.buzz/kisskh/${encodeURIComponent(episodeId)}`;
     const qs = [];
     if (color) qs.push(`color=${encodeURIComponent(String(color).replace('#',''))}`);
@@ -4820,7 +4771,7 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
     return makePlaybackIframe(url);
 }
 
-// Current play context + selected server for the player.
+
 let playContext = null;
 let playerServer = settings.playerServer || 'milkbox';
 if (playerServer === 'miruro') { playerServer = 'tmdb'; settings.playerServer = 'tmdb'; try { saveData(); } catch {} }
@@ -4873,7 +4824,7 @@ function effectiveServerFor(item, type) {
     return item.tmdbId ? 'milkbox' : 'direct';
 }
 
-// Ordered list used for automatic server fallback (TMDB-based sources only).
+
 const SERVER_ORDER = ['scramjet', 'x8rrmovies', 'milkbox', 'pstream', 'tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'vidy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
@@ -4883,7 +4834,7 @@ let _fallbackMsgHandler = null;
 let _autoNextArmed = false;
 const AUTO_FALLBACK_DELAY_MS = 45000;
 
-// Clears any in-flight auto-fallback watchdog (called on server switch / new item).
+
 function clearAutoFallback() {
     if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
     if (_fallbackMsgHandler) { window.removeEventListener('message', _fallbackMsgHandler); _fallbackMsgHandler = null; }
@@ -4893,7 +4844,7 @@ function clearAutoFallback() {
     _autoNextArmed = false;
 }
 
-// Advance to the next TV episode when auto-play is enabled.
+
 function _advanceToNextEpisode() {
     if (!playContext || playContext.type !== 'tv') return;
     if (settings.autoPlayNext === false) return;
@@ -4902,7 +4853,7 @@ function _advanceToNextEpisode() {
     const curEp = playContext.episode || 1;
     const season = playContext.season || 1;
     const server = effectiveServerFor(item, 'tv');
-    // For anime theater, get the total from _animeEpAll; otherwise use episodeCount or a big number.
+   
     let total = 999;
     try { if (Array.isArray(_animeEpAll) && _animeEpAll.length) total = _animeEpAll.length; } catch {}
     if (!total || total < 999) total = item.episodeCount || item.episodes?.length || 999;
@@ -4912,9 +4863,7 @@ function _advanceToNextEpisode() {
     playTmdbEpisode(item, season, nextEp, server);
 }
 
-// Attach load/error + postMessage detection to the just-created iframe for a TMDB
-// server so a broken source (loaded page but no video) advances to the next server.
-// Also listens for "ended" signals to auto-play the next episode.
+
 function armAutoFallback(frame, server) {
     const ifr = frame && frame.querySelector('iframe');
     if (!ifr || !playContext) return;
@@ -4924,15 +4873,15 @@ function armAutoFallback(frame, server) {
     fallbackVideoSignal = false;
     _autoNextArmed = true;
 
-    // postMessage listener: cancel fallback + detect video ended
+    
     _fallbackMsgHandler = (e) => {
         if (!e.source || e.source !== ifr.contentWindow) return;
-        // Any message from the embed iframe means the player is alive — cancel fallback.
+        
         if (fallbackLoaded && fallbackTimer) {
             fallbackVideoSignal = true;
             clearTimeout(fallbackTimer); fallbackTimer = null;
         }
-        // Detect video ended signal — auto-play next episode.
+        
         if (_autoNextArmed && playContext && playContext.type === 'tv' && settings.autoPlayNext !== false) {
             try {
                 const raw = typeof e.data === 'string' ? e.data : (e.data ? JSON.stringify(e.data) : '');
@@ -4945,12 +4894,12 @@ function armAutoFallback(frame, server) {
     };
     window.addEventListener('message', _fallbackMsgHandler);
 
-    // iframe load: page loaded, start the video-detection window
+    
     const onLoad = () => {
         fallbackLoaded = true;
-        // If a video signal already arrived before load, don't restart timer.
+        
         if (fallbackVideoSignal) return;
-        // Restart timer: give the embed 45s to emit a video signal.
+        
         if (fallbackTimer) clearTimeout(fallbackTimer);
         fallbackTimer = setTimeout(() => {
             if (fallbackStart) tryAutoFallback(server);
@@ -4959,7 +4908,7 @@ function armAutoFallback(frame, server) {
     ifr.removeEventListener('load', onLoad);
     ifr.addEventListener('load', onLoad);
 
-    // Fires only when the iframe fails to load its document at all (dead source).
+    
     ifr.addEventListener('error', () => { if (!fallbackLoaded) tryAutoFallback(server); });
     if (server === 'cinesrc') {
         setTimeout(() => {
@@ -4974,18 +4923,18 @@ function armAutoFallback(frame, server) {
         }, 18000);
     }
 
-    // Initial timer: if iframe never even loads within 45s, try next server.
+    
     fallbackTimer = setTimeout(() => {
         if (fallbackStart) tryAutoFallback(server);
     }, AUTO_FALLBACK_DELAY_MS);
 }
 
-// Advance to the next TMDB server in the order. Stops once we've come full circle.
+
 function tryAutoFallback(server) {
     if (fallbackTimer) { clearTimeout(fallbackTimer); fallbackTimer = null; }
     if (!fallbackStart || !playContext) return;
 
-    // Scramjet proxy fallback rule: cycles vidsrc -> cinesrc -> vidlink, then advances to next server
+    
     if (server === 'scramjet' || playerServer === 'scramjet') {
         if (window._scramjetActiveSource === 'vidsrc') {
             toast('Scramjet Proxy: VidSrc timed out — switching to 2. CineSRC (Proxied)...');
@@ -5013,7 +4962,7 @@ function tryAutoFallback(server) {
             return;
         } else {
             toast('Scramjet Proxy: All proxy sources attempted — trying next streaming server...');
-            // Fall through to advance to next server in SERVER_ORDER
+            
         }
     }
 
@@ -5025,7 +4974,7 @@ function tryAutoFallback(server) {
     renderTmdbPlay(next);
 }
 
-// Map of server key -> iframe builder (movie/tv, season, episode).
+
 const SERVER_IFRAME = {
     scramjet: scramjetIframe,
     x8rrmovies: x8rrmoviesIframe,
@@ -5087,7 +5036,7 @@ const SERVER_IFRAME = {
         const k = String(pc.id);
         const aid = pc.anilistId || pc.anilist_id || storedAnimeIds[k] || currentAnimekaiMalId;
         if (!aid || !/^\d+$/.test(String(aid)) || storedAnimeSrc[k] === 'mal') {
-            // anixo only supports AniList ids — fall back to megavid mal if we only have MAL
+            
             const src2 = storedAnimeSrc[k] || (pc.anilistId ? 'ani' : 'mal');
             const mid2 = aid || pc.malId || tmdbId;
             return anixoIframe(mid2, episode || 1, currentAnimeLang);
@@ -5114,15 +5063,14 @@ const SERVER_IFRAME = {
         return autoembedAnimeIframe(id, episode || 1);
     },
     animekai: (tmdbId, type, season, episode) => {
-        // megavid anime — uses the per-item MAL/AniList id; movies drop the episode segment
+        
         const itemKey = playContext?.item ? String(playContext.item.id) : '';
         const src = storedAnimeSrc[itemKey] || (playContext?.item?.anilistId || playContext?.item?.anilist_id ? 'ani' : 'mal');
         const mid = currentAnimekaiMalId || (playContext?.item?.malId) || (playContext?.item?.anilistId) || tmdbId;
         return animekaiIframe(src, mid, type, episode || 1, currentAnimeLang);
     },
     kisskh: (tmdbId, type, season, episode) => {
-        // kisskh embeds need a numeric episode id; those are resolved asynchronously per title in
-        // renderKissKhPlay (any genre). If an id is already known on this item, build the embed here.
+        
         const pc = playContext?.item;
         const known = (pc && (pc.kisskhId || pc.kisskh_ep || pc.episodeId)) || null;
         if (known && /^\d+$/.test(String(known))) return kisskhIframe(String(known), '#ff2e63', false);
@@ -5130,7 +5078,7 @@ const SERVER_IFRAME = {
     }
 };
 
-// Renders the correct TMDB-based iframe for the current play context on `server`.
+
 function renderTmdbPlay(server) {
     const frame = document.getElementById('playerFrame');
     if (!frame || !playContext) return;
@@ -5161,9 +5109,7 @@ function renderTmdbPlay(server) {
     }
 }
 
-// KissKH player: resolves the correct kisskh episode id for the CURRENT title (all genres) and
-// renders the megavid /kisskh/{id} embed. Falls back to showing a message if nothing matches and
-// arms auto-fallback so a dead embed still advances to the next server.
+
 async function renderKissKhPlay(item, type, season, episode) {
     const frame = document.getElementById('playerFrame');
     if (!frame) return;
@@ -5172,7 +5118,7 @@ async function renderKissKhPlay(item, type, season, episode) {
     frame.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#fff;font-size:16px;">Searching KissKH for “${escapeHtml(item.title)}”…</div>`;
     let epId = null;
     try { epId = await resolveKissKhEpisodeId(item, ep, type); } catch (e) { epId = null; }
-    if (!playContext || playContext.item !== item) return; // user switched items while resolving
+    if (!playContext || playContext.item !== item) return; 
     if (!epId) {
         frame.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#888;font-size:15px;padding:0 30px;text-align:center;color:#ffb6d8;">No KissKH playback found for “${escapeHtml(item.title)}”${item.year ? ` (${item.year})` : ''}.<br><span style="color:#888;font-size:13px;margin-top:6px;">Try another server, or paste a KissKH episode URL into this title’s details.</span></div>`;
         return;
@@ -5212,10 +5158,7 @@ function renderPlay() {
     if (!playContext) return;
     try { hidePopupShield(); } catch {}
     const { item, type } = playContext;
-    // Anime + drama via megavid.buzz. Anime (ALL genres — action, romance, mecha, isekai, etc.)
-    // plays through /mal/{mal-id}/{ep}/{sub|dub} or /ani/{anilist-id}/{ep}/{sub|dub} using the
-    // per-item resolved id (so each show plays ITS OWN title, not the same one). Items that carry a
-    // kisskh episode id (any genre — drama, K-show, movie, BL, anime) use /kisskh/{episode-id}.
+
     const isAnimeTitle = isAnime(item);
     if (isAnimeTitle && !['direct', 'milkbox', 'pstream'].includes(effectiveServerFor(item, type))) {
         const langSel = document.getElementById('animeLangSelector');
@@ -5227,9 +5170,7 @@ function renderPlay() {
         const kissId = item.kisskhId || item.kisskh_ep || item.episodeId || currentKissKhIds[itemKey] || null;
         const malId = item.malId || item.mal_id || item.anilistId || item.anilist_id || currentAnimekaiMalId || null;
         const langCheck = currentAnimeLang === 'dub' ? 'dub' : 'sub';
-        // 1) megavid anime — pick /ani/ vs /mal/ from the resolved source (they're different id spaces).
-        //    Uses the per-item cached source so each show's OWN correct id is used.
-        //    When AutoEmbed/VidHawk/Anixo is selected, route through its builder so sub/dub toggle works on that server.
+   
         if (!kissId && malId && /^\d+$/.test(String(malId))) {
             const srv = effectiveServerFor(item, type);
             const src = storedAnimeSrc[itemKey] || (item.anilistId || item.anilist_id ? 'ani' : 'mal');
@@ -5245,7 +5186,7 @@ function renderPlay() {
                 const srvName = srv === 'megaplay' ? 'MegaPlay (Zoro)' : (srv === 'vidhawk' ? 'VidHawk' : 'Anixo');
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • ${srvName} ${base.toUpperCase()} (${malId})`;
             } else {
-                // megavid /mal/ and /ani/ endpoints — anime movies have NO episode segment
+                
                 frame.innerHTML = animekaiIframe(base, malId, type, ep, langCheck);
                 subtitle.textContent = `${item.year || ''} • ${currentAnimeLang === 'dub' ? 'Dubbed' : 'Subbed'} • megavid ${base.toUpperCase()} (${malId})`;
             }
@@ -5253,7 +5194,7 @@ function renderPlay() {
             if (type === 'tv' && item.tmdbId && !isAnimeTitle) renderTmdbEpisodes(item, 'tmdb');
             return;
         }
-        // 2) KissKH episode id (dramas / Kshows) — the /kisskh/{id} endpoint
+        
         if (kissId) {
             frame.innerHTML = kisskhIframe(kissId, '2ad4b8', true, type === 'tv' ? ep : null);
             subtitle.textContent = `${item.year || ''} • KissKH (${kissId})`;
@@ -5370,7 +5311,7 @@ function playItem(item, type) {
     try { if (isAnime(item)) { recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } } catch {}
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
     try { wireAnimeTheaterOnce(); } catch {}
-    // anime only: show sub/dub toggle and resolve anidb + animekai ids
+    
     const langSel = document.getElementById('animeLangSelector');
     if (isAnime(item) && playerServer !== 'milkbox' && playerServer !== 'pstream') {
         if (langSel) {
@@ -5390,9 +5331,7 @@ function playItem(item, type) {
         const itemKey = String(item.id);
         const year = item.year || '';
         const ttype = item.type || type || '';
-        // 1) each anime resolves to its OWN MAL / AniList id (keyed per item) so the /mal/ & /ani/
-        //    endpoints play the RIGHT show, not the same one every time. If the item already carries
-        //    an id (from Tenrai/Jikan/AniList), use it directly — no search needed.
+        
         const preAni = item.anilistId || item.anilist_id || null;
         const preMal = item.malId || item.mal_id || storedAnimeIds[itemKey] || null;
         if (preAni) {
@@ -5402,7 +5341,7 @@ function playItem(item, type) {
             currentAnimekaiMalId = String(preMal);
             storedAnimeSrc[itemKey] = 'mal';
         } else if (!itemKey.startsWith('ak_')) {
-            // Scan TMDB for IMDb id then resolve the correct MAL/AniList entry — preview-safe with catch to avoid unhandled rejection.
+            
             (async () => {
                 try {
                     let imdbId = item.imdbId || item.imdb_id || '';
@@ -5425,8 +5364,7 @@ function playItem(item, type) {
         } else {
             currentAnimekaiMalId = String(item.id);
         }
-        // 2) KissKH path: use a known/pasted episode id if provided, otherwise resolve via the
-        //    KissKH search API (any genre) keyed per item — the megavid endpoint needs a numeric id.
+        
         if (item.kisskhId || item.kisskh_ep || item.episodeId) {
             currentKissKhIds[itemKey] = String(item.kisskhId || item.kisskh_ep || item.episodeId);
         } else {
@@ -5469,7 +5407,7 @@ function playItem(item, type) {
     } catch {}
 }
 
-// Server switcher in the player modal (change event on dropdown).
+
 document.addEventListener('change', (e) => {
     const sel = e.target.closest('#serverSelect');
     if (!sel || !playContext) return;
@@ -5479,13 +5417,13 @@ document.addEventListener('change', (e) => {
     saveData();
     renderPlay();
 });
-// Mark the given episode as the active one in the episode sidebar.
+
 function setActiveEpisode(season, episode, list) {
     list.querySelectorAll('.ep-play-item').forEach(el =>
         el.classList.toggle('active', String(el.dataset.season) === String(season) && String(el.dataset.episode) === String(episode)));
 }
 
-// TMDB-powered TV episode layout: Season dropdown, episode search, and wide preview cards.
+
 async function renderTmdbEpisodes(tvItem, server) {
     const list = document.getElementById('episodePlaylist');
     const loading = document.getElementById('episodeLoading');
@@ -5515,13 +5453,13 @@ async function renderTmdbEpisodes(tvItem, server) {
 
         if (!seasons.length) { if (loading) loading.style.display = 'none'; return; }
 
-        // Fetch all seasons in parallel.
+        
         const seasonInfos = await Promise.all(seasons.map(async sn => ({
             sn,
             eps: (await tmdbJson(`/tv/${encodeURIComponent(tmdbId)}/season/${sn}`)).episodes || []
         })));
 
-        // Populate Season Dropdown
+        
         if (dropdown) {
             dropdown.innerHTML = seasonInfos.map(({ sn }) => {
                 const label = sn === 0 ? 'Specials' : `Season ${sn}`;
@@ -5681,7 +5619,7 @@ async function renderTmdbEpisodes(tvItem, server) {
     }
 }
 
-// Play a specific season + episode on the given TMDB server.
+
 function playTmdbEpisode(tvItem, season, episode, server) {
     const frame = document.getElementById('playerFrame');
     const title = document.getElementById('playerTitle');
@@ -5749,7 +5687,7 @@ function playTmdbEpisode(tvItem, season, episode, server) {
     renderTmdbPlay(server);
 }
 
-// Expose player playback controllers globally for Watch Party & external syncing
+
 window.playItem = playItem;
 window.playTmdbEpisode = playTmdbEpisode;
 window.renderPlay = renderPlay;
@@ -5806,7 +5744,7 @@ async function playEpisode(tvItem, episode, index) {
 
     const timeStr = initialOffset > 5 ? ` · ${formatTimeDisplay(initialOffset)}` : '';
     subtitle.textContent = `Season ${seNum} • Episode ${epNum} - ${episode.name}${timeStr}`;
-    // Keep playContext in sync for auto-play next
+   
     playContext = { item: tvItem, type: 'tv', season: seNum, episode: epNum, resumeTime: initialOffset };
     startPlaybackTimeTracking(tvItem, initialOffset);
     try { recordWatchProgress(tvItem, { season: seNum, episode: epNum, type: 'tv', currentTime: initialOffset }); } catch {}
@@ -5840,11 +5778,10 @@ async function playEpisode(tvItem, episode, index) {
         frame.innerHTML = `<div class="milkbox-player-empty">${escapeHtml(error.message || 'Could not load the episode.')}</div>`;
         toast(`Video playback failed: ${error.message || error}`, 'error');
     }
-    // highlight active in playlist
-    setTimeout(()=> setActiveEpisode(tvItem.season || 1, index + 1, document.getElementById('episodePlaylist')), 80);
+      setTimeout(()=> setActiveEpisode(tvItem.season || 1, index + 1, document.getElementById('episodePlaylist')), 80);
     try{ if(isAnime(tvItem)){ renderAnimeTheaterBreadcrumb(tvItem); updateAnimePrevNextState(); setTimeout(()=>{ try{renderAnimeEpisodeListDOM();}catch{} }, 80); } }catch{}
 }
-// Auto-play next toggle — sync with settings and re-render current TV episode when toggled
+
 (function(){
     const init = () => {
         const t = document.getElementById('autoPlayNextToggle');
@@ -5870,7 +5807,7 @@ async function playEpisode(tvItem, episode, index) {
     };
 })();
 
-// Info Modal
+
 function showInfo(item, type) {
     type = (type === 'movie' || type === 'tv') ? type : (item.type || 'movie');
     const sourceItem = resolveSourceItem(item, type);
@@ -5900,8 +5837,7 @@ function showInfo(item, type) {
         infoLogo.style.display = 'none';
         infoTitleEl.textContent = item.title;
         infoTitleEl.classList.add('show');
-        // Search results / freshly added items may not have their brand logo yet — fetch
-        // it in the background and reveal it in this modal when it arrives.
+        
         if (item && item.tmdbId) {
             fetchItemLogo(item).then(() => {
                 if (!item.logo) return;
@@ -5916,7 +5852,7 @@ function showInfo(item, type) {
         }
     }
     document.getElementById('infoYear').textContent = item.year || '';
-    // runtime - use stored runtime or fallback 1h 43m like reference
+    
     const rtRaw = item.runtime ?? item.duration ?? item.runtimeMinutes ?? null;
     let rtDisplay = '1h 43m';
     let rtMinutes = 103;
@@ -5966,18 +5902,18 @@ function showInfo(item, type) {
     document.getElementById('infoRating').innerHTML = item.rating ? `<svg style="display: inline-block; vertical-align: -0.15em; margin-right: 3px;" xmlns="http://www.w3.org/2000/svg" height="14px" viewBox="0 -960 960 960" width="14px" fill="#000000"><path d="m384-334 96-74 96 74-36-122 90-64H518l-38-124-38 124H330l90 64-36 122ZM233-120l93-304L80-600h304l96-320 96 320h304L634-424l93 304-247-188-247 188Zm247-369Z"/></svg>` + item.rating : '';
     const infoCertEl = document.getElementById('infoCert');
     if (infoCertEl) { infoCertEl.textContent = item.certification || 'PG'; infoCertEl.style.display = 'inline-flex'; }
-    // genres as dot separated • like reference
+    
     const genreEl = document.getElementById('infoGenre');
     if (genreEl) {
         genreEl.innerHTML = gArr.length ? gArr.map(g => `<span>${g.charAt(0).toUpperCase()+g.slice(1)}</span>`).join(' <span style="opacity:0.5">•</span> ') : '';
     }
-    // director
+    
     const dirEl = document.getElementById('infoDirector');
     if (dirEl) {
         const dir = item.director || item.creator || '';
         if (dir) { dirEl.innerHTML = `Director: <span>${escapeHtml(dir)}</span>`; dirEl.style.display = ''; } else { dirEl.style.display = 'none'; }
     }
-    // status card
+    
     const statusEl = document.getElementById('infoStatus');
     if (statusEl) {
         const yr = parseInt(item.year) || 0;
@@ -5991,7 +5927,7 @@ function showInfo(item, type) {
         else if (item.year) relEl.textContent = `Aug 28, ${item.year}`;
         else relEl.textContent = 'Aug 28, 2026';
     }
-    // external ratings - derive from item.rating
+    
     const imdbEl = document.getElementById('infoImdb');
     if (imdbEl) imdbEl.textContent = item.rating ? (Number(item.rating).toFixed(1) + '/10') : '7.7/10';
     const rt1El = document.getElementById('infoRt1');
@@ -6044,7 +5980,7 @@ function showInfo(item, type) {
     modal.classList.add('active');
 }
 
-// Edit Content
+
 let editTarget = null;
 let editType = null;
 
@@ -6133,7 +6069,7 @@ function openEdit(item, type) {
         </form>
     `;
 
-    // Build genre chips
+    
     GENRES.forEach(genre => {
         const label = document.createElement('label');
         label.className = 'genre-chip';
@@ -6172,8 +6108,7 @@ function escapeHtml(str) {
     return clean.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// Upgrade a TMDB image URL to its highest available resolution so banners and
-// hero images stay crisp instead of looking blurry when stretched full-width.
+
 function hiRes(url) {
     if (!url) return url;
     return String(url)
@@ -6244,8 +6179,7 @@ function saveEdit(e) {
     toast('Changes saved!', 'success');
 }
 
-// Tmdb Auto-Fill
-// Keep the proxy working when the app is hosted at the domain root or below a subpath.
+
 const TMDB_BASE = new URL('api/tmdb/', document.baseURI).pathname;
 const TMDB_IMG = 'https://image.tmdb.org/t/p/';
 
@@ -6296,7 +6230,7 @@ async function tmdbJson(path) {
     const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
     const sep = normalizedPath.includes('?') ? '&' : '?';
 
-    // 1. Try server proxy if on local/cloud dev server
+    
     const isProxyHost = window.location.hostname === 'localhost' || window.location.hostname.includes('run.app');
     if (isProxyHost) {
         try {
@@ -6311,7 +6245,7 @@ async function tmdbJson(path) {
         } catch (_) {}
     }
 
-    // 2. Direct TMDB API v3/v4 with official Read Access Token (supported globally on milkbox.fyi and all browsers)
+    
     try {
         const directUrl = `https://api.themoviedb.org/3${normalizedPath}${sep}language=en-US`;
         const directRes = await fetch(directUrl, {
@@ -6348,7 +6282,7 @@ async function checkCatalogAvailability() {
     if (notice) notice.hidden = true;
 }
 
-// Content certification (age rating) for a title, US first then UK fallback.
+
 async function tmdbCertification(type, id) {
     try {
         if (type === 'tv') {
@@ -6414,7 +6348,7 @@ function parseImdbInput(raw) {
     return m ? m[1].toLowerCase() : null;
 }
 async function imdbFetchAndFill(imdbId, type, isEdit) {
-    // TMDB find by IMDb ID — returns movie_results / tv_results with the TMDB id
+    
     const data = await tmdbJson(`/find/${encodeURIComponent(imdbId)}?external_source=imdb_id`);
     const movieRes = (data.movie_results && data.movie_results[0]) || null;
     const tvRes = (data.tv_results && data.tv_results[0]) || null;
@@ -6425,7 +6359,7 @@ async function imdbFetchAndFill(imdbId, type, isEdit) {
     else if (type === 'tv' && movieRes && !tvRes) target = { id: movieRes.id, type: 'movie' };
     else target = movieRes ? { id: movieRes.id, type: 'movie' } : tvRes ? { id: tvRes.id, type: 'tv' } : null;
     if (!target) throw new Error('No TMDB match for that IMDb ID');
-    // also fill the TMDB ID field so Play uses it
+    
     const tmdbField = document.getElementById((isEdit ? 'edit' : type) + 'TmdbId');
     if (tmdbField) tmdbField.value = String(target.id);
     return tmdbFetchAndFill(String(target.id), target.type, isEdit);
@@ -6537,7 +6471,7 @@ async function manualImdbScan(kind) {
     el.addEventListener('change', () => manualImdbScan(kind));
 });
 
-// Load Popular (Tmdb)
+
 const TMDB_GENRE_ID_MAP = {
     28: 'action', 12: 'adventure', 16: 'animation', 35: 'comedy', 80: 'crime',
     99: 'documentary', 18: 'drama', 10751: 'family', 14: 'fantasy', 36: 'history',
@@ -6555,21 +6489,19 @@ const STORAGE_BUDGET = 4.8 * 1024 * 1024;
 
 function popularPaths() {
     const paths = [];
-    // Most popular titles of every genre (TMDB popularity order — the big famous
-    // movies and shows, old and new).
+    
     POPULAR_MOVIE_GENRES.forEach(g => {
         for (let p = 1; p <= POPULAR_PAGES; p++) paths.push(`/discover/movie?with_genres=${g}&sort_by=popularity.desc&page=${p}`);
     });
     POPULAR_TV_GENRES.forEach(g => {
         for (let p = 1; p <= POPULAR_PAGES; p++) paths.push(`/discover/tv?with_genres=${g}&sort_by=popularity.desc&page=${p}`);
     });
-    // IMDb Top 250-style: the highest-rated titles with a big vote count
-    // (these are the IMDb-famous classics, historically included in the IMDb lists).
+    
     for (let p = 1; p <= IMDB_TOP_PAGES; p++) {
         paths.push(`/discover/movie?sort_by=vote_average.desc&vote_count.gte=5000&page=${p}`);
         paths.push(`/discover/tv?sort_by=vote_average.desc&vote_count.gte=2000&page=${p}`);
     }
-    // Anime movies + shows (Japanese animation set behind its own genre).
+    
     for (let p = 1; p <= 3; p++) {
         paths.push(`/discover/movie?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${p}`);
         paths.push(`/discover/tv?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${p}`);
@@ -6611,8 +6543,7 @@ function showLiveLoadError(grid, message, error) {
     grid.replaceChildren(notice);
 }
 
-// Fetches each added title's logo + content rating from TMDB (detail request, appended
-// with images and the rating source), batched to stay under TMDB rate limits.
+
 async function enrichTmdbDetails(items, btn, quiet) {
     const targets = items.filter(m => m.tmdbId);
     let done = 0;
@@ -6644,7 +6575,7 @@ async function enrichTmdbDetails(items, btn, quiet) {
                         m.certification = pick('US') || pick('GB') || '';
                     }
                 }
-            } catch (e) { /* skip titles with missing/blocked fields */ }
+            } catch (e) {  }
         }));
         done = Math.min(i + 10, total);
         if (btn) btn.textContent = `Fetching logos & ratings... ${done}/${total}`;
@@ -6656,16 +6587,14 @@ async function enrichTmdbDetails(items, btn, quiet) {
     if (!quiet) toast('Hero logos & content ratings loaded!', 'success');
 }
 
-// Auto-add hero logos (and ratings) for any stored movie/show/anime that has a
-// TMDB id but no logo yet. Runs in the background on init so existing content
-// gradually gets brand logos without blocking the page.
+
 async function enrichMissingLogos() {
     const needLogo = [...movies, ...tvShows].filter(m => m && m.tmdbId && !m.logo);
     if (!needLogo.length) return;
     await enrichTmdbDetails(needLogo, null, true);
 }
 
-// Auto-fetch the brand logo for a single just-added item (by its TMDB id).
+
 async function enrichNewItemLogo(tmdbId, type) {
     if (!tmdbId) return;
     const pool = type === 'tv' ? tvShows : movies;
@@ -6675,8 +6604,7 @@ async function enrichNewItemLogo(tmdbId, type) {
     if (item.logo) { saveData(); refreshCurrent(); }
 }
 
-// Auto-add logos to a live tab's items (Trending/Streaming/Theaters) and refresh
-// the banner once they arrive, so banners always show a brand logo.
+
 async function enrichLiveLogos(key) {
     const st = liveState[key];
     if (!st || !st.items || !st.items.length) return;
@@ -6706,7 +6634,7 @@ async function enrichLiveLogos(key) {
     }
 }
 
-// Fetch and assign a TMDB brand logo to a single item (non-blocking).
+
 async function fetchItemLogo(item) {
     if (!item || !item.tmdbId || item.logo) return item;
     const kind = item.type === 'tv' ? 'tv' : 'movie';
@@ -6718,8 +6646,7 @@ async function fetchItemLogo(item) {
     return item;
 }
 
-// Fetch brand logos for the live search-results items (mutates the same objects the
-// cards close over) so the info modal shows a logo right after a search loads.
+
 async function enrichSearchLogos(items) {
     const need = (items || []).filter(m => m && m.tmdbId && !m.logo);
     if (!need.length) return;
@@ -6741,13 +6668,13 @@ async function enrichSearchLogos(items) {
                         }
                     }
                 }
-            } catch (e) { /* skip */ }
+            } catch (e) { }
         }));
         await sleep(250);
     }
 }
 
-// Whether the given item is still the one currently shown in the hero banner.
+
 function featureQueueContains(item) {
     if (!heroQueue.length) return false;
     const cur = heroQueue[heroIndex % heroQueue.length];
@@ -6767,8 +6694,7 @@ function tmdbListItemToItem(r, type, anime) {
     const genre = tmdbGenreKeysFromIds(r.genre_ids || r.genreIds);
     if ((anime || isTmdbAnime(r.genre_ids, r.origin_country, r.original_language)) && !genre.includes('anime')) genre.unshift('anime');
     if (!genre.length) genre.push(type === 'movie' ? 'action' : 'drama');
-    // Keep descriptions short so thousands of titles fit in localStorage (the info
-    // modal still reads fine — long overviews are cut at 240 chars with an ellipsis).
+   
     const overview = r.overview ? r.overview.replace(/\s+/g, ' ').trim() : '';
     return {
         id: generateId(),
@@ -6789,7 +6715,7 @@ function tmdbListItemToItem(r, type, anime) {
 }
 
 async function loadPopularContent(auto) {
-    // Auto-load on page open: if the library already has titles or fills storage, skip
+    
     if (auto && (movies.length > 20 || tvShows.length > 20 || libraryBytes() > STORAGE_BUDGET)) return;
     if (auto && Date.now() < tmdbUnavailableUntil) return;
     const existing = movies.length + tvShows.length;
@@ -6852,7 +6778,7 @@ async function loadPopularContent(auto) {
     }
 }
 
-// Add Movie
+
 document.getElementById('movieForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('movieTitle').value.trim();
@@ -6889,9 +6815,7 @@ document.getElementById('movieForm').addEventListener('submit', async (e) => {
     try { e.target.reset(); } catch(_) {}
 });
 
-// Tv Show Episode Management
 
-// Direct URL Episodes
 document.getElementById('addUrlEpBtn').addEventListener('click', () => {
     const row = document.querySelector('.url-ep-row');
     const nameInput = row.querySelector('.ep-name-input');
@@ -6928,7 +6852,7 @@ function renderUrlEpisodeList() {
     setupDragDrop(list, uploadedUrlEps, renderUrlEpisodeList);
 }
 
-// File Episodes
+
 document.getElementById('tvEpisodes').addEventListener('change', (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -7004,7 +6928,7 @@ function setupDragDrop(list, dataArray, renderFn) {
     });
 }
 
-// Episode Source Toggle
+
 document.querySelectorAll('.toggle-btn[data-source]').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.toggle-btn[data-source]').forEach(b => b.classList.remove('active'));
@@ -7015,7 +6939,7 @@ document.querySelectorAll('.toggle-btn[data-source]').forEach(btn => {
     });
 });
 
-// Submit TV Show
+
 document.getElementById('tvShowForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('tvTitle').value.trim();
@@ -7084,7 +7008,7 @@ document.getElementById('tvShowForm').addEventListener('submit', async (e) => {
     document.getElementById('epFileSection').style.display = 'none';
 });
 
-// Search
+
 let searchTimer = null;
 let searchQuery = '';
 let searchPage = 1;
@@ -7105,9 +7029,9 @@ function hideSearchResults() {
     if (closeBtn) closeBtn.style.display = 'none';
     const pager = document.getElementById('searchResultsPager');
     if (pager) pager.style.display = 'none';
-    // Restore section visibility based on currentSection (mirrors handleNavClick)
+    
     const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
-    // First hide search, then restore correct tab's sections
+  
     if (currentSection === 'anime') {
         show('moviesSection', true); show('tvShowsSection', true); show('myListSection', false); show('homeGenres', true); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
@@ -7153,7 +7077,7 @@ function hideSearchResults() {
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('popularSection', false); show('mangaSection', false); show('musicSection', true);
         show('heroSection', false); show('providerSection', false); show('collectionsSection', false);
     } else {
-        // home
+        
         show('moviesSection', true); show('tvShowsSection', true); show('myListSection', true); show('homeGenres', true);
         show('trendingSection', true); show('streamingSection', false); show('theatersSection', false); show('popularSection', true); show('mangaSection', false); show('musicSection', false);
         show('heroSection', true); show('providerSection', true); show('collectionsSection', true);
@@ -7228,8 +7152,7 @@ function renderSearchResults(items) {
         return;
     }
     items.forEach(item => grid.appendChild(createCard(item, item.type, true)));
-    // Fetch brand logos for these results in the background so clicking a card shows
-    // its logo in the info modal right away.
+    
     enrichSearchLogos(items).catch(() => {});
 }
 
@@ -7311,7 +7234,7 @@ searchButton.addEventListener('click', () => {
     else searchInput.focus();
 });
 
-// Search results pager clicks.
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn[data-searchpage]');
     if (!btn) return;
@@ -7324,7 +7247,7 @@ document.addEventListener('click', (e) => {
     })();
 });
 
-// Ui Sound Effects
+
 let _audioCtx = null;
 function playUiSound(type = 'click') {
     if (settings.soundEffects === false) return;
@@ -7358,7 +7281,7 @@ function playUiSound(type = 'click') {
     } catch {}
 }
 
-// Watch History
+
 function getWatchHistory() {
     try { return JSON.parse(localStorage.getItem('sf_watch_history')) || []; }
     catch { return []; }
@@ -7401,7 +7324,7 @@ function updateWatchHistoryUI() {
     }
 }
 
-// Anime Continue Watching & Resume
+
 const ANIME_CW_KEY = 'milkbox_anime_continue_watching';
 
 function formatTimeDisplay(seconds) {
@@ -7574,7 +7497,7 @@ function formatCwTimeAgo(ts) {
     return '';
 }
 
-// Active Playback Time Tracking Engine
+
 let _liveTrackedTime = 0;
 let _liveTrackedDuration = 0;
 let _playbackWatchStart = 0;
@@ -7653,7 +7576,7 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
         const cur = Math.max(0, Math.floor(currentTime || 0));
         const dur = Math.max(0, Math.floor(duration || 0));
 
-        // Throttle localStorage disk writes to at most once per 10 seconds, or on forced flush/large seek
+        
         const now = Date.now();
         const shouldSaveStorage = force || (now - _lastProgressStorageSave >= 10000) || Math.abs(cur - _lastSavedCurTime) >= 12;
 
@@ -7678,7 +7601,7 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
             });
         }
 
-        // Update player subtitle with live timestamp only when second changes
+        
         const subtitle = document.getElementById('playerSubtitle');
         if (subtitle && playContext && playContext.item && cur > 3 && _lastRenderedTimeSec !== cur) {
             _lastRenderedTimeSec = cur;
@@ -7688,7 +7611,7 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
             subtitle.textContent = `${baseSub} · ${timeStr}${durStr}`;
         }
 
-        // Live update Anime Theater left column resume box if visible
+        
         const resumeBox = document.getElementById('animeLeftResumeBox');
         if (resumeBox && resumeBox.style.display !== 'none' && cur > 5) {
             const epLabel = document.getElementById('animeLeftResumeEp');
@@ -7706,7 +7629,7 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
     }
 }
 
-// Hook for HTML5 custom player
+
 window.onMilkboxVideoTimeUpdate = (currentTime, duration, force = false) => {
     if (!playContext || !playContext.item) return;
     _liveTrackedTime = Math.max(0, Math.floor(currentTime || 0));
@@ -7722,7 +7645,7 @@ window.onMilkboxVideoTimeUpdate = (currentTime, duration, force = false) => {
     }
 };
 
-// Global message listener for iframe embed player timestamps (VidLink, PlayerJS, JWPlayer, AutoEmbed, SuperEmbed, etc.)
+
 window.addEventListener('message', (e) => {
     if (!playContext || !playContext.item) return;
     try {
@@ -7958,7 +7881,7 @@ function resumeAnime(itemData, season = 1, episode = 1) {
 
     enterAnimeTheater(fullItem);
 
-    // Start active time tracking with this saved offset
+    
     startPlaybackTimeTracking(fullItem, savedTime);
 
     const srv = effectiveServerFor(fullItem, isMovie ? 'movie' : 'tv');
@@ -7979,7 +7902,7 @@ function resumeAnime(itemData, season = 1, episode = 1) {
     }
 }
 
-// Data Backup & Restore
+
 function exportDataBackup() {
     playUiSound();
     const backupData = {
@@ -8068,7 +7991,7 @@ function clearUserMyList() {
     toast('My List cleared', 'success');
 }
 
-// System Health Diagnostics
+
 async function runSystemDiagnostics() {
     playUiSound();
     const btn = document.getElementById('checkHealthBtn');
@@ -8131,7 +8054,7 @@ async function runSystemDiagnostics() {
     toast('Diagnostics complete', 'success');
 }
 
-// Streaming Server Latency Test
+
 async function testStreamingServerLatencies() {
     playUiSound();
     const btn = document.getElementById('testServerLatencyBtn');
@@ -8184,7 +8107,7 @@ async function testStreamingServerLatencies() {
     toast('Latency test completed', 'success');
 }
 
-// Storage Quota
+
 function updateStorageQuotaDisplay() {
     const el = document.getElementById('storageUsedVal');
     if (!el) return;
@@ -8208,9 +8131,9 @@ function clearTempCache() {
     toast('Temporary cache purged successfully!', 'success');
 }
 
-// Settings Form Sync
+
 function syncSettingsInputs() {
-    // General
+    
     const colToggle = document.getElementById('settingsShowCollectionsToggle');
     if (colToggle) colToggle.checked = settings.showCollections !== false;
     const zoomToggle = document.getElementById('settingsCardZoomToggle');
@@ -8222,7 +8145,7 @@ function syncSettingsInputs() {
     const heroSelect = document.getElementById('settingsHeroInterval');
     if (heroSelect) heroSelect.value = String(settings.heroInterval || '8000');
 
-    // Playback
+    
     const srvSelect = document.getElementById('settingsDefaultServer');
     if (srvSelect) srvSelect.value = settings.playerServer || 'auto';
     const qualitySelect = document.getElementById('settingsQualitySelect');
@@ -8246,26 +8169,26 @@ function syncSettingsInputs() {
     const volNormToggle = document.getElementById('settingsVolumeNormToggle');
     if (volNormToggle) volNormToggle.checked = !!settings.volumeNorm;
 
-    // Appearance
+    
     const contrastToggle = document.getElementById('settingsHighContrastToggle');
     if (contrastToggle) contrastToggle.checked = !!settings.highContrast;
     const soundToggle = document.getElementById('settingsSoundEffectsToggle');
     if (soundToggle) soundToggle.checked = settings.soundEffects !== false;
 
-    // Manga
+    
     const mangaLangSelect = document.getElementById('settingsMangaLanguage');
     if (mangaLangSelect) mangaLangSelect.value = settings.mangaLang || 'en';
     const mangaDirSelect = document.getElementById('settingsMangaReadingDirection');
     if (mangaDirSelect) mangaDirSelect.value = settings.mangaReadingDirection || 'vertical';
 
-    // Stats
+    
     updateWatchHistoryUI();
     const myListEl = document.getElementById('myListCountVal');
     if (myListEl) myListEl.textContent = `${myList.length} title${myList.length === 1 ? '' : 's'}`;
     updateStorageQuotaDisplay();
 }
 
-// Settings Modal Initialization
+
 document.getElementById('settingsBtn').addEventListener('click', () => {
     document.getElementById('settingsModal').classList.add('active');
     document.querySelectorAll('.theme-card').forEach(c => {
@@ -8278,7 +8201,7 @@ document.getElementById('settingsBtn').addEventListener('click', () => {
     syncSettingsInputs();
 });
 
-// General preferences save
+
 document.getElementById('saveGeneralBtn')?.addEventListener('click', () => {
     playUiSound();
     const colToggle = document.getElementById('settingsShowCollectionsToggle');
@@ -8299,7 +8222,7 @@ document.getElementById('saveGeneralBtn')?.addEventListener('click', () => {
     toast('General preferences saved!', 'success');
 });
 
-// Playback preferences save
+
 document.getElementById('savePlaybackBtn')?.addEventListener('click', () => {
     playUiSound();
     const srvSelect = document.getElementById('settingsDefaultServer');
@@ -8332,7 +8255,7 @@ document.getElementById('savePlaybackBtn')?.addEventListener('click', () => {
     toast('Playback preferences saved!', 'success');
 });
 
-// Manga preferences save
+
 document.getElementById('saveMangaSettingsBtn')?.addEventListener('click', () => {
     playUiSound();
     const mangaLangSelect = document.getElementById('settingsMangaLanguage');
@@ -8346,7 +8269,7 @@ document.getElementById('saveMangaSettingsBtn')?.addEventListener('click', () =>
     toast('Manga preferences saved!', 'success');
 });
 
-// Sound effects test and toggle
+
 document.getElementById('testSoundBtn')?.addEventListener('click', () => {
     playUiSound('test');
     toast('Playing sound effect test', 'info');
@@ -8357,18 +8280,18 @@ document.getElementById('settingsSoundEffectsToggle')?.addEventListener('change'
     if (settings.soundEffects) playUiSound('test');
 });
 
-// High contrast toggle
+
 document.getElementById('settingsHighContrastToggle')?.addEventListener('change', (e) => {
     settings.highContrast = e.target.checked;
     document.body.classList.toggle('high-contrast-mode', !!settings.highContrast);
     saveData();
 });
 
-// Diagnostics & Latency buttons
+
 document.getElementById('checkHealthBtn')?.addEventListener('click', runSystemDiagnostics);
 document.getElementById('testServerLatencyBtn')?.addEventListener('click', testStreamingServerLatencies);
 
-// Data & Storage action buttons
+
 document.getElementById('clearHistoryBtn')?.addEventListener('click', clearWatchHistory);
 document.getElementById('clearMyListBtn')?.addEventListener('click', clearUserMyList);
 document.getElementById('exportBackupBtn')?.addEventListener('click', exportDataBackup);
@@ -8399,7 +8322,7 @@ document.getElementById('resetAllSettingsBtn')?.addEventListener('click', () => 
 document.getElementById('applyBgBtn').addEventListener('click', () => {
     settings.bgColor = document.getElementById('bgColor').value;
     const inputVal = document.getElementById('bgImage').value.trim();
-    // If the field holds an upload label (not a real URL), keep the stored reference.
+
     if (!(inputVal.indexOf('(uploaded') === 0)) { settings.bgImage = inputVal; }
     settings.bgOpacity = parseInt(document.getElementById('bgOpacity').value);
     settings.bgBlur = parseInt(document.getElementById('bgBlur').value);
@@ -8422,7 +8345,7 @@ document.getElementById('resetBgBtn').addEventListener('click', () => {
     toast('Reset to default', 'success');
 });
 
-// Hero Logo controls
+
 document.getElementById('applyHeroLogoBtn')?.addEventListener('click', () => {
     const url = document.getElementById('heroLogoUrl')?.value?.trim();
     if (url) {
@@ -8467,7 +8390,7 @@ document.getElementById('heroLogoUpload')?.addEventListener('change', (e) => {
 
 
 
-// Navbar icon upload — no URL needed, never blocked
+
 document.getElementById('cloakLogoUpload')?.addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -8490,7 +8413,7 @@ document.getElementById('cloakLogoUpload')?.addEventListener('change', (e) => {
     reader.readAsDataURL(file);
 });
 
-// MangaDex auth — paste the access_token/refresh_token from your Python POST so the book reader can load chapters
+
 const MANGADEX_DEFAULT_TOKEN = '';
 (function initMangadexSecret(){
     try {
@@ -8529,12 +8452,12 @@ function updateMangadexAuthUI() {
 document.getElementById('saveMangadexTokenBtn')?.addEventListener('click', () => {
     const at = document.getElementById('mangadexAccessToken')?.value.trim();
     const rt = document.getElementById('mangadexRefreshToken')?.value.trim();
-    if (!at || at.includes('…')) { // if masked, keep existing
+    if (!at || at.includes('…')) { 
         const cur = getMangadexTokens();
         if (cur.access_token && at && !at.includes('eyJ') && at !== MANGADEX_DEFAULT_TOKEN) { toast('Token already saved', 'success'); updateMangadexAuthUI(); return; }
         if (!at || at.length < 8) { toast('Paste the full access_token', 'error'); return; }
     }
-    // allow pasting full JSON as well
+    
     let access = at, refresh = rt;
     try { if (at && at.trim().startsWith('{')) { const j=JSON.parse(at); access=j.access_token||j.accessToken||at; refresh=j.refresh_token||refresh; } } catch {}
     saveMangadexTokens({ access_token: access, refresh_token: refresh, saved_at: Date.now() });
@@ -8549,7 +8472,7 @@ document.getElementById('clearMangadexTokenBtn')?.addEventListener('click', () =
     updateMangadexAuthUI(); toast('MangaDex token cleared');
 });
 try { updateMangadexAuthUI(); } catch {}
-// Resilient MangaDex fetch through the server-side proxy.
+
 async function fetchMangadex(url, opts={}) {
     const parsed = new URL(url);
     const proxyUrl = parsed.hostname === 'api.mangadex.org'
@@ -8586,7 +8509,7 @@ async function resolveMangadexMangaId(title) {
     } catch { return null; }
 }
 
-// Color picker sync
+
 document.getElementById('bgColor').addEventListener('input', (e) => {
     document.getElementById('bgColorText').value = e.target.value;
     settings.bgColor = e.target.value;
@@ -8608,7 +8531,7 @@ document.getElementById('bgImage').addEventListener('input', () => {
 document.getElementById('bgOpacity').addEventListener('input', (e) => { document.getElementById('bgOpacityVal').textContent = e.target.value + '%'; settings.bgOpacity = parseInt(e.target.value); updateBgPreview(); });
 document.getElementById('bgBlur').addEventListener('input', (e) => { document.getElementById('bgBlurVal').textContent = e.target.value + 'px'; settings.bgBlur = parseInt(e.target.value); updateBgPreview(); });
 
-// Preset colors
+
 document.querySelectorAll('.preset-color').forEach(btn => {
     btn.addEventListener('click', () => {
         const color = btn.dataset.color;
@@ -8621,12 +8544,12 @@ document.querySelectorAll('.preset-color').forEach(btn => {
     });
 });
 
-// Theme cards
+
 document.querySelectorAll('.theme-card').forEach(card => {
     card.addEventListener('click', () => applyTheme(card.dataset.theme));
 });
 
-// Background upload
+
 document.getElementById('bgUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -8644,7 +8567,7 @@ document.getElementById('bgUpload').addEventListener('change', (e) => {
     }).catch(() => toast('Could not store the file.', 'error'));
 });
 
-// Custom themes
+
 let editingThemeIdx = -1;
 
 function renderCustomThemes() {
@@ -8735,7 +8658,7 @@ document.getElementById('saveCustomThemeBtn')?.addEventListener('click', () => {
             }
             const oldBg = customThemes[editingThemeIdx].bgImage || '';
             theme.bgImage = theme.bgImage || oldBg;
-            // Drop the old stored file if it was replaced by a new upload.
+           
             if (isStoredBg(oldBg) && theme.bgImage !== oldBg) { bgDeleteFile(storedBgName(oldBg)); }
             customThemes[editingThemeIdx] = theme;
             toast(`Updated "${name}" theme!`, 'success');
@@ -8782,7 +8705,7 @@ document.getElementById('customThemeOverlayBlur')?.addEventListener('input', (e)
 
 renderCustomThemes();
 
-// Logo text live preview
+
 document.getElementById('cloakLogoText')?.addEventListener('input', (e) => {
     settings.cloakLogoText = e.target.value;
     updateLogoPreview();
@@ -8792,9 +8715,9 @@ document.getElementById('cloakLogoImage')?.addEventListener('input', (e) => {
     updateLogoPreview();
 });
 
-// Live Feeds (Trending / Streaming / In Theaters)
-const LIVE_PAGES = 20;         // TMDB pages fetched per feed
-const LIVE_PER_PAGE = 20;     // titles shown per grid page
+
+const LIVE_PAGES = 20;         
+const LIVE_PER_PAGE = 20;     
 const liveState = {
     trending: { items: [], page: 1 },
     streaming: { items: [], page: 1 },
@@ -8803,7 +8726,7 @@ const liveState = {
     popular: { items: [], page: 1 },
     manga: { items: [], page: 1, totalPages: 1, type: 'topview', search: '' }
 };
-const liveFed = {};   // prevent multiple concurrent fetches per feed
+const liveFed = {};   
 
 function liveGridIds(key) {
     return {
@@ -8858,8 +8781,7 @@ function liveItemsFromPages(arr, type) {
     return out;
 }
 
-// Merge multiple live groups into one list by interleaving, keeping distinct titles.
-// First occurrence of a tmdbId wins (earlier groups take priority over later ones).
+
 function mergeLiveInterleaved(groups) {
     const seen = new Set();
     const clean = (groups || []).map(g => (g || []).filter(r => {
@@ -8941,7 +8863,7 @@ function renderLiveTab(section) {
             const mov = Array.from({ length: LIVE_PAGES }, (_, i) => `${base}&page=${i + 1}`);
             const baseTv = '/discover/tv?with_watch_monetization_types=flatrate|free|ads&watch_region=US&sort_by=popularity.desc';
             const tv = Array.from({ length: LIVE_PAGES }, (_, i) => `${baseTv}&page=${i + 1}`);
-            // fetch combined movies + TV pages and merge into one grid
+            
             (async () => {
                 liveFed['streaming'] = 1;
                 try {
@@ -9008,7 +8930,7 @@ function renderLiveTab(section) {
         if (st.items.length) renderLiveGrid('popular');
         else if (!liveFed.popular) {
             renderSkeletonGrid('popularGrid', LIVE_PER_PAGE, true);
-            // Most popular movies, TV shows, and anime of all time (TMDB discover, popularity order).
+           
             const moviePaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/movie?sort_by=popularity.desc&page=${i + 1}`);
             const tvPaths = Array.from({ length: LIVE_PAGES }, (_, i) => `/discover/tv?sort_by=popularity.desc&page=${i + 1}`);
             const animeMoviePaths = Array.from({ length: Math.max(1, Math.round(LIVE_PAGES / 2)) }, (_, i) => `/discover/movie?with_genres=16&with_origin_country=JP&sort_by=popularity.desc&page=${i + 1}`);
@@ -9047,10 +8969,9 @@ function renderLiveTab(section) {
     }
 }
 
-// Manga (Jikan Rest Api V4)
-const MANGA_API_BASE = 'https://api.tenrai.org/v1'; // TENRAI ONLY for manga — https://api.tenrai.org/documentation#tag/manga/GET/manga/ids — nothing else uses this
-// Tenrai manga/ids endpoint (requires Server Key) — used ONLY for manga, nothing else.
-// We try it first; if no key, we fall back to the public /manga and /top/manga endpoints which work without a key.
+
+const MANGA_API_BASE = 'https://api.tenrai.org/v1'; 
+
 async function fetchTenraiMangaIds() {
     try {
         const res = await fetch(`${MANGA_API_BASE}/manga/ids?limit=25`, { headers: { Accept: 'application/json' } });
@@ -9232,7 +9153,7 @@ async function fetchMangaList(page, type) {
     liveFed.manga = 1;
     st.lastRequestAt = now;
     try {
-        // Touch the Tenrai manga/ids endpoint (manga ONLY, nothing else) — per https://api.tenrai.org/documentation#tag/manga/GET/manga/ids
+        
         try { await fetchTenraiMangaIds(); } catch {}
         const queryType = type || st.type || '';
         const data = await fetchJikanJson(getMangaRequestUrl(page || 1, queryType), 1);
@@ -9331,7 +9252,7 @@ function triggerMangaSearch() {
     if (grid) grid.innerHTML = '<div class="live-loading">Searching Manga…</div>';
     const clr = document.getElementById('mangaSearchClear');
     if (clr) clr.style.display = q ? '' : 'none';
-    // bypass throttle for search
+    
     liveState.manga.lastRequestAt = 0;
     liveFed.manga = 0;
     fetchMangaList(1, liveState.manga.type || 'topview');
@@ -9383,7 +9304,7 @@ async function enrichMangaCovers(items) {
         const pics = await fetchMangaPictures(malId);
         if (pics && pics.length) {
             it.mangaPictures = pics;
-            // if poster is SVG fallback, upgrade to first real cover
+            
             if (it.poster && it.poster.startsWith('data:image/svg')) {
                 it.poster = pics[0];
                 it.backdrop = pics[0];
@@ -9440,7 +9361,7 @@ function renderMangaGrid(page) {
     }
 }
 
-// Manga Reader
+
 let mangaReader = {
     mangaId: '', info: null, chapters: [], currentId: null, images: [], item: null,
     language: localStorage.getItem('milkbox_manga_language') || 'en', pageIndex: 0
@@ -9479,9 +9400,9 @@ function showMangaReader(m) {
             if (!detailRes.ok) throw new Error('HTTP ' + detailRes.status);
             const detailData = await detailRes.json();
             const detail = detailData?.data || {};
-            // GET /api/chapters/<mangaId> — per user request, try MangaDex (if authorized), then Tenrai/Jikan/local
+            
             let chapterData = { data: [] };
-            // try MangaDex first if we can resolve a MangaDex ID for this title (authorized token helps)
+           
             try {
                 const mdId = await resolveMangadexMangaId(detail?.title || m.title || '');
                 if (mdId) {
@@ -9493,7 +9414,7 @@ function showMangaReader(m) {
                         if (readable.length) {
                             chapterData = { data: readable.map(c => ({ mal_id: c.id, chapter: c.attributes.chapter || c.attributes.chapter, title: c.attributes.title ? `${c.attributes.chapter ? 'Ch. '+c.attributes.chapter+' — ' : ''}${c.attributes.title}` : `Chapter ${c.attributes.chapter || ''}`.trim() })) };
                         } else if (mangaReader.language !== 'all') {
-                            // Discover one available language without downloading every language.
+                            
                             const probe = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=1&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
                             if (probe.ok) {
                                 const probeData = await probe.json();
@@ -9543,7 +9464,7 @@ function showMangaReader(m) {
                 id: String(c?.mal_id ?? c?.chapter ?? c?.id ?? index + 1),
                 name: c?.title || c?.name || `Chapter ${c?.chapter ?? index + 1}`
             })) : [];
-            // If API returned no chapters, generate from total count so reader is usable
+            
             if (!mangaReader.chapters.length) {
                 const total = parseInt(detail?.chapters ?? m?.chapters ?? 0) || 0;
                 const strCh = String(detail?.chapters ?? m?.chapters ?? '');
@@ -9557,7 +9478,7 @@ function showMangaReader(m) {
             }
             renderReaderDetail(detail);
             if (mangaReader.chapters.length) {
-                // Load one chapter at a time so the chapter list and reader appear immediately.
+                
                 mangaReader.currentId = mangaReader.chapters[0].id;
                 updateReaderNav();
                 renderChapterDrawer();
@@ -9600,8 +9521,7 @@ async function openChapter(chId) {
     mangaReader.pageIndex = 0;
     let ch = mangaReader.chapters.find(c => String(c.id) === String(chId));
     let resolvedChapterId = String(chId);
-    // Some fallback APIs return chapter numbers instead of MangaDex UUIDs.
-    // Resolve those numbers back to the selected MangaDex feed before loading pages.
+    
     if (!resolvedChapterId.includes('-') || resolvedChapterId.length < 32) {
         try {
             const mdId = await resolveMangadexMangaId(mangaReader.info?.title || mangaReader.item?.title || '');
@@ -9623,7 +9543,7 @@ async function openChapter(chId) {
     mangaReader.currentId = String(chId);
     const pagesEl = mrEl('mangaReadPages');
     pagesEl.innerHTML = '<div class="live-loading">Loading manga pages…</div>';
-    // If this is a MangaDex chapter (UUID), try the authorized at-home server first so real pages load
+    
     if (resolvedChapterId.includes('-') && resolvedChapterId.length >= 32) {
         try {
             const r = await fetchMangadex(`https://api.mangadex.org/at-home/server/${encodeURIComponent(resolvedChapterId)}`, { cache: 'no-store' });
@@ -9718,7 +9638,7 @@ function renderChapterDrawer() {
     }).join('');
 }
 
-// Hero banners for live tabs - cycle through the live items.
+
 function showLiveHero(section, force = false) {
     const heroSection = document.getElementById('heroSection');
     if (heroSection) heroSection.style.display = '';
@@ -9768,7 +9688,7 @@ function showLiveHero(section, force = false) {
     }
 }
 
-// Pagination clicks (event delegation for the live grids).
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.pager-btn');
     if (!btn || !btn.dataset.page) return;
@@ -9782,10 +9702,10 @@ document.addEventListener('click', (e) => {
     else renderLiveGrid(key);
 });
 
-// Navigation
+
 let currentSection = 'home';
-let homeFilter = 'movies'; // home toggle: movies | tvshows
-// prevent one unhandled error from blanking the whole site
+let homeFilter = 'movies'; 
+
 window.addEventListener('error', e => { console.error('MILKBOX error', e.message); e.preventDefault(); });
 window.addEventListener('unhandledrejection', e => { console.error('MILKBOX rejection', e.reason); e.preventDefault(); });
 
@@ -9825,7 +9745,7 @@ const FALLBACK_ANIME_TV = [
     { id: 'at_15', tmdbId: '43865', title: 'Steins;Gate', year: '2011', rating: '8.9', genre: ['anime', 'scifi', 'thriller', 'mystery'], poster: 'https://image.tmdb.org/t/p/w500/uWnP6qTcc4imPJ9ZHaXlPQlcYnB.jpg', backdrop: 'https://image.tmdb.org/t/p/w1920/2HtnTJLs3CDUTu6ug8rib5vNnU2.jpg', description: 'A self-proclaimed mad scientist invents a microwave device capable of sending messages back through time.', type: 'tv' }
 ];
 
-// Live anime catalog seeded with immediate rich fallbacks so the Anime tab is never blank or stuck on skeletons.
+
 const animeLive = {
     movies: FALLBACK_ANIME_MOVIES.slice(),
     tv: FALLBACK_ANIME_TV.slice(),
@@ -9938,7 +9858,7 @@ function renderTop10Row() {
         slider.appendChild(wrap);
     });
 
-    // Update Netflix-style indicator bars and top10Pager on scroll
+    
     const pager = document.getElementById('top10Pager');
     let top10CurrentPage = 1;
     const top10TotalPages = 2;
@@ -9977,7 +9897,7 @@ document.addEventListener('click', (e) => {
     slider.scrollTo({ left: targetPage === 1 ? 0 : maxScroll, behavior: 'smooth' });
 });
 
-// Content Container Slide-In Transitions
+
 function navigateWithTransition(actionFn) {
     const isReduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (typeof settings !== 'undefined' && settings.reducedMotion);
     
@@ -9988,22 +9908,22 @@ function navigateWithTransition(actionFn) {
     
     const wrapper = document.querySelector('.content-wrapper') || document.body;
     
-    // 1. Snappy subtle slide-out (fade & slight translate down)
+    
     wrapper.classList.remove('catalog-slide-in', 'nav-transition-fade-in');
     wrapper.classList.add('catalog-slide-out');
     
     setTimeout(() => {
-        // 2. Prepare container at slide-in starting position without transition
+        
         wrapper.classList.remove('catalog-slide-out', 'nav-transition-fade-out');
         wrapper.classList.add('catalog-slide-in-prepare');
         
-        // Execute section switch and content updates
+        
         actionFn();
         
-        // Force synchronous layout recalculation so the prepare state takes effect
+        
         void wrapper.offsetHeight;
         
-        // 3. Trigger smooth springy slide-in CSS transition
+        
         requestAnimationFrame(() => {
             wrapper.classList.remove('catalog-slide-in-prepare');
             wrapper.classList.add('catalog-slide-in');
@@ -10066,7 +9986,7 @@ function applySectionChange(section, link, pushHistory = true) {
     updateNavDropdownLabel(section);
     currentSection = section;
 
-    // Immediately stop previous tab's trailer and clear item tracking on tab change
+    
     stopHeroTrailer();
     currentHeroItemId = null;
 
@@ -10300,7 +10220,7 @@ function applyHomeFilter() {
         show('moviesSection', isMovies);
         show('tvShowsSection', !isMovies);
         show('homeGenres', true);
-        // toggle catalog-grid class for visible section
+        
         const ms = document.getElementById('moviesSection');
         const tv = document.getElementById('tvShowsSection');
         if (ms) ms.classList.toggle('catalog-grid', isMovies);
@@ -10398,9 +10318,9 @@ function closeNavDropdown() {
     });
 })();
 
-// Modals
+
 document.getElementById('closeModal').addEventListener('click', () => document.getElementById('addContentModal').classList.remove('active'));
-// Anime Theater (Anime Only)
+
 let _animePlayerParent = null;
 let _animeEpAll = [];
 let _animeEpRangeStart = 0;
@@ -10460,7 +10380,7 @@ function enterAnimeTheater(item){
   const findRow = document.getElementById('animeFindRow');
   if (findRow) findRow.style.display = 'none';
   const inp = document.getElementById('animeFindInput'); if (inp) inp.value = '';
-  // hard-reset visibility before branch so switching movie <-> TV cannot leave stale panel
+
   const mp = document.getElementById('animeMoviePanel');
   const epList = document.getElementById('animeEpisodeList');
   const epHead = document.querySelector('#animeRight .anime-right-head');
@@ -10618,7 +10538,7 @@ function renderAnimeTheaterLeft(item){
       <div><dt>MAL:</dt><dd>${escapeHtml(String(mal))}</dd></div>
       <div><dt>AniList:</dt><dd>${/^\d+$/.test(String(ani)) ? `<a href="https://anilist.co/anime/${ani}" target="_blank" rel="noopener">AL</a>` : 'AL'}</dd></div>`;
   }
-  // My List button (bookmark)
+ 
   if (bookmark){
     const itemKey = String(item.id);
     const isSaved = myList.some(x => String(x.id) === itemKey);
@@ -10632,7 +10552,7 @@ function renderAnimeTheaterLeft(item){
       try{ toast(idx >= 0 ? 'Removed from My List' : 'Added to My List', 'success'); }catch{}
     };
   }
-  // Resume Last Watched box
+  
   const resumeBox = document.getElementById('animeLeftResumeBox');
   if (resumeBox) {
     const isMovie = (playContext && playContext.type === 'movie') || item.type === 'movie' || item.media_type === 'movie';
@@ -10665,7 +10585,7 @@ function renderAnimeTheaterLeft(item){
       resumeBox.style.display = 'none';
     }
   }
-  // Interactive rating system: user rating per item, persisted to localStorage
+
   const ratingKey = `milkbox_anime_ratings`;
   let userRatings = {};
   try { userRatings = JSON.parse(localStorage.getItem(ratingKey) || '{}') || {}; } catch {}
@@ -10796,17 +10716,17 @@ function renderAnimeEpisodeListDOM(){
   const layoutBtn = document.getElementById('animeLayoutBtn');
   const titleEl = document.getElementById('animeRightTitle');
   if (!list) return;
-  // TV-only: movies use server panel, never the grid/list (anime TV only)
+  
   const isMovieDom = right && right.classList.contains('anime-movie-mode');
   const isMovieCtx = !!(playContext && playContext.type === 'movie');
   if (isMovieCtx || isMovieDom) return;
   const filtered = _filteredAnimeEps();
   const total = filtered.length;
 
-  // Detect long-running anime with 50+ episodes
+ 
   const isLongRunning = total >= 50 || (_animeEpAll && _animeEpAll.length >= 50) || ((playContext?.item?.episodeCount || 0) >= 50);
 
-  // Automatically activate 5-column grid layout for 50+ episodes (unless user manually toggled)
+ 
   if (isLongRunning && !_animeGridUserToggled) {
     _animeGridMode = true;
   }
@@ -10875,11 +10795,11 @@ function renderAnimeEpisodeListDOM(){
       if (it.tmdbId) playTmdbEpisode(it, se, n, srv);
       else if (it.episodes && it.episodes[n-1]) playEpisode(it, it.episodes[n-1], n-1);
       else playTmdbEpisode(it, se, n, srv);
-      // will re-render via play handler; also update breadcrumb/active highlight
+      
       try { renderAnimeTheaterBreadcrumb(it); } catch {}
       updateAnimePrevNextState();
       list.querySelectorAll('.anime-ep').forEach(b=>b.classList.toggle('active', parseInt(b.dataset.ep,10)===n));
-      // ensure active episode in view range
+      
       const idx = filtered.findIndex(x=>x.num===n);
       if (idx !== -1 && (idx < _animeEpRangeStart || idx >= end)) {
         _animeEpRangeStart = Math.floor(idx/_animeRangeSize)*_animeRangeSize;
@@ -10892,7 +10812,7 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
   const list = document.getElementById('animeEpisodeList');
   const seasonSel = document.getElementById('animeSeasonSelect');
   if (!list) return;
-  // immediate placeholder so the list never appears empty/loading forever (TMDB can be slow/blocked)
+  
   const curEpInit = playContext ? (playContext.episode||1) : 1;
   _animeEpRangeStart = Math.floor((curEpInit-1)/_animeRangeSize)*_animeRangeSize;
   if (item.type === 'movie'){
@@ -10910,14 +10830,14 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
     }
     renderAnimeEpisodeListDOM(); updateAnimePrevNextState(); return;
   }
-  // show placeholder immediately
+ 
   const placeholderCount = item.episodeCount || 12;
   _animeEpAll = Array.from({length: placeholderCount}, (_,i)=>({num:i+1, title:`Episode ${i+1}`}));
   if (placeholderCount >= 50 && !_animeGridUserToggled) {
     _animeGridMode = true;
   }
   renderAnimeEpisodeListDOM();
-  // now enrich from TMDB in background; placeholder stays if fetch fails/blocked
+ 
   if (!item.tmdbId) { updateAnimePrevNextState(); return; }
   try {
     await tmdbEnsureConfig();
@@ -10962,7 +10882,7 @@ async function renderAnimeTheaterEpisodes(item, requestedSeason){
       _animeGridMode = true;
     }
   } catch {
-    // keep placeholder on failure
+    
     if (seasonSel) seasonSel.style.display = 'none';
   }
   const cur = playContext ? (playContext.episode||1) : 1;
@@ -11119,7 +11039,7 @@ function wireAnimeTheaterOnce(){
     _animeEpRangeStart = 0; _animeEpFilter = '';
     const inp = document.getElementById('animeFindInput'); if (inp) inp.value = '';
     await renderAnimeTheaterEpisodes(playContext.item, sn);
-    // play first episode of new season
+    
     const srv = effectiveServerFor(playContext.item, 'tv');
     try { if (playContext.item.tmdbId) playTmdbEpisode(playContext.item, sn, 1, srv); } catch {}
     renderAnimeTheaterBreadcrumb(playContext.item);
@@ -11166,7 +11086,7 @@ function closePlaybackPlayer(restoreState = true) {
 }
 window.closePlaybackPlayer = closePlaybackPlayer;
 
-// Fullscreen toggle handler for player
+
 async function togglePlayerFullscreen() {
     const isAnimeActive = document.getElementById('animeTheater')?.style.display !== 'none';
     const targetEl = isAnimeActive
@@ -11192,7 +11112,7 @@ document.getElementById('playerModal')?.addEventListener('click', (e) => {
     }
 });
 
-// Popstate listener for seamless browser back/forward between pages and player
+
 window.addEventListener('popstate', (e) => {
     if (document.body.classList.contains('player-active')) {
         closePlaybackPlayer(false);
@@ -11202,7 +11122,7 @@ window.addEventListener('popstate', (e) => {
     applySectionChange(targetSection, null, false);
 });
 
-// Escape key closes player view if active; 'F' toggles fullscreen
+
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         if (document.body.classList.contains('player-active')) {
@@ -11227,7 +11147,7 @@ document.getElementById('closeInfo').addEventListener('click', () => document.ge
 document.getElementById('closeEdit').addEventListener('click', () => document.getElementById('editModal').classList.remove('active'));
 document.getElementById('closeSettings').addEventListener('click', () => document.getElementById('settingsModal').classList.remove('active'));
 
-// Settings tab switching
+
 document.querySelectorAll('.settings-tab').forEach(tab => {
     tab.addEventListener('click', () => {
         document.querySelectorAll('.settings-tab').forEach(t => t.classList.remove('active'));
@@ -11238,7 +11158,7 @@ document.querySelectorAll('.settings-tab').forEach(tab => {
     });
 });
 
-// Sync settings auto-play toggle with player toggle
+
 const settingsAutoPlay = document.getElementById('settingsAutoPlayNextToggle');
 const playerAutoPlay = document.getElementById('autoPlayNextToggle');
 if (settingsAutoPlay && playerAutoPlay) {
@@ -11254,7 +11174,7 @@ if (settingsAutoPlay && playerAutoPlay) {
         saveData();
     });
 }
-// Show Collections on Home/Trending toggle
+
 const settingsShowCollections = document.getElementById('settingsShowCollectionsToggle');
 if (settingsShowCollections) {
     settingsShowCollections.checked = settings.showCollections !== false;
@@ -11268,7 +11188,7 @@ if (settingsShowCollections) {
         }
     });
 }
-// AdGuard Pop-up & Ad Blocker toggle
+
 const adguardToggle = document.getElementById('adguardBlockerToggle');
 if (adguardToggle) {
     if (window.AdGuardPopupBlocker) {
@@ -11428,7 +11348,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// Tab switching in add content modal
+
 document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -11438,8 +11358,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     });
 });
 
-// Slider Buttons
-// Slider arrows work for both static and dynamically-rendered (genre) sliders via delegation.
+
 document.addEventListener('click', (e) => {
     const btn = e.target.closest('.slider-btn');
     if (!btn || !btn.dataset.slider) return;
@@ -11447,7 +11366,7 @@ document.addEventListener('click', (e) => {
     if (slider) slider.scrollBy({ left: btn.classList.contains('slider-left') ? -600 : 600, behavior: 'smooth' });
 });
 
-// Top 10 Explore All
+
 document.addEventListener('click', (e) => {
     const exploreBtn = e.target.closest('#exploreAllTop10Btn, .row-explore-more');
     if (exploreBtn) {
@@ -11463,7 +11382,7 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Scroll Navbar
+
 let scrollTicking = false;
 window.addEventListener('scroll', () => {
     if (!scrollTicking) {
@@ -11476,7 +11395,7 @@ window.addEventListener('scroll', () => {
     }
 }, { passive: true });
 
-// Pause hero trailer video when hero scrolls out of view
+
 if (typeof IntersectionObserver !== 'undefined') {
     const heroEl = document.getElementById('heroSection');
     if (heroEl) {
@@ -11493,7 +11412,7 @@ if (typeof IntersectionObserver !== 'undefined') {
     }
 }
 
-// Content Section Intersection Observer
+
 let contentSectionObserver = null;
 let contentSectionMutationObserver = null;
 
@@ -11522,7 +11441,7 @@ function initContentSectionObserver() {
 
     observeContentSections();
 
-    // Observe dynamically created sections with debouncing, avoiding full document subtree churn
+    
     if (!contentSectionMutationObserver && typeof MutationObserver !== 'undefined') {
         let observeTimer = null;
         contentSectionMutationObserver = new MutationObserver(() => {
@@ -11552,12 +11471,12 @@ function observeContentSections() {
     });
 }
 
-// Footer Links
+
 document.getElementById('footerHelp').addEventListener('click', (e) => { e.preventDefault(); toast('Help: Add direct video URLs, upload TV episodes, and click Play to watch!'); });
 document.getElementById('footerTerms').addEventListener('click', (e) => { e.preventDefault(); toast('For personal use only. MILKBOX is a personal media organizer.'); });
 document.getElementById('footerPrivacy').addEventListener('click', (e) => { e.preventDefault(); toast('All data is stored locally in your browser. Nothing is sent to any server.'); });
 
-// Logo Click
+
 document.getElementById('logoWrap').addEventListener('click', (e) => {
     if (e) {
         e.preventDefault();
@@ -11583,7 +11502,7 @@ document.getElementById('logoWrap').addEventListener('click', (e) => {
     }
 });
 
-// Init
+
 function initAll() {
     try { initGenreOptions(); } catch (e) { console.error('initGenreOptions error:', e); }
     try { applyCloak(); } catch (e) { console.error('applyCloak error:', e); }
@@ -11609,7 +11528,7 @@ function initAll() {
 initAll();
 checkCatalogAvailability();
 
-// provider click delegation
+
 document.addEventListener('click', (e) => {
     const seasonScrollButton = e.target.closest('[data-season-scroll]');
     if (seasonScrollButton) {
@@ -11679,7 +11598,7 @@ function renderCollectionPage() {
 
     titleEl.textContent = `${currentCollection} · ${currentCollectionItems.length} title${currentCollectionItems.length===1?'':'s'}`;
 
-    // Render dedicated rich Collection Banner
+    
     if (banner) {
         banner.style.display = 'block';
         const cover = (def && def.cover) || slice.find(i=>i.backdrop)?.backdrop || slice.find(i=>i.poster)?.poster || '';
@@ -11762,17 +11681,17 @@ function closeCollectionView() {
     });
 }
 
-// collections click — show all verified authentic titles in that collection with pages
+
 document.addEventListener('click', async (e) => {
     const card = e.target.closest('.collection-card');
     if (!card) return;
     const label = card.dataset.collection;
     const def = COLLECTION_DEFS.find(d => d.label === label);
 
-    // 1. Start with authentic curated movies for this company/franchise
+    
     let items = (def && def.curatedMovies) ? def.curatedMovies.map(m => Object.assign({}, m)) : [];
 
-    // 2. Add matching items from user library
+    
     const pool = [...movies, ...tvShows].filter(completeItem);
     const matchingLib = pool.filter(it => collectionForTitle(it.title, it) === label);
     matchingLib.forEach(libIt => {
@@ -11780,7 +11699,7 @@ document.addEventListener('click', async (e) => {
         if (!exists) items.unshift(libIt);
     });
 
-    // 3. User custom collection picks
+    
     const custom = customCollections.find(c => c.label === label);
     if (custom) {
         const allPool = [...movies, ...tvShows];
@@ -11795,7 +11714,7 @@ document.addEventListener('click', async (e) => {
         }
     }
 
-    // 4. Fetch additional authentic TMDB titles if online
+    
     try {
         await tmdbEnsureConfig();
         if (def) {
@@ -11843,13 +11762,13 @@ document.getElementById('clearAnimeCwBtn')?.addEventListener('click', () => {
     toast('Anime Continue Watching cleared!', 'success');
 });
 
-// Site Announcements & What'S New
+
 let siteAnnouncements = [];
 
 async function loadSiteAnnouncements() {
     let baseAnnouncements = [];
     
-    // 1. Try real-time announcements from GitHub main branch (immediate delivery to all visitors)
+    
     try {
         const rawUrl = `https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/announcements.json?t=${Date.now()}`;
         const res = await fetch(rawUrl, { cache: 'no-store' });
@@ -11859,7 +11778,7 @@ async function loadSiteAnnouncements() {
         }
     } catch (_) {}
 
-    // 2. Try server API /api/announcements if raw GitHub didn't return data
+    
     if (!baseAnnouncements.length) {
         try {
             const res = await fetch(`/api/announcements?t=${Date.now()}`, { cache: 'no-store' });
@@ -11870,7 +11789,7 @@ async function loadSiteAnnouncements() {
         } catch (_) {}
     }
 
-    // 3. Fallback to /announcements.json
+   
     if (!baseAnnouncements.length) {
         try {
             const res = await fetch(`/announcements.json?t=${Date.now()}`, { cache: 'no-store' });
@@ -11881,7 +11800,7 @@ async function loadSiteAnnouncements() {
         } catch (_) {}
     }
 
-    // Merge with any custom announcements locally queued or saved
+    
     let customAnnouncements = [];
     try {
         const raw = localStorage.getItem('milkbox_custom_announcements');
@@ -11889,7 +11808,7 @@ async function loadSiteAnnouncements() {
     } catch (_) {}
 
     const all = [...customAnnouncements, ...baseAnnouncements];
-    // Deduplicate by ID
+    
     const seen = new Set();
     siteAnnouncements = all.filter(a => {
         if (!a || !a.id || seen.has(a.id)) return false;
@@ -11964,7 +11883,7 @@ function renderSiteAnnouncements() {
     }
 
     const dismissed = new Set(getDismissedAnnouncementIds());
-    // Find the latest announcement eligible for banner
+    
     const activeBannerAnn = siteAnnouncements.find(a => (a.isBanner !== false) && !dismissed.has(a.id));
 
     if (activeBannerAnn) {
@@ -12026,7 +11945,7 @@ function closeAnnouncementsModal() {
     if (modal) modal.classList.remove('active');
 }
 
-// Owner Authentication & Authorization for Announcements (Hashed SHA-256)
+
 const DEFAULT_OWNER_HASH = '66f9725023472f286313db3388f8a8ff22428fd8c2ac1da1d64acb720dcf2858';
 
 async function sha256Hex(str) {
@@ -12130,7 +12049,7 @@ function renderSettingsAnnouncementsList() {
     }).join('');
 }
 
-// Owner Unlock Form Submission
+
 document.getElementById('ownerUnlockForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const input = document.getElementById('ownerPasskeyInput');
@@ -12140,8 +12059,7 @@ document.getElementById('ownerUnlockForm')?.addEventListener('submit', async (e)
     const enteredHash = await sha256Hex(entered);
     const activeHash = getActiveOwnerHash();
 
-    // STRICT CHECK: Only the currently active hash is permitted.
-    // Old passwords do NOT work once the passcode has been changed.
+    
     if (enteredHash === activeHash) {
         try {
             localStorage.setItem('milkbox_owner_authenticated', 'true');
@@ -12159,7 +12077,7 @@ document.getElementById('ownerUnlockForm')?.addEventListener('submit', async (e)
     }
 });
 
-// Owner Lock Button
+
 document.getElementById('ownerLockBtn')?.addEventListener('click', () => {
     try {
         localStorage.removeItem('milkbox_owner_authenticated');
@@ -12169,7 +12087,7 @@ document.getElementById('ownerLockBtn')?.addEventListener('click', () => {
     toast('🔒 Owner controls locked.', 'info');
 });
 
-// Toggle Change Passcode Form
+
 document.getElementById('ownerChangeKeyBtn')?.addEventListener('click', () => {
     const wrap = document.getElementById('ownerChangeKeyWrap');
     if (wrap) wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
@@ -12180,7 +12098,7 @@ document.getElementById('cancelChangeKeyBtn')?.addEventListener('click', () => {
     if (wrap) wrap.style.display = 'none';
 });
 
-// Save New Passcode
+
 document.getElementById('saveNewOwnerPasskeyBtn')?.addEventListener('click', async () => {
     if (!isOwnerAuthenticated()) {
         toast('Unauthorized. Please unlock owner controls first.', 'error');
@@ -12207,15 +12125,15 @@ document.getElementById('saveNewOwnerPasskeyBtn')?.addEventListener('click', asy
         return;
     }
 
-    // Archive the previous active hash so it can never be used again
+    
     recordOldOwnerHash(currentActiveHash);
 
-    // Save the new active hash
+    
     try {
         localStorage.setItem('milkbox_owner_passcode_hash', newHash);
     } catch (_) {}
 
-    // Sync with server so server-side authorization stays aligned
+    
     try {
         fetch('/api/owner/update-passcode', {
             method: 'POST',
@@ -12230,7 +12148,7 @@ document.getElementById('saveNewOwnerPasskeyBtn')?.addEventListener('click', asy
     toast('Owner passcode updated! All previous passwords are now permanently revoked.', 'success');
 });
 
-// Direct GitHub REST API integration for fallback on static hosting (e.g. GitHub Pages milkbox.fyi)
+
 async function publishAnnouncementViaGitHubAPI(ann, token) {
     const url = 'https://api.github.com/repos/IordBeerus/MILKBOX/contents/announcements.json';
     const getRes = await fetch(url, {
@@ -12303,7 +12221,7 @@ async function deleteAnnouncementViaGitHubAPI(id, token) {
 
 async function publishAnnouncementGlobal(ann, activeHash) {
     let published = false;
-    // 1. First try server endpoint (saves to announcements.json and triggers syncToGitHub)
+    
     try {
         const res = await fetch('/api/announcements/publish', {
             method: 'POST',
@@ -12316,7 +12234,7 @@ async function publishAnnouncementGlobal(ann, activeHash) {
         }
     } catch (_) {}
 
-    // 2. Fallback to direct GitHub API if on static GitHub Pages or server endpoint unmounted
+    
     if (!published) {
         const ghToken = localStorage.getItem('milkbox_github_token');
         if (ghToken && (ghToken.startsWith('ghp_') || ghToken.startsWith('github_pat_'))) {
@@ -12359,7 +12277,7 @@ async function deleteAnnouncementGlobal(annId, activeHash) {
     return deleted;
 }
 
-// Wire announcement listeners
+
 document.getElementById('announcementsNavBtn')?.addEventListener('click', openAnnouncementsModal);
 document.getElementById('announcementViewBtn')?.addEventListener('click', openAnnouncementsModal);
 document.getElementById('closeAnnouncementsModal')?.addEventListener('click', closeAnnouncementsModal);
@@ -12376,11 +12294,11 @@ document.getElementById('announcementDismissBtn')?.addEventListener('click', () 
     toast('Announcement dismissed', 'info');
 });
 
-// Owner post announcement form in Settings (Strictly Gated & Broadcasted to Everyone)
+
 document.getElementById('ownerAnnouncementForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Guard: Only the authenticated owner can post
+    
     if (!isOwnerAuthenticated()) {
         toast('❌ Unauthorized: Only the verified site owner can post announcements.', 'error');
         updateOwnerAuthUI();
@@ -12425,7 +12343,7 @@ document.getElementById('ownerAnnouncementForm')?.addEventListener('submit', asy
     const activeHash = getActiveOwnerHash();
     await publishAnnouncementGlobal(newAnn, activeHash);
 
-    // Save locally for instantaneous response
+   
     let customList = [];
     try {
         const raw = localStorage.getItem('milkbox_custom_announcements');
@@ -12436,7 +12354,7 @@ document.getElementById('ownerAnnouncementForm')?.addEventListener('submit', asy
         localStorage.setItem('milkbox_custom_announcements', JSON.stringify(customList));
     } catch (_) {}
 
-    // Reset dismissals so visitors and owner see this new announcement immediately
+    
     try {
         const dismissed = getDismissedAnnouncementIds().filter(id => id !== newAnn.id);
         localStorage.setItem('milkbox_dismissed_announcements', JSON.stringify(dismissed));
@@ -12454,7 +12372,7 @@ document.getElementById('ownerAnnouncementForm')?.addEventListener('submit', asy
     toast('📢 Announcement published! It is now live for everyone on the site.', 'success');
 });
 
-// Clear custom announcements (Strictly Gated)
+
 document.getElementById('clearAnnouncementsBtn')?.addEventListener('click', () => {
     if (!isOwnerAuthenticated()) {
         toast('❌ Unauthorized: Only the site owner can clear announcements.', 'error');
@@ -12467,7 +12385,7 @@ document.getElementById('clearAnnouncementsBtn')?.addEventListener('click', () =
     toast('Custom announcements cleared', 'info');
 });
 
-// Delete individual announcement from Settings log (Strictly Gated)
+
 document.getElementById('settingsAnnouncementsList')?.addEventListener('click', async (e) => {
     const btn = e.target.closest('.btn-delete-announcement');
     if (!btn) return;
@@ -12501,13 +12419,13 @@ document.getElementById('settingsAnnouncementsList')?.addEventListener('click', 
     toast('Announcement removed', 'info');
 });
 
-// Load announcements and initialize owner auth UI on startup
+
 setTimeout(() => {
     loadSiteAnnouncements();
     updateOwnerAuthUI();
 }, 200);
 
-// Auto-refresh announcements periodically and on window focus so all active visitors get new updates live
+
 setInterval(loadSiteAnnouncements, 60000);
 window.addEventListener('focus', () => {
     loadSiteAnnouncements();
