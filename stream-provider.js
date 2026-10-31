@@ -1,7 +1,7 @@
 const TMDB_API_KEY = process.env.TMDB_API_KEY || 'd821ffcf1a2419aa1fcf6923006cfcc4';
 const { scrapeAll: scrapeX8rrStreams } = require('./x8rr-movies');
 
-// In-memory resolution cache (15 min TTL)
+
 const cache = new Map();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -23,7 +23,7 @@ function setCache(key, data) {
     cache.set(key, { data, time: Date.now() });
 }
 
-// Fetch TMDB metadata & IMDb external IDs
+
 async function fetchTmdbDetails(type, id) {
     const cacheKey = `tmdb:${type}:${id}`;
     const cached = getCached(cacheKey);
@@ -60,7 +60,7 @@ async function fetchTmdbDetails(type, id) {
     }
 }
 
-// Fetch AniList Anime Metadata
+
 async function fetchAnimeDetails(id) {
     const cacheKey = `ani:${id}`;
     const cached = getCached(cacheKey);
@@ -106,9 +106,9 @@ async function fetchAnimeDetails(id) {
     }
 }
 
-// Generate Stream Providers List with Milkbox Pink parameters
+
 function generateStreamProviders(type, id, season, episode, imdbId) {
-    const accent = 'ff2e63'; // Milkbox brand pink
+    const accent = 'ff2e63'; 
     const se = season || 1;
     const ep = episode || 1;
 
@@ -217,7 +217,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
         ];
     }
 
-    // Movie
+    
     return [
         {
             id: 'x8rrmovies',
@@ -289,7 +289,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
     ];
 }
 
-// Main Stream Resolver Controller
+
 async function handleStreamResolve(req, res, requestPath, query) {
     if (requestPath !== '/api/stream/resolve') return false;
 
@@ -376,7 +376,7 @@ async function handleStreamResolve(req, res, requestPath, query) {
     return true;
 }
 
-// Stream Proxy for CORS-restricted HLS or Subtitles
+
 async function handleStreamProxy(req, res, requestPath, query) {
     if (requestPath !== '/api/stream/proxy') return false;
 
