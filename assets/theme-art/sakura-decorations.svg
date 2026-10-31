@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 220" fill="none">
+  <defs>
+    <!-- Petal Gradient -->
+    <linearGradient id="sakuraPetal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fbcfe8"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+
+    <!-- Deep Blossom Center -->
+    <radialGradient id="sakuraCenter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ec4899"/>
+      <stop offset="70%" stop-color="#be185d"/>
+      <stop offset="100%" stop-color="#831843"/>
+    </radialGradient>
+
+    <!-- Branch Brown Gradient -->
+    <linearGradient id="branchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4a2830"/>
+      <stop offset="60%" stop-color="#2d151c"/>
+      <stop offset="100%" stop-color="#1f0e13"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Organic Cherry Blossom Branch from top right -->
+  <path d="M500 0 C450 15 390 35 320 40 C250 45 180 25 120 50 C80 65 40 100 0 120" stroke="url(#branchGrad)" stroke-width="5" stroke-linecap="round" fill="none"/>
+  <path d="M350 38 C320 60 290 85 270 120" stroke="url(#branchGrad)" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <path d="M220 35 C190 60 170 85 150 110" stroke="url(#branchGrad)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  <path d="M120 50 C90 70 80 95 70 125" stroke="url(#branchGrad)" stroke-width="2" stroke-linecap="round" fill="none"/>
+
+  <!-- Flower Definition reusable macro (5 heart-notched petals) -->
+  <!-- Flower 1: Large Blooming Flower at (120, 50) -->
+  <g transform="translate(120, 50)">
+    <g transform="rotate(15)">
+      <!-- 5 Petals -->
+      <path d="M0 0 C-12 -25 12 -25 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(0)"/>
+      <path d="M0 0 C-12 -25 12 -25 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(72)"/>
+      <path d="M0 0 C-12 -25 12 -25 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(144)"/>
+      <path d="M0 0 C-12 -25 12 -25 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(216)"/>
+      <path d="M0 0 C-12 -25 12 -25 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(288)"/>
+      <!-- Pistil center -->
+      <circle cx="0" cy="0" r="4.5" fill="url(#sakuraCenter)"/>
+      <circle cx="0" cy="0" r="2" fill="#fde047"/>
+    </g>
+  </g>
+
+  <!-- Flower 2: Medium Blooming Flower at (270, 115) -->
+  <g transform="translate(270, 115)">
+    <g transform="rotate(-20)">
+      <path d="M0 0 C-9 -20 9 -20 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(0)"/>
+      <path d="M0 0 C-9 -20 9 -20 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(72)"/>
+      <path d="M0 0 C-9 -20 9 -20 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(144)"/>
+      <path d="M0 0 C-9 -20 9 -20 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(216)"/>
+      <path d="M0 0 C-9 -20 9 -20 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="3.5" fill="url(#sakuraCenter)"/>
+      <circle cx="0" cy="0" r="1.5" fill="#fde047"/>
+    </g>
+  </g>
+
+  <!-- Flower 3: Large Flower at (340, 40) -->
+  <g transform="translate(340, 40)">
+    <g transform="rotate(45)">
+      <path d="M0 0 C-11 -23 11 -23 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(0)"/>
+      <path d="M0 0 C-11 -23 11 -23 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(72)"/>
+      <path d="M0 0 C-11 -23 11 -23 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(144)"/>
+      <path d="M0 0 C-11 -23 11 -23 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(216)"/>
+      <path d="M0 0 C-11 -23 11 -23 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="4" fill="url(#sakuraCenter)"/>
+      <circle cx="0" cy="0" r="1.8" fill="#fde047"/>
+    </g>
+  </g>
+
+  <!-- Flower 4: Small Flower at (70, 125) -->
+  <g transform="translate(70, 125)">
+    <g transform="rotate(30)">
+      <path d="M0 0 C-8 -16 8 -16 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(0)"/>
+      <path d="M0 0 C-8 -16 8 -16 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(72)"/>
+      <path d="M0 0 C-8 -16 8 -16 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(144)"/>
+      <path d="M0 0 C-8 -16 8 -16 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(216)"/>
+      <path d="M0 0 C-8 -16 8 -16 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="3" fill="url(#sakuraCenter)"/>
+    </g>
+  </g>
+
+  <!-- Flower 5: Small Flower at (440, 22) -->
+  <g transform="translate(440, 22)">
+    <g transform="rotate(-10)">
+      <path d="M0 0 C-8 -17 8 -17 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(0)"/>
+      <path d="M0 0 C-8 -17 8 -17 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(72)"/>
+      <path d="M0 0 C-8 -17 8 -17 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(144)"/>
+      <path d="M0 0 C-8 -17 8 -17 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(216)"/>
+      <path d="M0 0 C-8 -17 8 -17 0 0 Z" fill="url(#sakuraPetal)" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="3" fill="url(#sakuraCenter)"/>
+    </g>
+  </g>
+
+  <!-- Buds on branch -->
+  <ellipse cx="190" cy="28" rx="4" ry="7" fill="url(#sakuraPetal)" transform="rotate(40, 190, 28)"/>
+  <ellipse cx="230" cy="42" rx="3.5" ry="6" fill="url(#sakuraPetal)" transform="rotate(-30, 230, 42)"/>
+  <ellipse cx="150" cy="105" rx="3.5" ry="6.5" fill="url(#sakuraPetal)" transform="rotate(50, 150, 105)"/>
+
+  <!-- Drifting Single Petals Fluttering in the wind -->
+  <g fill="url(#sakuraPetal)" opacity="0.9">
+    <path d="M30 150 C24 138 38 132 42 144 C45 154 36 160 30 150 Z"/>
+    <path d="M180 140 C175 130 188 124 192 134 C195 142 186 148 180 140 Z"/>
+    <path d="M360 110 C354 98 368 92 372 103 C375 112 365 118 360 110 Z"/>
+    <path d="M420 150 C415 140 427 135 431 144 C434 152 425 158 420 150 Z"/>
+    <path d="M480 90 C474 80 487 75 491 84 C494 92 485 98 480 90 Z"/>
+  </g>
+</svg>

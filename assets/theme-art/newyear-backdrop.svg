@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Deep Cosmic Midnight Base -->
+    <radialGradient id="nyBase" cx="50%" cy="25%" r="85%">
+      <stop offset="0%" stop-color="#101938"/>
+      <stop offset="45%" stop-color="#090e24"/>
+      <stop offset="100%" stop-color="#040612"/>
+    </radialGradient>
+
+    <!-- Champagne Gold Fireworks Burst Left -->
+    <radialGradient id="nyBurstLeft" cx="18%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#fde047" stop-opacity="0.18"/>
+      <stop offset="30%" stop-color="#f59e0b" stop-opacity="0.09"/>
+      <stop offset="70%" stop-color="#b45309" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Royal Indigo & Electric Violet Burst Right -->
+    <radialGradient id="nyBurstRight" cx="82%" cy="15%" r="60%">
+      <stop offset="0%" stop-color="#818cf8" stop-opacity="0.18"/>
+      <stop offset="35%" stop-color="#4f46e5" stop-opacity="0.08"/>
+      <stop offset="75%" stop-color="#312e81" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#312e81" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Center Warm Amber Glow -->
+    <radialGradient id="nyCenter" cx="50%" cy="35%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.08"/>
+      <stop offset="50%" stop-color="#6366f1" stop-opacity="0.04"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Cinematic Noir Vignette -->
+    <radialGradient id="nyVignette" cx="50%" cy="50%" r="65%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#03050c" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Canvas -->
+  <rect width="1920" height="1080" fill="url(#nyBase)"/>
+  <rect width="1920" height="1080" fill="url(#nyBurstLeft)"/>
+  <rect width="1920" height="1080" fill="url(#nyBurstRight)"/>
+  <rect width="1920" height="1080" fill="url(#nyCenter)"/>
+
+  <!-- Distant City Skyline Silhouettes -->
+  <path d="M0 860 L140 860 L140 820 L220 820 L220 860 L380 860 L380 790 L460 790 L460 860 L620 860 L620 810 L700 810 L700 860 L890 860 L890 770 L960 770 L960 860 L1150 860 L1150 800 L1230 800 L1230 860 L1410 860 L1410 830 L1490 830 L1490 860 L1680 860 L1680 780 L1760 780 L1760 860 L1920 860 L1920 1080 L0 1080 Z" fill="#070c1e" opacity="0.6"/>
+
+  <!-- Golden Starlight & Confetti Sparkles -->
+  <g fill="#fef08a" opacity="0.75">
+    <circle cx="160" cy="140" r="1.5"/><circle cx="280" cy="90" r="1.8"/>
+    <circle cx="340" cy="220" r="1.3"/><circle cx="490" cy="120" r="2.0"/>
+    <circle cx="720" cy="80" r="1.6"/><circle cx="880" cy="190" r="1.4"/>
+    <circle cx="1050" cy="110" r="1.8"/><circle cx="1280" cy="160" r="2.2"/>
+    <circle cx="1510" cy="95" r="1.5"/><circle cx="1720" cy="180" r="1.9"/>
+  </g>
+
+  <!-- Vignette -->
+  <rect width="1920" height="1080" fill="url(#nyVignette)"/>
+</svg>

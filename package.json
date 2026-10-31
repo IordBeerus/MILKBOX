@@ -1,0 +1,23 @@
+{
+  "name": "milkbox",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MILKBOX static media library",
+  "scripts": {
+    "lint": "npm run build",
+    "dev": "node server.js",
+    "build": "node --check app.js && node --check server.js && node --check x8rr-movies.js && node --check stream-provider.js && node --check watch-party-server.js && node --check watch-party.js && node --check gdrive-music.js && node --check sync-github.js && node --check service-worker.js && node --check sync-provider-icons.js && node --check milkbox-player.js && node --check milkbox-embed.js && node --check musify-player.js && node --check collections-data.js && node --check adguard-popupblocker.js",
+    "start": "node server.js",
+    "sync:provider-icons": "node sync-provider-icons.js",
+    "sync:github": "node sync-github.js",
+    "push": "node sync-github.js"
+  },
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "dependencies": {
+    "jsmediatags": "^3.9.7",
+    "ws": "^8.22.0",
+    "youtubei.js": "^18.0.0"
+  }
+}

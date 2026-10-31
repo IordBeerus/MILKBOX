@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 120">
+  <defs>
+    <linearGradient id="sakuraSky" x2="0" y2="1">
+      <stop stop-color="#1e0c24"/>
+      <stop offset="1" stop-color="#4a1836"/>
+    </linearGradient>
+    <linearGradient id="sakuraPetalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#fbcfe8"/>
+      <stop offset="100%" stop-color="#f472b6"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fce7f3"/>
+      <stop offset="100%" stop-color="#f472b6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="320" height="120" fill="url(#sakuraSky)"/>
+  <!-- Full Moon -->
+  <circle cx="235" cy="35" r="22" fill="url(#moonGlow)"/>
+  <circle cx="235" cy="35" r="14" fill="#fff5f9"/>
+
+  <!-- Distant Hills -->
+  <path fill="#2c0e28" d="M0 95 Q80 75 160 88 T320 80 L320 120 L0 120 Z"/>
+  <path fill="#1a0718" d="M0 102 Q100 92 200 100 T320 95 L320 120 L0 120 Z"/>
+
+  <!-- Cherry Blossom Branch -->
+  <path d="M0 15 C70 25 140 45 200 35 T300 20" stroke="#3d1620" stroke-width="3" fill="none"/>
+  <path d="M80 27 C100 45 120 55 140 70" stroke="#3d1620" stroke-width="2" fill="none"/>
+
+  <!-- Blossom Flowers -->
+  <g transform="translate(75, 26) scale(0.65)">
+    <circle cx="0" cy="0" r="14" fill="url(#sakuraPetalGrad)"/>
+    <circle cx="0" cy="0" r="3" fill="#be185d"/>
+  </g>
+  <g transform="translate(135, 68) scale(0.55)">
+    <circle cx="0" cy="0" r="14" fill="url(#sakuraPetalGrad)"/>
+    <circle cx="0" cy="0" r="3" fill="#be185d"/>
+  </g>
+  <g transform="translate(170, 38) scale(0.7)">
+    <circle cx="0" cy="0" r="14" fill="url(#sakuraPetalGrad)"/>
+    <circle cx="0" cy="0" r="3" fill="#be185d"/>
+  </g>
+  <g transform="translate(240, 26) scale(0.5)">
+    <circle cx="0" cy="0" r="14" fill="url(#sakuraPetalGrad)"/>
+    <circle cx="0" cy="0" r="3" fill="#be185d"/>
+  </g>
+
+  <!-- Drifting Petals -->
+  <ellipse cx="60" cy="65" rx="3" ry="1.5" fill="#fbcfe8" transform="rotate(30, 60, 65)"/>
+  <ellipse cx="110" cy="95" rx="3.5" ry="1.8" fill="#f472b6" transform="rotate(-20, 110, 95)"/>
+  <ellipse cx="190" cy="80" rx="3" ry="1.5" fill="#fbcfe8" transform="rotate(45, 190, 80)"/>
+  <ellipse cx="270" cy="65" rx="3.5" ry="1.8" fill="#f472b6" transform="rotate(15, 270, 65)"/>
+  <ellipse cx="295" cy="100" rx="2.5" ry="1.2" fill="#fbcfe8" transform="rotate(-30, 295, 100)"/>
+</svg>

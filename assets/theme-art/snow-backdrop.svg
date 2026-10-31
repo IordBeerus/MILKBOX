@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Arctic Glacial Deep Night Base -->
+    <radialGradient id="snowBase" cx="50%" cy="25%" r="85%">
+      <stop offset="0%" stop-color="#0a1a2e"/>
+      <stop offset="45%" stop-color="#06101e"/>
+      <stop offset="100%" stop-color="#02070e"/>
+    </radialGradient>
+
+    <!-- Aurora Borealis Cyan-Teal Wave Left -->
+    <radialGradient id="auroraCyan" cx="25%" cy="15%" r="65%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.18"/>
+      <stop offset="35%" stop-color="#0284c7" stop-opacity="0.08"/>
+      <stop offset="75%" stop-color="#0369a1" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#0369a1" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Aurora Lavender-Silver Wave Right -->
+    <radialGradient id="auroraViolet" cx="78%" cy="12%" r="60%">
+      <stop offset="0%" stop-color="#a5b4fc" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="#6366f1" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#4338ca" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bottom Snowdrift Icy Glow -->
+    <radialGradient id="bottomFrost" cx="50%" cy="95%" r="65%">
+      <stop offset="0%" stop-color="#bae6fd" stop-opacity="0.12"/>
+      <stop offset="40%" stop-color="#38bdf8" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Glacial Noir Vignette -->
+    <radialGradient id="snowVignette" cx="50%" cy="50%" r="65%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#02060b" stop-opacity="0.9"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Canvas -->
+  <rect width="1920" height="1080" fill="url(#snowBase)"/>
+  <rect width="1920" height="1080" fill="url(#auroraCyan)"/>
+  <rect width="1920" height="1080" fill="url(#auroraViolet)"/>
+  <rect width="1920" height="1080" fill="url(#bottomFrost)"/>
+
+  <!-- Distant Frozen Mountain Peaks -->
+  <path d="M0 780 L220 660 L380 740 L640 600 L840 710 L1080 580 L1260 670 L1540 590 L1720 680 L1920 610 L1920 1080 L0 1080 Z" fill="#0d2238" opacity="0.45"/>
+  <path d="M0 860 Q480 810 960 870 T1920 830 L1920 1080 L0 1080 Z" fill="#071524" opacity="0.65"/>
+
+  <!-- Soft Distant Crystal Stars -->
+  <g fill="#e0f2fe" opacity="0.75">
+    <circle cx="120" cy="110" r="1.6"/><circle cx="260" cy="80" r="1.3"/>
+    <circle cx="480" cy="150" r="2.0"/><circle cx="680" cy="95" r="1.5"/>
+    <circle cx="920" cy="130" r="1.8"/><circle cx="1180" cy="70" r="1.4"/>
+    <circle cx="1380" cy="140" r="2.2"/><circle cx="1620" cy="85" r="1.6"/>
+    <circle cx="1800" cy="130" r="1.7"/>
+  </g>
+
+  <!-- Vignette -->
+  <rect width="1920" height="1080" fill="url(#snowVignette)"/>
+</svg>

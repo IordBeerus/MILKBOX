@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 95" fill="none" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <filter id="hwGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="emberGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <linearGradient id="moonGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff2cc"/>
+      <stop offset="45%" stop-color="#ffb84d"/>
+      <stop offset="100%" stop-color="#f57c00"/>
+    </linearGradient>
+    <radialGradient id="moonAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffa726" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#ff7043" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ff7043" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="pumpkinShell" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff9100"/>
+      <stop offset="65%" stop-color="#e65100"/>
+      <stop offset="100%" stop-color="#bf360c"/>
+    </linearGradient>
+    <linearGradient id="pumpkinGlow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fff9c4"/>
+      <stop offset="60%" stop-color="#ffe082"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </linearGradient>
+    <linearGradient id="stemGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#689f38"/>
+      <stop offset="100%" stop-color="#33691e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Ambient Moon Aura -->
+  <circle cx="165" cy="38" r="32" fill="url(#moonAura)"/>
+
+  <!-- Sleek Crescent Moon -->
+  <path d="M172 18 C158 22 148 34 148 49 C148 65 159 78 175 80 C162 82 142 74 138 56 C134 40 144 24 163 17 C166 16 169 16 172 18 Z" 
+        fill="url(#moonGrad)" filter="url(#hwGlow)" opacity="0.95"/>
+
+  <!-- Distant Bat 1 -->
+  <path d="M72 26 C75 22 81 20 85 24 C89 20 95 22 98 26 C94 26 89 28 85 33 C81 28 76 26 72 26 Z" 
+        fill="#ffb74d" opacity="0.6"/>
+
+  <!-- Bat 2 (Mid-size, stylized wings) -->
+  <path d="M100 18 C104 12 113 10 120 15 C124 13 131 12 135 17 C130 18 126 21 124 26 C121 21 113 19 100 18 Z" 
+        fill="#ffa726" opacity="0.82" filter="url(#emberGlow)"/>
+
+  <!-- Bat 3 (Foreground accent) -->
+  <path d="M36 38 C42 30 54 27 64 34 C70 31 80 30 86 37 C79 38 73 42 70 49 C66 43 54 40 36 38 Z" 
+        fill="#ff9800" opacity="0.9" filter="url(#emberGlow)"/>
+
+  <!-- Floating Ember Sparks -->
+  <circle cx="120" cy="48" r="1.5" fill="#ffe082" opacity="0.85" filter="url(#emberGlow)"/>
+  <circle cx="106" cy="62" r="1.2" fill="#ffb74d" opacity="0.75"/>
+  <circle cx="140" cy="72" r="1.8" fill="#ffd54f" opacity="0.9" filter="url(#emberGlow)"/>
+  <circle cx="88" cy="42" r="1" fill="#ffa726" opacity="0.65"/>
+  <circle cx="58" cy="20" r="1.2" fill="#ffe57f" opacity="0.8"/>
+
+  <!-- Sleek Jack-o'-Lantern Group -->
+  <g transform="translate(148, 48) scale(0.68)">
+    <!-- Stem -->
+    <path d="M38 12 C39 6 44 2 48 3 C47 7 44 11 41 14 Z" fill="url(#stemGrad)"/>
+    <!-- Pumpkin Outer Body Ribs -->
+    <ellipse cx="40" cy="36" rx="36" ry="26" fill="url(#pumpkinShell)"/>
+    <ellipse cx="40" cy="36" rx="27" ry="26" fill="#f57c00" opacity="0.35"/>
+    <ellipse cx="40" cy="36" rx="15" ry="26" fill="#ff9800" opacity="0.25"/>
+
+    <!-- Glowing Carved Face -->
+    <!-- Left Eye -->
+    <polygon points="23,28 32,32 25,37" fill="url(#pumpkinGlow)" filter="url(#hwGlow)"/>
+    <!-- Right Eye -->
+    <polygon points="57,28 48,32 55,37" fill="url(#pumpkinGlow)" filter="url(#hwGlow)"/>
+    <!-- Nose -->
+    <polygon points="40,33 36,39 44,39" fill="url(#pumpkinGlow)" filter="url(#hwGlow)"/>
+    <!-- Jagged Smile with Candle Glow -->
+    <path d="M22 43 C26 52 35 55 40 55 C45 55 54 52 58 43 C54 46 51 44 48 48 C45 44 42 45 40 48 C38 45 35 44 32 48 C29 44 26 46 22 43 Z" 
+          fill="url(#pumpkinGlow)" filter="url(#hwGlow)"/>
+  </g>
+</svg>

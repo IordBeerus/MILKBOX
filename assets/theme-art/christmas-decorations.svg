@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 220" fill="none">
+  <defs>
+    <!-- Ribbon Red Gradient -->
+    <linearGradient id="ribbonRed" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4d4d"/>
+      <stop offset="45%" stop-color="#dc2626"/>
+      <stop offset="100%" stop-color="#991b1b"/>
+    </linearGradient>
+
+    <!-- Gold Accent Gradient -->
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="50%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Pine Green Gradient -->
+    <linearGradient id="pineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399"/>
+      <stop offset="60%" stop-color="#059669"/>
+      <stop offset="100%" stop-color="#064e3b"/>
+    </linearGradient>
+
+    <!-- Bauble Gradient Red -->
+    <radialGradient id="baubleRed" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fca5a5"/>
+      <stop offset="40%" stop-color="#ef4444"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </radialGradient>
+
+    <!-- Bauble Gradient Gold -->
+    <radialGradient id="baubleGold" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="35%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#b45309"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Hanging Strings -->
+  <line x1="80" y1="0" x2="80" y2="110" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.8"/>
+  <line x1="220" y1="0" x2="220" y2="150" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.8"/>
+  <line x1="360" y1="0" x2="360" y2="120" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.8"/>
+  <line x1="440" y1="0" x2="440" y2="70" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="3,3" opacity="0.8"/>
+
+  <!-- Hanging Baubles -->
+  <!-- 1. Gold Bauble left -->
+  <g transform="translate(80, 125)">
+    <rect x="-4" y="-18" width="8" height="6" rx="1.5" fill="url(#goldGrad)"/>
+    <circle cx="0" cy="0" r="16" fill="url(#baubleGold)"/>
+    <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="#ffffff" opacity="0.5" transform="rotate(-30, -4, -5)"/>
+  </g>
+
+  <!-- 2. Large Red Bauble center -->
+  <g transform="translate(220, 172)">
+    <rect x="-5" y="-24" width="10" height="8" rx="2" fill="url(#goldGrad)"/>
+    <circle cx="0" cy="0" r="22" fill="url(#baubleRed)"/>
+    <!-- Snowflake detail on bauble -->
+    <path d="M-8 0 L8 0 M0 -8 L0 8 M-5 -5 L5 5 M-5 5 L5 -5" stroke="#ffffff" stroke-width="1" opacity="0.55"/>
+    <ellipse cx="-6" cy="-7" rx="7" ry="4" fill="#ffffff" opacity="0.5" transform="rotate(-35, -6, -7)"/>
+  </g>
+
+  <!-- 3. Gold Star bauble right -->
+  <g transform="translate(360, 135)">
+    <rect x="-4" y="-18" width="8" height="6" rx="1.5" fill="url(#goldGrad)"/>
+    <circle cx="0" cy="0" r="17" fill="url(#baubleGold)"/>
+    <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="#ffffff" opacity="0.5" transform="rotate(-30, -4, -5)"/>
+  </g>
+
+  <!-- 4. Small Red Bauble far right -->
+  <g transform="translate(440, 82)">
+    <rect x="-3" y="-14" width="6" height="5" rx="1" fill="url(#goldGrad)"/>
+    <circle cx="0" cy="0" r="12" fill="url(#baubleRed)"/>
+    <ellipse cx="-3" cy="-4" rx="4" ry="2" fill="#ffffff" opacity="0.5" transform="rotate(-30, -3, -4)"/>
+  </g>
+
+  <!-- Pine Needle Sprigs (Top Garland) -->
+  <path d="M0 0 Q100 45 200 20 T400 35 T500 0 L500 0 L0 0 Z" fill="url(#pineGrad)" opacity="0.75"/>
+
+  <!-- Pine Needles Detail -->
+  <g stroke="#10b981" stroke-width="2.5" stroke-linecap="round" opacity="0.85">
+    <!-- Cluster 1 -->
+    <path d="M40 0 L60 30 M45 0 L80 25 M30 0 L50 35 M20 0 L35 25 M70 0 L95 20"/>
+    <!-- Cluster 2 -->
+    <path d="M150 0 L180 38 M165 0 L205 32 M135 0 L160 40 M190 0 L230 28"/>
+    <!-- Cluster 3 -->
+    <path d="M300 0 L330 35 M320 0 L360 30 M280 0 L310 40 M340 0 L380 25"/>
+    <!-- Cluster 4 -->
+    <path d="M420 0 L450 30 M440 0 L475 25 M400 0 L430 35 M460 0 L490 20"/>
+  </g>
+
+  <!-- Holly Berries Clusters -->
+  <g fill="#ef4444" stroke="#991b1b" stroke-width="0.8">
+    <circle cx="120" cy="22" r="5"/><circle cx="128" cy="27" r="4.5"/><circle cx="122" cy="31" r="4"/>
+    <circle cx="280" cy="26" r="5"/><circle cx="289" cy="29" r="4.5"/><circle cx="284" cy="34" r="4"/>
+    <circle cx="410" cy="18" r="4.5"/><circle cx="418" cy="23" r="4"/><circle cx="413" cy="27" r="3.5"/>
+  </g>
+
+  <!-- Festive Golden Bow in Center -->
+  <g transform="translate(220, 28)">
+    <!-- Ribbons trailing -->
+    <path d="M-8 10 C-18 35 -30 55 -25 75 C-22 55 -10 38 -4 15 Z" fill="url(#ribbonRed)"/>
+    <path d="M8 10 C18 35 30 55 25 75 C22 55 10 38 4 15 Z" fill="url(#ribbonRed)"/>
+    <!-- Left Loop -->
+    <path d="M0 0 C-25 -20 -45 5 -10 12 C-3 10 -1 5 0 0 Z" fill="url(#ribbonRed)"/>
+    <!-- Right Loop -->
+    <path d="M0 0 C25 -20 45 5 10 12 C3 10 1 5 0 0 Z" fill="url(#ribbonRed)"/>
+    <!-- Center Knot -->
+    <ellipse cx="0" cy="2" rx="6" ry="5" fill="url(#goldGrad)"/>
+  </g>
+
+  <!-- Warm Starlight Twinkles -->
+  <g fill="#fef08a" opacity="0.9">
+    <!-- Star 1 -->
+    <path d="M170 45 L172 50 L177 52 L172 54 L170 59 L168 54 L163 52 L168 50 Z"/>
+    <!-- Star 2 -->
+    <path d="M310 55 L311.5 59 L316 60.5 L311.5 62 L310 66 L308.5 62 L304 60.5 L308.5 59 Z"/>
+    <!-- Star 3 -->
+    <path d="M470 30 L471.5 34 L476 35.5 L471.5 37 L470 41 L468.5 37 L464 35.5 L468.5 34 Z"/>
+  </g>
+</svg>

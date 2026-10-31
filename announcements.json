@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ann-2026-10-28-01",
+    "title": "Full-Page Cinema Player & Performance Upgrade",
+    "message": "Enjoy ultra smooth, lag-free playback with our dedicated cinema player, instant server switching, and 40+ HD streaming sources.",
+    "category": "New Feature",
+    "date": "Oct 28, 2026",
+    "badge": "WHAT'S NEW",
+    "isBanner": true
+  },
+  {
+    "id": "ann-2026-10-27-02",
+    "title": "New Seasonal Releases & Anime Dubs Added",
+    "message": "Fresh anime episodes with one-click Sub/Dub switching, trending box-office titles, and updated direct server mirrors are now streaming.",
+    "category": "Added Content",
+    "date": "Oct 27, 2026",
+    "badge": "CONTENT",
+    "isBanner": false
+  }
+]

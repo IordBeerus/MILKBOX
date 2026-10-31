@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/MILKBOX-Slop-and-other && node --check app\\.js$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

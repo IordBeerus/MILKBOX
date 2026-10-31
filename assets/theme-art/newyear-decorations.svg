@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 220" fill="none">
+  <defs>
+    <!-- Gold Gradient -->
+    <linearGradient id="nyGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="35%" stop-color="#fbbf24"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+
+    <!-- Celestial Blue Gradient -->
+    <linearGradient id="nyBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e0e7ff"/>
+      <stop offset="50%" stop-color="#818cf8"/>
+      <stop offset="100%" stop-color="#4f46e5"/>
+    </linearGradient>
+
+    <!-- Star Burst Radial -->
+    <radialGradient id="nyStarRadial" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="40%" stop-color="#fef08a"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Large Starburst Left -->
+  <g transform="translate(110, 85)">
+    <circle cx="0" cy="0" r="38" fill="url(#nyStarRadial)" opacity="0.4"/>
+    <!-- Starburst Rays -->
+    <g stroke="url(#nyGold)" stroke-width="2.5" stroke-linecap="round">
+      <line x1="0" y1="-45" x2="0" y2="45"/>
+      <line x1="-45" y1="0" x2="45" y2="0"/>
+      <line x1="-32" y1="-32" x2="32" y2="32"/>
+      <line x1="-32" y1="32" x2="32" y2="-32"/>
+    </g>
+    <g stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" opacity="0.8">
+      <line x1="0" y1="-25" x2="0" y2="25"/>
+      <line x1="-25" y1="0" x2="25" y2="0"/>
+    </g>
+    <circle cx="0" cy="0" r="4.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Medium Starburst Center-Right -->
+  <g transform="translate(320, 110)">
+    <circle cx="0" cy="0" r="28" fill="url(#nyStarRadial)" opacity="0.35"/>
+    <g stroke="url(#nyBlue)" stroke-width="2" stroke-linecap="round">
+      <line x1="0" y1="-32" x2="0" y2="32"/>
+      <line x1="-32" y1="0" x2="32" y2="0"/>
+      <line x1="-22" y1="-22" x2="22" y2="22"/>
+      <line x1="-22" y1="22" x2="22" y2="-22"/>
+    </g>
+    <circle cx="0" cy="0" r="3.5" fill="#e0e7ff"/>
+  </g>
+
+  <!-- Small Starburst Top Center -->
+  <g transform="translate(220, 42)">
+    <g stroke="url(#nyGold)" stroke-width="1.8" stroke-linecap="round">
+      <line x1="0" y1="-20" x2="0" y2="20"/>
+      <line x1="-20" y1="0" x2="20" y2="0"/>
+      <line x1="-14" y1="-14" x2="14" y2="14"/>
+      <line x1="-14" y1="14" x2="14" y2="-14"/>
+    </g>
+    <circle cx="0" cy="0" r="2.5" fill="#ffffff"/>
+  </g>
+
+  <!-- Small Starburst Far Right -->
+  <g transform="translate(440, 65)">
+    <g stroke="url(#nyGold)" stroke-width="1.8" stroke-linecap="round">
+      <line x1="0" y1="-22" x2="0" y2="22"/>
+      <line x1="-22" y1="0" x2="22" y2="0"/>
+      <line x1="-15" y1="-15" x2="15" y2="15"/>
+      <line x1="-15" y1="15" x2="15" y2="-15"/>
+    </g>
+    <circle cx="0" cy="0" r="3" fill="#ffffff"/>
+  </g>
+
+  <!-- Swirling Celebration Streamer Ribbons -->
+  <path d="M0 25 Q120 75 240 20 T480 50" fill="none" stroke="url(#nyGold)" stroke-width="2.2" opacity="0.75" stroke-dasharray="8,4"/>
+  <path d="M30 0 Q180 90 320 35 T500 80" fill="none" stroke="url(#nyBlue)" stroke-width="1.8" opacity="0.65"/>
+
+  <!-- Confetti Diamonds & Circles -->
+  <g fill="url(#nyGold)" opacity="0.9">
+    <rect x="70" y="30" width="6" height="6" rx="1" transform="rotate(25, 70, 30)"/>
+    <rect x="180" y="110" width="5" height="5" rx="1" transform="rotate(45, 180, 110)"/>
+    <rect x="270" y="65" width="7" height="7" rx="1" transform="rotate(15, 270, 65)"/>
+    <rect x="390" y="40" width="5" height="5" rx="1" transform="rotate(35, 390, 40)"/>
+    <rect x="470" y="120" width="6" height="6" rx="1" transform="rotate(50, 470, 120)"/>
+  </g>
+
+  <g fill="#a5b4fc" opacity="0.8">
+    <circle cx="50" cy="120" r="3.5"/>
+    <circle cx="160" cy="20" r="3"/>
+    <circle cx="280" cy="140" r="3.5"/>
+    <circle cx="370" cy="155" r="2.5"/>
+    <circle cx="420" cy="130" r="3"/>
+  </g>
+</svg>

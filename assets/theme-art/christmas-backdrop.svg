@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" fill="none" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Deep Evergreen & Holiday Crimson Atmospheric Base -->
+    <radialGradient id="xmasBase" cx="50%" cy="30%" r="85%">
+      <stop offset="0%" stop-color="#0c241c"/>
+      <stop offset="45%" stop-color="#071712"/>
+      <stop offset="100%" stop-color="#040b08"/>
+    </radialGradient>
+
+    <!-- Top Left Holiday Crimson Glow -->
+    <radialGradient id="topCrimson" cx="15%" cy="12%" r="60%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.16"/>
+      <stop offset="35%" stop-color="#991b1b" stop-opacity="0.08"/>
+      <stop offset="70%" stop-color="#7f1d1d" stop-opacity="0.02"/>
+      <stop offset="100%" stop-color="#7f1d1d" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Top Right Warm Holiday Gold Starlight Glow -->
+    <radialGradient id="topGold" cx="85%" cy="10%" r="55%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.15"/>
+      <stop offset="40%" stop-color="#d97706" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Bottom Deep Pine Fir Glow -->
+    <radialGradient id="bottomPine" cx="50%" cy="95%" r="70%">
+      <stop offset="0%" stop-color="#059669" stop-opacity="0.12"/>
+      <stop offset="40%" stop-color="#047857" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#064e3b" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Center Soft Cinematic Vignette -->
+    <radialGradient id="xmasVignette" cx="50%" cy="50%" r="65%">
+      <stop offset="60%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#030806" stop-opacity="0.88"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Deep Canvas -->
+  <rect width="1920" height="1080" fill="url(#xmasBase)"/>
+  <rect width="1920" height="1080" fill="url(#topCrimson)"/>
+  <rect width="1920" height="1080" fill="url(#topGold)"/>
+  <rect width="1920" height="1080" fill="url(#bottomPine)"/>
+
+  <!-- Distant Winter Mountain & Pine Silhouettes -->
+  <path d="M0 720 Q480 670 960 730 T1920 690 L1920 1080 L0 1080 Z" fill="#0b2018" opacity="0.45"/>
+  <path d="M0 830 Q480 790 960 850 T1920 810 L1920 1080 L0 1080 Z" fill="#06140f" opacity="0.65"/>
+
+  <!-- Subtle Twinkling Holiday Stars -->
+  <g fill="#fef3c7" opacity="0.6">
+    <circle cx="180" cy="120" r="1.5"/>
+    <circle cx="340" cy="90" r="1.2"/>
+    <circle cx="560" cy="170" r="1.8"/>
+    <circle cx="820" cy="80" r="1.4"/>
+    <circle cx="1120" cy="140" r="1.6"/>
+    <circle cx="1450" cy="100" r="2.0"/>
+    <circle cx="1680" cy="160" r="1.4"/>
+    <circle cx="1820" cy="90" r="1.6"/>
+  </g>
+
+  <!-- Vignette for high legibility -->
+  <rect width="1920" height="1080" fill="url(#xmasVignette)"/>
+</svg>
