@@ -1,9 +1,9 @@
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
-// Cache for compiled WebAssembly modules
+
 const wasmCache = new Map();
 
-// In-memory stream cache (10 min TTL)
+
 const streamCache = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
 
@@ -59,7 +59,7 @@ async function vidsrcFetch(url, referer) {
     });
 }
 
-// VidSrc stream scraper from x8rr/movies
+
 async function vidsrcExtract(type, tmdbId, season, episode) {
     try {
         const isTV = type === 'tv';
@@ -170,7 +170,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
     }
 }
 
-// Scrape streams with caching and optional remote X8RR_MOVIES_URL upstream
+
 async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
     const isTV = type === 'tv';
     const cacheKey = `${type}:${tmdbId}:${isTV ? `${season}:${episode}` : '0'}`;
@@ -179,7 +179,7 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         return cached.streams;
     }
 
-    // 1. Try upstream x8rr/movies server if configured via env
+    
     if (process.env.X8RR_MOVIES_URL) {
         try {
             const base = process.env.X8RR_MOVIES_URL.replace(/\/+$/, '');
@@ -210,7 +210,7 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         }
     }
 
-    // 2. Built-in VidSrc WASM scraper
+   
     const streams = await vidsrcExtract(type, tmdbId, season, episode);
     if (streams.length > 0) {
         streamCache.set(cacheKey, { streams, time: Date.now() });
@@ -218,8 +218,7 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
     return streams;
 }
 
-// Proxy endpoint — solves CORS and host authentication for HLS playback
-// Rewrites m3u8 playlist manifest lines so player fetches chunks through proxy
+
 async function handleX8rrProxy(req, res, targetUrl) {
     if (!targetUrl) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -263,7 +262,7 @@ async function handleX8rrProxy(req, res, targetUrl) {
             const origin = parsed.origin;
             const basePath = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
 
-            // Rewrite non-comment lines in m3u8 playlist
+            
             text = text.replace(/^(?!#)(\S+)$/gm, (line) => {
                 const trimmed = line.trim();
                 if (!trimmed) return line;
@@ -287,7 +286,7 @@ async function handleX8rrProxy(req, res, targetUrl) {
             });
             res.end(text);
         } else {
-            // Binary segment or key file (.ts, .aac, .m4s, etc.)
+            
             res.writeHead(200, {
                 'Content-Type': ct || 'video/MP2T',
                 'Cache-Control': 'public, max-age=86400'
@@ -306,7 +305,7 @@ async function handleX8rrProxy(req, res, targetUrl) {
     }
 }
 
-// Stream scraper endpoint handler
+
 async function handleX8rrStreamApi(req, res, requestPath, query) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -318,10 +317,7 @@ async function handleX8rrStreamApi(req, res, requestPath, query) {
         return true;
     }
 
-    // Supports:
-    // /api/x8rr/stream/movie/:id
-    // /api/x8rr/stream/tv/:id/:season/:episode
-    // /api/x8rr/stream?type=movie&id=550
+    
     let type = 'movie';
     let tmdbId = '';
     let season = 1;
