@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    // State
+    
     const state = {
         socket: null,
         reconnectAttempts: 0,
@@ -28,7 +28,7 @@
         lastBroadcastTime: 0
     };
 
-    // Load saved profile (nickname and avatar)
+    
     function getSavedProfile() {
         try {
             const saved = JSON.parse(localStorage.getItem('milkbox_party_profile') || '{}');
@@ -47,7 +47,7 @@
         } catch {}
     }
 
-    // Helper: Toast notification
+    
     function notify(msg, type = 'info') {
         if (typeof window.toast === 'function') {
             window.toast(msg, type);
@@ -56,7 +56,7 @@
         }
     }
 
-    // Determine current video element or iframe
+    
     function getActivePlayerElement() {
         const frame = document.getElementById('playerFrame');
         if (!frame) return null;
@@ -70,7 +70,7 @@
         return null;
     }
 
-    // Format seconds into MM:SS or H:MM:SS
+    
     function formatTime(sec) {
         if (!Number.isFinite(sec) || sec < 0) return '0:00';
         const s = Math.floor(sec);
@@ -82,7 +82,7 @@
             : `${m}:${String(r).padStart(2, '0')}`;
     }
 
-    // WebSocket Connection Manager
+    
     function connectSocket(onOpenCallback) {
         if (state.socket && (state.socket.readyState === WebSocket.OPEN || state.socket.readyState === WebSocket.CONNECTING)) {
             if (state.socket.readyState === WebSocket.OPEN && onOpenCallback) onOpenCallback();
@@ -105,7 +105,7 @@
                 console.log('[WatchParty] Connected to real-time server');
                 updateSyncBadge('connected');
 
-                // Start periodic heartbeat
+                
                 clearInterval(state.heartbeatTimer);
                 state.heartbeatTimer = setInterval(() => {
                     sendSocketMessage('party:heartbeat');
@@ -186,11 +186,11 @@
         }
     }
 
-    // Handle incoming WebSocket messages
+    
     function handleSocketMessage(msg) {
         const { event } = msg;
 
-        // 1. PARTY CREATED
+        
         if (event === 'party:created') {
             state.isActive = true;
             state.roomCode = msg.code;
@@ -206,7 +206,7 @@
             updateUIAfterJoin();
             notify(`Watch Party created! Code: ${msg.code}`, 'success');
 
-            // If we have media, ensure it is playing locally
+            
             if (state.media && state.media.title) {
                 applyMediaChange(state.media, false);
             } else {
@@ -220,7 +220,7 @@
             return;
         }
 
-        // 2. PARTY JOINED
+        
         if (event === 'party:joined') {
             state.isActive = true;
             state.roomCode = msg.code;
@@ -236,7 +236,7 @@
             updateUIAfterJoin();
             notify(`Joined Watch Party (${msg.code})!`, 'success');
 
-            // Synchronize with host's media & playback position
+            
             if (state.media && state.media.title) {
                 applyMediaChange(state.media, true);
             } else {
@@ -248,7 +248,7 @@
             return;
         }
 
-        // 3. USER JOINED
+       
         if (event === 'party:user_joined') {
             const existing = state.participants.find(u => u.id === msg.user.id);
             if (!existing) {
@@ -263,7 +263,7 @@
             return;
         }
 
-        // 4. USER LEFT
+        
         if (event === 'party:user_left') {
             state.participants = state.participants.filter(u => u.id !== msg.userId);
             if (msg.hostId) {
@@ -282,7 +282,7 @@
             return;
         }
 
-        // 5. HOST CHANGED
+        
         if (event === 'party:host_changed') {
             state.hostId = msg.hostId;
             state.isHost = state.currentUser && state.currentUser.id === msg.hostId;
@@ -299,9 +299,9 @@
             return;
         }
 
-        // 6. PLAYBACK SYNCED (play, pause, seek)
+        
         if (event === 'party:playback_synced') {
-            // If action came from ourselves, ignore remote echo
+            
             if (msg.byId && state.currentUser && msg.byId === state.currentUser.id) {
                 return;
             }
@@ -314,7 +314,7 @@
             return;
         }
 
-        // 7. MEDIA CHANGED
+        
         if (event === 'party:media_changed') {
             state.media = msg.media;
             state.playback.currentTime = 0;
@@ -331,7 +331,7 @@
             return;
         }
 
-        // 8. CONTROL MODE CHANGED
+        
         if (event === 'party:control_mode_changed') {
             state.controlMode = msg.controlMode;
             if (msg.message) {
@@ -342,27 +342,27 @@
             return;
         }
 
-        // 9. CHAT MESSAGE
+        
         if (event === 'party:chat_message') {
             state.messages.push(msg.message);
             appendChatMessage(msg.message);
             return;
         }
 
-        // 10. REACTION
+        
         if (event === 'party:reaction') {
             spawnFloatingReaction(msg.emoji, msg.name);
             return;
         }
 
-        // 11. HEARTBEAT ACK (drift check)
+        
         if (event === 'party:heartbeat_ack') {
             if (msg.playback && !state.isHost) {
                 const targetTime = msg.playback.currentTime;
                 const player = getActivePlayerElement();
                 if (player && player.type === 'video') {
                     const diff = Math.abs(player.el.currentTime - targetTime);
-                    // If drift is larger than 2.5 seconds, gently seek to match host
+                    
                     if (diff > 2.5) {
                         console.log(`[WatchParty] Compensating drift (${diff.toFixed(1)}s) to match host`);
                         state.isRemoteSyncing = true;
@@ -374,14 +374,14 @@
             return;
         }
 
-        // 12. ERROR
+        
         if (event === 'party:error') {
             notify(msg.message || 'Party error occurred.', 'error');
             return;
         }
     }
 
-    // Apply remote playback change (play, pause, seek) to local player
+    
     function applyPlaybackSync(action, targetTime, isPlaying, initiatorName) {
         state.isRemoteSyncing = true;
         updateSyncBadge('syncing', initiatorName);
@@ -408,7 +408,7 @@
                     }, '*');
                 } catch (e) {}
                 try {
-                    // P-Stream (embed.pstream.cfd) postMessage protocol support
+                    
                     if (action === 'play') {
                         player.el.contentWindow.postMessage({ type: 'pstream', command: 'play' }, '*');
                     } else if (action === 'pause') {
@@ -426,23 +426,23 @@
         }, 500);
     }
 
-    // Apply remote media change (switch movie, show, episode)
+   
     function applyMediaChange(media, autoSeekToPlayback) {
         if (!media || !media.title) return;
 
         state.isRemoteSyncing = true;
 
-        // Ensure player modal is open and body has player-active class
+        
         const playerModal = document.getElementById('playerModal');
         if (playerModal) {
             playerModal.classList.add('active');
             document.body.classList.add('player-active');
         }
 
-        // Close Watch Party setup modal so video and screen are completely visible
+        
         closePartyModal();
 
-        // Update in-player titles immediately so it doesn't say "Loading..." or "Now Playing"
+        
         const headerTitle = document.getElementById('playerHeaderTitle');
         const headerBadge = document.getElementById('playerHeaderBadge');
         const playerTitle = document.getElementById('playerTitle');
@@ -452,14 +452,14 @@
         if (playerTitle) playerTitle.textContent = media.title;
         if (playerSub) playerSub.textContent = media.type === 'tv' ? `Season ${media.season || 1} • Episode ${media.episode || 1}` : (media.year || 'Movie');
 
-        // Automatically display and expand Watch Party chat drawer right on screen!
+        
         const drawer = document.getElementById('watchPartyDrawer');
         if (drawer) {
             drawer.style.display = 'flex';
             drawer.classList.add('expanded');
         }
 
-        // Find or build full item
+        
         const fullItem = (typeof window.findItemById === 'function' && window.findItemById(media.id || media.tmdbId)) || media.rawItem || {
             id: media.id || media.tmdbId,
             tmdbId: media.tmdbId || media.id,
@@ -477,7 +477,7 @@
             window.playerServer = media.server;
         }
 
-        // Play the item using Milkbox's core playback engine
+        
         if (typeof window.playItem === 'function') {
             window.playItem(fullItem, media.type || 'movie');
             if (media.type === 'tv' && typeof window.playTmdbEpisode === 'function') {
@@ -486,7 +486,7 @@
         } else if (typeof window.playTmdbEpisode === 'function' && fullItem.tmdbId) {
             window.playTmdbEpisode(fullItem, media.season || 1, media.episode || 1, media.server || 'milkbox');
         } else {
-            // Direct playback fallback using SERVER_IFRAME or vidsrc embed
+            
             const frame = document.getElementById('playerFrame');
             if (frame) {
                 const srv = media.server || window.playerServer || 'scramjet';
@@ -502,7 +502,7 @@
             }
         }
 
-        // If party is already in progress, seek to current time after brief load
+        
         if (autoSeekToPlayback && state.playback && state.playback.currentTime > 2) {
             setTimeout(() => {
                 applyPlaybackSync('seek', state.playback.currentTime, state.playback.isPlaying, 'Party Sync');
@@ -514,11 +514,11 @@
         }, 1500);
     }
 
-    // Broadcast local player action to party
+    
     function broadcastLocalAction(action, time, extra = {}) {
         if (!state.isActive || state.isRemoteSyncing) return;
 
-        // Prevent spamming identical actions within 200ms
+        
         const now = Date.now();
         if (state.lastBroadcastAction === action && (now - state.lastBroadcastTime) < 200) {
             return;
@@ -526,7 +526,7 @@
         state.lastBroadcastAction = action;
         state.lastBroadcastTime = now;
 
-        // If host only mode and we are not host, skip
+        
         if (state.controlMode === 'host_only' && !state.isHost) {
             return;
         }
@@ -538,9 +538,9 @@
         });
     }
 
-    // Attach listeners to active media element
+    
     function attachPlayerListeners() {
-        // 1. PostMessage bridge with Milkbox Embed iframe
+      
         window.addEventListener('message', (event) => {
             if (state.isRemoteSyncing) return;
             const data = event.data;
@@ -555,7 +555,7 @@
                     broadcastLocalAction('seek', data.time);
                 }
             } else if (data.type === 'pstream') {
-                // P-Stream events: { type: "pstream", event: "play"|"pause"|"seeked"|"time", time }
+                
                 const eventTime = typeof data.time === 'number' ? data.time : 0;
                 if (data.event === 'play') {
                     broadcastLocalAction('play', eventTime);
@@ -567,7 +567,7 @@
             }
         });
 
-        // 2. Direct DOM video element events
+        
         document.addEventListener('play', (e) => {
             if (state.isRemoteSyncing || !e.target || e.target.tagName !== 'VIDEO') return;
             broadcastLocalAction('play', e.target.currentTime);
@@ -575,7 +575,7 @@
 
         document.addEventListener('pause', (e) => {
             if (state.isRemoteSyncing || !e.target || e.target.tagName !== 'VIDEO') return;
-            // Avoid broadcasting pause on ended
+            
             if (e.target.ended) return;
             broadcastLocalAction('pause', e.target.currentTime);
         }, true);
@@ -586,7 +586,7 @@
         }, true);
     }
 
-    // UI Updates
+    
     function updateSyncBadge(status, details = '') {
         const pill = document.getElementById('wpSyncStatusPill');
         const text = document.getElementById('wpSyncStatusText');
@@ -665,7 +665,7 @@
         const chatBox = document.getElementById('wpDrawerChatBox');
         if (!chatBox) return;
 
-        // Cap chat nodes to max 80 to prevent memory and scroll jank
+        
         while (chatBox.children.length >= 80) {
             chatBox.removeChild(chatBox.firstElementChild);
         }
@@ -704,7 +704,7 @@
         const container = document.getElementById('wpFloatingReactions');
         if (!container) return;
 
-        // Cap concurrent floating reactions to max 12 to avoid animation lag
+        
         while (container.children.length >= 12) {
             container.removeChild(container.firstElementChild);
         }
@@ -745,7 +745,7 @@
         updateHostBadge();
         updateSyncBadge('in_sync');
 
-        // Switch modal tab to Active Party pane
+        
         const paneCreate = document.getElementById('wpPaneCreate');
         const paneJoin = document.getElementById('wpPaneJoin');
         const paneActive = document.getElementById('wpPaneActive');
@@ -753,7 +753,7 @@
         if (paneJoin) paneJoin.style.display = 'none';
         if (paneActive) paneActive.style.display = 'block';
 
-        // Load existing messages into chat
+        
         const chatBox = document.getElementById('wpDrawerChatBox');
         if (chatBox) {
             chatBox.innerHTML = '';
@@ -786,14 +786,14 @@
         if (paneJoin) paneJoin.style.display = 'none';
         if (paneActive) paneActive.style.display = 'none';
 
-        // Disconnect socket cleanly
+        
         if (state.socket) {
             state.socket.close();
             state.socket = null;
         }
     }
 
-    // Public API Actions
+    
     function createParty(nickname, avatar, initialMedia) {
         saveProfile(nickname, avatar);
         connectSocket(() => {
@@ -916,7 +916,7 @@
         return null;
     }
 
-    // Watch Party Modal Control
+    
     function openPartyModal(prefillCode = '') {
         const modal = document.getElementById('watchPartyModal');
         if (!modal) return;
@@ -929,12 +929,12 @@
         if (hostNickInput) hostNickInput.value = profile.name;
         if (joinNickInput) joinNickInput.value = profile.name;
 
-        // Select avatar pills
+        
         document.querySelectorAll('.wp-avatar-opt').forEach(opt => {
             opt.classList.toggle('active', opt.dataset.avatar === profile.avatar);
         });
 
-        // Current media preview in Host tab
+        
         const curMedia = getCurrentActiveMedia();
         const mediaTitle = document.getElementById('wpCreateMediaTitle');
         const mediaPoster = document.getElementById('wpCreateMediaPoster');
@@ -979,13 +979,13 @@
         if (paneJoin) paneJoin.style.display = tab === 'join' ? 'block' : 'none';
     }
 
-    // Initialize Event Listeners
+    
     function initUI() {
-        // Navbar trigger
+        
         const navBtn = document.getElementById('watchPartyNavBtn');
         if (navBtn) navBtn.addEventListener('click', () => openPartyModal());
 
-        // Player header trigger
+        
         const playerBtn = document.getElementById('playerWatchPartyBtn');
         if (playerBtn) {
             playerBtn.addEventListener('click', () => {
@@ -1001,7 +1001,7 @@
             });
         }
 
-        // Info modal trigger
+        
         const infoBtn = document.getElementById('infoWatchPartyBtn');
         if (infoBtn) infoBtn.addEventListener('click', () => {
             const cur = window.currentInfoItem;
@@ -1011,7 +1011,7 @@
             openPartyModal();
         });
 
-        // Close modal
+        
         const closeBtn = document.getElementById('closeWatchPartyModal');
         if (closeBtn) closeBtn.addEventListener('click', closePartyModal);
 
@@ -1022,12 +1022,12 @@
             });
         }
 
-        // Tab switcher
+       
         document.querySelectorAll('.wp-tab-btn').forEach(btn => {
             btn.addEventListener('click', () => switchTab(btn.dataset.wpTab));
         });
 
-        // Avatar select
+        
         document.querySelectorAll('.wp-avatar-selector').forEach(sel => {
             sel.addEventListener('click', (e) => {
                 const opt = e.target.closest('.wp-avatar-opt');
@@ -1037,7 +1037,7 @@
             });
         });
 
-        // Create button
+        
         const createBtn = document.getElementById('wpCreatePartyBtn');
         if (createBtn) {
             createBtn.addEventListener('click', () => {
@@ -1047,7 +1047,7 @@
             });
         }
 
-        // Join button
+        
         const joinBtn = document.getElementById('wpJoinPartyBtn');
         if (joinBtn) {
             joinBtn.addEventListener('click', () => {
@@ -1058,7 +1058,7 @@
             });
         }
 
-        // Paste Code button
+        
         const pasteBtn = document.getElementById('wpPasteCodeBtn');
         if (pasteBtn) {
             pasteBtn.addEventListener('click', async () => {
@@ -1078,7 +1078,7 @@
             });
         }
 
-        // Share & Copy buttons
+        
         const copyCodeBtn = document.getElementById('wpCopyCodeBtn');
         if (copyCodeBtn) copyCodeBtn.addEventListener('click', copyCode);
 
@@ -1111,7 +1111,7 @@
         const leaveBtn = document.getElementById('wpLeavePartyBtn');
         if (leaveBtn) leaveBtn.addEventListener('click', leaveParty);
 
-        // Drawer elements
+        
         const drawerToggle = document.getElementById('wpDrawerToggle');
         const drawer = document.getElementById('watchPartyDrawer');
         if (drawerToggle && drawer) {
@@ -1139,14 +1139,14 @@
         const drawerCode = document.getElementById('wpDrawerCode');
         if (drawerCode) drawerCode.addEventListener('click', copyCode);
 
-        // Drawer reactions
+        
         document.querySelectorAll('.wp-react-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 sendReaction(btn.dataset.emoji || '❤️');
             });
         });
 
-        // Drawer Chat Form
+        
         const chatForm = document.getElementById('wpDrawerChatForm');
         const chatInput = document.getElementById('wpDrawerChatInput');
         if (chatForm && chatInput) {
@@ -1160,10 +1160,10 @@
             });
         }
 
-        // Attach player video and message events
+        
         attachPlayerListeners();
 
-        // Check URL parameters for direct watch party link: `?party=MILK-XXXX` or `/party/MILK-XXXX`
+       
         const urlParams = new URLSearchParams(window.location.search);
         const partyParam = urlParams.get('party');
         const pathMatch = window.location.pathname.match(/\/party\/([A-Z0-9-]+)/i);
@@ -1176,7 +1176,7 @@
         }
     }
 
-    // Expose Global Watch Party API
+    
     window.MilkboxWatchParty = {
         state,
         createParty,
