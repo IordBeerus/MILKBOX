@@ -289,7 +289,9 @@
                 elements.scrubProgress.style.width = `${pct}%`;
                 elements.scrubThumb.style.left = `${pct}%`;
             }
+            updateSubtitleOverlay();
         });
+        v.addEventListener('seeked', updateSubtitleOverlay);
         v.addEventListener('progress', () => {
             if (v.buffered.length > 0 && v.duration) {
                 const pct = (v.buffered.end(v.buffered.length - 1) / v.duration) * 100;
@@ -368,11 +370,65 @@
     }
 
     const DEFAULT_SUB_STYLES = {
-        fontSize: '1.15rem',
+        fontSize: '1.2rem',
         color: '#ffffff',
         bgOpacity: '0.82',
-        textAlign: 'center'
+        textAlign: 'center',
+        syncOffset: 0
     };
+
+    function parseTimestamp(ts) {
+        if (!ts) return NaN;
+        const clean = String(ts).trim().replace(',', '.');
+        const parts = clean.split(':');
+        if (parts.length === 3) {
+            return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+        } else if (parts.length === 2) {
+            return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+        }
+        return NaN;
+    }
+
+    function parseVttOrSrtCues(text) {
+        if (!text) return [];
+        const cues = [];
+        const clean = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+        const blocks = clean.split(/\n\s*\n/);
+        for (const block of blocks) {
+            const lines = block.trim().split('\n');
+            if (!lines.length) continue;
+            let timeLineIdx = -1;
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].includes('-->')) {
+                    timeLineIdx = i;
+                    break;
+                }
+            }
+            if (timeLineIdx === -1) continue;
+            const timeLine = lines[timeLineIdx];
+            const parts = timeLine.split('-->');
+            if (parts.length !== 2) continue;
+            const start = parseTimestamp(parts[0]);
+            const endPart = parts[1].trim().split(/\s+/)[0];
+            const end = parseTimestamp(endPart);
+            if (isNaN(start) || isNaN(end) || end <= start) continue;
+            const textLines = lines.slice(timeLineIdx + 1).join('\n').trim();
+            if (!textLines) continue;
+            cues.push({ start, end, text: textLines });
+        }
+        return cues.sort((a, b) => a.start - b.start);
+    }
+
+    function cleanSubtitleHtml(raw) {
+        if (!raw) return '';
+        let s = raw.replace(/\{[^}]+\}/g, '').trim();
+        s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        s = s.replace(/&lt;(\/?(?:i|b|u|strong|em))&gt;/gi, '<$1>')
+             .replace(/&lt;font(?:\s+color=["']?([^"'>]+)["']?)?&gt;/gi, (m, color) => color ? `<span style="color:${color}">` : '<span>')
+             .replace(/&lt;\/font&gt;/gi, '</span>')
+             .replace(/\n/g, '<br>');
+        return s;
+    }
 
     function getSubtitleStyles() {
         try {
@@ -392,19 +448,35 @@
         const s = Object.assign({}, DEFAULT_SUB_STYLES, styles);
         const bgAlpha = parseFloat(s.bgOpacity ?? '0.82');
         const bgColor = bgAlpha === 0 ? 'transparent' : (bgAlpha === 1 ? '#000000' : `rgba(0, 0, 0, ${bgAlpha})`);
+
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.style.setProperty('--mb-sub-color', s.color || '#ffffff');
+            document.documentElement.style.setProperty('--mb-sub-bg', bgColor);
+            document.documentElement.style.setProperty('--mb-sub-size', s.fontSize || '1.2rem');
+            document.documentElement.style.setProperty('--mb-sub-align', s.textAlign || 'center');
+            document.documentElement.style.setProperty('--milkbox-sub-color', s.color || '#ffffff');
+            document.documentElement.style.setProperty('--milkbox-sub-bg', bgColor);
+            document.documentElement.style.setProperty('--milkbox-sub-size', s.fontSize || '1.2rem');
+            document.documentElement.style.setProperty('--milkbox-sub-align', s.textAlign || 'center');
+        }
+
         styleEl.textContent = `
+            :root {
+                --mb-sub-color: ${s.color || '#ffffff'};
+                --mb-sub-bg: ${bgColor};
+                --mb-sub-size: ${s.fontSize || '1.2rem'};
+                --mb-sub-align: ${s.textAlign || 'center'};
+                --milkbox-sub-color: ${s.color || '#ffffff'};
+                --milkbox-sub-bg: ${bgColor};
+                --milkbox-sub-size: ${s.fontSize || '1.2rem'};
+                --milkbox-sub-align: ${s.textAlign || 'center'};
+            }
             .mb-native-video::cue,
             video::cue {
-                color: ${s.color || '#ffffff'} !important;
-                background-color: ${bgColor} !important;
-                font-size: ${s.fontSize || '1.15rem'} !important;
-                text-align: ${s.textAlign || 'center'} !important;
-                font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-                font-weight: 600 !important;
-                line-height: 1.4 !important;
-                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6) !important;
-                border-radius: 4px !important;
-                padding: 3px 8px !important;
+                opacity: 0 !important;
+                color: transparent !important;
+                background: transparent !important;
+                text-shadow: none !important;
             }
         `;
     }
@@ -420,6 +492,80 @@
     applySubtitleStyles(getSubtitleStyles());
 
     let currentDraftStyles = getSubtitleStyles();
+
+    let activeParsedCues = [];
+    let activeParsedTrackUrl = '';
+    let currentOverlayText = '';
+
+    async function loadCuesForSub(sub) {
+        if (!sub) {
+            activeParsedCues = [];
+            activeParsedTrackUrl = '';
+            updateSubtitleOverlay();
+            return;
+        }
+        let trackSrc = sub.vttUrl || sub.url;
+        if (trackSrc && !trackSrc.startsWith('/api/') && !trackSrc.endsWith('.vtt') && !trackSrc.startsWith('blob:')) {
+            trackSrc = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(trackSrc)}`;
+        }
+        activeParsedTrackUrl = trackSrc;
+        if (sub._rawText) {
+            activeParsedCues = parseVttOrSrtCues(sub._rawText);
+            updateSubtitleOverlay();
+            return;
+        }
+        try {
+            const res = await fetch(trackSrc);
+            if (res.ok) {
+                const text = await res.text();
+                if (activeParsedTrackUrl === trackSrc) {
+                    activeParsedCues = parseVttOrSrtCues(text);
+                    updateSubtitleOverlay();
+                }
+            }
+        } catch (e) {
+            console.warn('[Milkbox Player] Subtitle cue fetch notice:', e);
+        }
+    }
+
+    function updateSubtitleOverlay() {
+        const overlay = elements.subtitlesOverlay;
+        if (!overlay) return;
+        if (!activeParsedCues || !activeParsedCues.length || state.activeSubtitleIndex === -1) {
+            if (currentOverlayText !== '') {
+                currentOverlayText = '';
+                overlay.style.display = 'none';
+                overlay.innerHTML = '';
+            }
+            return;
+        }
+
+        const syncOffset = parseFloat(currentDraftStyles.syncOffset || 0);
+        const v = elements.nativeVideo;
+        const t = (v ? (v.currentTime || 0) : (state.currentTime || 0)) + syncOffset;
+
+        let matched = [];
+        for (let i = 0; i < activeParsedCues.length; i++) {
+            const c = activeParsedCues[i];
+            if (t >= c.start && t <= c.end) {
+                matched.push(c.text);
+            } else if (c.start > t + 2) {
+                break;
+            }
+        }
+
+        const newText = matched.join('\n');
+        if (newText !== currentOverlayText) {
+            currentOverlayText = newText;
+            if (!newText) {
+                overlay.style.display = 'none';
+                overlay.innerHTML = '';
+            } else {
+                overlay.style.display = 'flex';
+                overlay.innerHTML = `<div class="mb-subtitle-line">${cleanSubtitleHtml(newText)}</div>`;
+            }
+        }
+    }
 
     function updatePreviewAndStyles(newStyles) {
         currentDraftStyles = Object.assign({}, currentDraftStyles, newStyles);
@@ -453,6 +599,17 @@
                 btn.classList.toggle('is-active', btn.dataset.align === currentDraftStyles.textAlign);
             });
         }
+        if (elements.styleSyncVal) {
+            const offset = parseFloat(currentDraftStyles.syncOffset || 0);
+            elements.styleSyncVal.textContent = (offset > 0 ? '+' : '') + offset.toFixed(1) + 's';
+        }
+        if (elements.styleSyncGroup) {
+            const offset = parseFloat(currentDraftStyles.syncOffset || 0);
+            elements.styleSyncGroup.querySelectorAll('.mb-style-choice-btn').forEach(btn => {
+                btn.classList.toggle('is-active', parseFloat(btn.dataset.sync) === offset);
+            });
+        }
+        updateSubtitleOverlay();
     }
 
     function openSearchSubsModal() {
@@ -620,6 +777,8 @@
             existingTrack.src = trackSrc;
             elements.nativeVideo.appendChild(existingTrack);
         }
+
+        loadCuesForSub(sub);
 
         setTimeout(() => {
             const textTracks = Array.from(elements.nativeVideo.textTracks || []);
@@ -1322,6 +1481,12 @@
                 }
             });
 
+            if (subIdx === -1) {
+                loadCuesForSub(null);
+            } else if (state.subtitles && state.subtitles[subIdx]) {
+                loadCuesForSub(state.subtitles[subIdx]);
+            }
+
             renderSubtitlesMenu();
             renderSearchResults();
             elements.subtitlesMenu.hidden = true;
@@ -1414,6 +1579,13 @@
         if (btn?.dataset.align) updatePreviewAndStyles({ textAlign: btn.dataset.align });
     });
 
+    elements.styleSyncGroup?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.mb-style-choice-btn');
+        if (btn?.dataset.sync != null) {
+            updatePreviewAndStyles({ syncOffset: parseFloat(btn.dataset.sync) });
+        }
+    });
+
     elements.subsFilterChips?.addEventListener('click', (e) => {
         const chip = e.target.closest('.mb-subs-chip');
         if (!chip?.dataset.lang) return;
@@ -1483,7 +1655,8 @@
                     langCode: 'file',
                     url: blobUrl,
                     vttUrl: blobUrl,
-                    source: 'Local File'
+                    source: 'Local File',
+                    _rawText: text
                 };
                 state.subtitles.unshift(fileSub);
                 activateSubtitleTrack(fileSub);
