@@ -43,6 +43,61 @@ function _milkboxFormatTime(seconds) {
         : `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
 
+const MILKBOX_DEFAULT_SUB_STYLES = {
+    fontSize: '1.15rem',
+    color: '#ffffff',
+    bgOpacity: '0.82',
+    textAlign: 'center'
+};
+
+function _milkboxGetSubtitleStyles() {
+    try {
+        const saved = localStorage.getItem('milkbox_subtitle_styles');
+        if (saved) return Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES, JSON.parse(saved));
+    } catch {}
+    return Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES);
+}
+
+function _milkboxApplySubtitleStyles(styles) {
+    let styleEl = document.getElementById('milkbox-dynamic-sub-styles');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'milkbox-dynamic-sub-styles';
+        document.head.appendChild(styleEl);
+    }
+    const s = Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES, styles);
+    const bgAlpha = parseFloat(s.bgOpacity ?? '0.82');
+    const bgColor = bgAlpha === 0 ? 'transparent' : (bgAlpha === 1 ? '#000000' : `rgba(0, 0, 0, ${bgAlpha})`);
+    styleEl.textContent = `
+        .milkbox-player video::cue,
+        .mb-native-video::cue,
+        video::cue {
+            color: ${s.color || '#ffffff'} !important;
+            background-color: ${bgColor} !important;
+            font-size: ${s.fontSize || '1.15rem'} !important;
+            text-align: ${s.textAlign || 'center'} !important;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-weight: 600 !important;
+            line-height: 1.4 !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6) !important;
+            border-radius: 4px !important;
+            padding: 3px 8px !important;
+        }
+    `;
+}
+
+function _milkboxSaveSubtitleStyles(styles) {
+    try {
+        localStorage.setItem('milkbox_subtitle_styles', JSON.stringify(styles));
+    } catch {}
+    _milkboxApplySubtitleStyles(styles);
+}
+
+// Initial apply
+if (typeof document !== 'undefined') {
+    _milkboxApplySubtitleStyles(_milkboxGetSubtitleStyles());
+}
+
 function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleText, extraOptions) {
     const player = document.createElement('section');
     player.className = 'milkbox-player';
@@ -53,6 +108,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     video.className = 'milkbox-player-video';
     video.preload = 'metadata';
     video.playsInline = true;
+    video.crossOrigin = 'anonymous';
     video.setAttribute('aria-label', titleText || 'Video');
 
     const loading = document.createElement('div');
@@ -289,6 +345,46 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             trackList.addEventListener('removetrack', updateTrackSelectors);
             trackList.addEventListener('change', updateTrackSelectors);
         }
+    }
+
+    const applySubtitles = (subsList) => {
+        if (!Array.isArray(subsList) || subsList.length === 0) return;
+        video.querySelectorAll('track').forEach(t => t.remove());
+
+        subsList.forEach((sub, idx) => {
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.label = sub.label || sub.language || `Subtitle ${idx + 1}`;
+            track.srclang = sub.lang || sub.language || 'en';
+            let trackSrc = sub.vttUrl || sub.url;
+            if (trackSrc && !trackSrc.startsWith('/api/') && !trackSrc.endsWith('.vtt')) {
+                trackSrc = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(trackSrc)}`;
+            }
+            track.src = trackSrc;
+            if (sub.default) track.default = true;
+            video.appendChild(track);
+        });
+
+        setTimeout(updateTrackSelectors, 50);
+        setTimeout(updateTrackSelectors, 300);
+        setTimeout(updateTrackSelectors, 800);
+    };
+
+    if (extraOptions?.subtitles && Array.isArray(extraOptions.subtitles) && extraOptions.subtitles.length > 0) {
+        applySubtitles(extraOptions.subtitles);
+    } else if (extraOptions?.tmdbId || extraOptions?.imdbId) {
+        const mType = extraOptions.mediaType || extraOptions.type || 'movie';
+        const mId = extraOptions.tmdbId || extraOptions.imdbId;
+        const sNum = extraOptions.season || 1;
+        const eNum = extraOptions.episode || 1;
+        fetch(`/api/x8rr/subtitles?type=${encodeURIComponent(mType)}&id=${encodeURIComponent(mId)}&season=${sNum}&episode=${eNum}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (data && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+                    applySubtitles(data.subtitles);
+                }
+            })
+            .catch(() => {});
     }
 
     const updatePlayState = () => {
