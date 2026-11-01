@@ -44,10 +44,11 @@ function _milkboxFormatTime(seconds) {
 }
 
 const MILKBOX_DEFAULT_SUB_STYLES = {
-    fontSize: '1.15rem',
+    fontSize: '1.2rem',
     color: '#ffffff',
     bgOpacity: '0.82',
-    textAlign: 'center'
+    textAlign: 'center',
+    syncOffset: 0
 };
 
 function _milkboxGetSubtitleStyles() {
@@ -68,20 +69,28 @@ function _milkboxApplySubtitleStyles(styles) {
     const s = Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES, styles);
     const bgAlpha = parseFloat(s.bgOpacity ?? '0.82');
     const bgColor = bgAlpha === 0 ? 'transparent' : (bgAlpha === 1 ? '#000000' : `rgba(0, 0, 0, ${bgAlpha})`);
+    
+    if (typeof document !== 'undefined' && document.documentElement) {
+        document.documentElement.style.setProperty('--milkbox-sub-color', s.color || '#ffffff');
+        document.documentElement.style.setProperty('--milkbox-sub-bg', bgColor);
+        document.documentElement.style.setProperty('--milkbox-sub-size', s.fontSize || '1.2rem');
+        document.documentElement.style.setProperty('--milkbox-sub-align', s.textAlign || 'center');
+    }
+
     styleEl.textContent = `
+        :root {
+            --milkbox-sub-color: ${s.color || '#ffffff'};
+            --milkbox-sub-bg: ${bgColor};
+            --milkbox-sub-size: ${s.fontSize || '1.2rem'};
+            --milkbox-sub-align: ${s.textAlign || 'center'};
+        }
         .milkbox-player video::cue,
         .mb-native-video::cue,
         video::cue {
-            color: ${s.color || '#ffffff'} !important;
-            background-color: ${bgColor} !important;
-            font-size: ${s.fontSize || '1.15rem'} !important;
-            text-align: ${s.textAlign || 'center'} !important;
-            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-            font-weight: 600 !important;
-            line-height: 1.4 !important;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6) !important;
-            border-radius: 4px !important;
-            padding: 3px 8px !important;
+            opacity: 0 !important;
+            color: transparent !important;
+            background: transparent !important;
+            text-shadow: none !important;
         }
     `;
 }
@@ -91,6 +100,59 @@ function _milkboxSaveSubtitleStyles(styles) {
         localStorage.setItem('milkbox_subtitle_styles', JSON.stringify(styles));
     } catch {}
     _milkboxApplySubtitleStyles(styles);
+}
+
+function _milkboxParseTimestamp(ts) {
+    if (!ts) return NaN;
+    const clean = String(ts).trim().replace(',', '.');
+    const parts = clean.split(':');
+    if (parts.length === 3) {
+        return parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+    } else if (parts.length === 2) {
+        return parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
+    }
+    return NaN;
+}
+
+function _milkboxParseVttOrSrtCues(text) {
+    if (!text) return [];
+    const cues = [];
+    const clean = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const blocks = clean.split(/\n\s*\n/);
+    for (const block of blocks) {
+        const lines = block.trim().split('\n');
+        if (!lines.length) continue;
+        let timeLineIdx = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('-->')) {
+                timeLineIdx = i;
+                break;
+            }
+        }
+        if (timeLineIdx === -1) continue;
+        const timeLine = lines[timeLineIdx];
+        const parts = timeLine.split('-->');
+        if (parts.length !== 2) continue;
+        const start = _milkboxParseTimestamp(parts[0]);
+        const endPart = parts[1].trim().split(/\s+/)[0];
+        const end = _milkboxParseTimestamp(endPart);
+        if (isNaN(start) || isNaN(end) || end <= start) continue;
+        const textLines = lines.slice(timeLineIdx + 1).join('\n').trim();
+        if (!textLines) continue;
+        cues.push({ start, end, text: textLines });
+    }
+    return cues.sort((a, b) => a.start - b.start);
+}
+
+function _milkboxCleanSubtitleHtml(raw) {
+    if (!raw) return '';
+    let s = raw.replace(/\{[^}]+\}/g, '').trim();
+    s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    s = s.replace(/&lt;(\/?(?:i|b|u|strong|em))&gt;/gi, '<$1>')
+         .replace(/&lt;font(?:\s+color=["']?([^"'>]+)["']?)?&gt;/gi, (m, color) => color ? `<span style="color:${color}">` : '<span>')
+         .replace(/&lt;\/font&gt;/gi, '</span>')
+         .replace(/\n/g, '<br>');
+    return s;
 }
 
 // Initial apply
@@ -379,6 +441,20 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                         </button>
                     </div>
                 </div>
+                <div class="milkbox-style-section">
+                    <div class="milkbox-style-section-title">
+                        <span class="material-symbols-outlined">schedule</span>
+                        <span>Subtitle Timing Sync (Audio Offset)</span>
+                        <span class="milkbox-style-sync-val" style="margin-left:auto;color:var(--milkbox-accent-soft);font-weight:700;">0.0s</span>
+                    </div>
+                    <div class="milkbox-style-btn-group milkbox-style-sync-group">
+                        <button class="milkbox-style-choice-btn" data-sync="-1" type="button">−1.0s</button>
+                        <button class="milkbox-style-choice-btn" data-sync="-0.5" type="button">−0.5s</button>
+                        <button class="milkbox-style-choice-btn is-active" data-sync="0" type="button">0.0s (Normal)</button>
+                        <button class="milkbox-style-choice-btn" data-sync="0.5" type="button">+0.5s</button>
+                        <button class="milkbox-style-choice-btn" data-sync="1" type="button">+1.0s</button>
+                    </div>
+                </div>
                 <div class="milkbox-style-footer">
                     <button class="milkbox-style-reset-btn" type="button">Reset to Defaults</button>
                     <button class="milkbox-style-save-btn" type="button">Done</button>
@@ -387,7 +463,11 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         </div>
     `;
 
-    player.append(video, loading, error, centerPlay, controls, searchSubsModal, subStyleModal);
+    const subtitlesOverlay = document.createElement('div');
+    subtitlesOverlay.className = 'milkbox-subtitles-overlay';
+    subtitlesOverlay.setAttribute('aria-live', 'polite');
+
+    player.append(video, subtitlesOverlay, loading, error, centerPlay, controls, searchSubsModal, subStyleModal);
     container.replaceChildren(player);
 
     const playButton = controls.querySelector('.milkbox-player-play');
@@ -483,11 +563,103 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         const selectedIndex = Number(audioTrackSelect.value);
         Array.from(tracks).forEach((track, index) => { track.enabled = index === selectedIndex; });
     });
+    let activeParsedCues = [];
+    let activeParsedTrackUrl = '';
+    let activeSubtitleTrackIndex = -1;
+
+    async function loadCuesForSub(sub) {
+        if (!sub) {
+            activeParsedCues = [];
+            activeParsedTrackUrl = '';
+            updateSubtitleOverlay();
+            return;
+        }
+        let trackSrc = sub.vttUrl || sub.url;
+        if (trackSrc && !trackSrc.startsWith('/api/') && !trackSrc.endsWith('.vtt') && !trackSrc.startsWith('blob:')) {
+            trackSrc = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(trackSrc)}`;
+        }
+        activeParsedTrackUrl = trackSrc;
+        if (sub._rawText) {
+            activeParsedCues = _milkboxParseVttOrSrtCues(sub._rawText);
+            updateSubtitleOverlay();
+            return;
+        }
+        try {
+            const res = await fetch(trackSrc);
+            if (res.ok) {
+                const text = await res.text();
+                if (activeParsedTrackUrl === trackSrc) {
+                    activeParsedCues = _milkboxParseVttOrSrtCues(text);
+                    updateSubtitleOverlay();
+                }
+            }
+        } catch (e) {
+            console.warn('[Milkbox Player] Subtitle load notice:', e);
+        }
+    }
+
+    let currentOverlayText = '';
+    function updateSubtitleOverlay() {
+        if (!activeParsedCues || !activeParsedCues.length || activeSubtitleTrackIndex === -1) {
+            if (currentOverlayText !== '') {
+                currentOverlayText = '';
+                subtitlesOverlay.style.display = 'none';
+                subtitlesOverlay.innerHTML = '';
+            }
+            return;
+        }
+
+        const syncOffset = parseFloat(currentDraftStyles.syncOffset || 0);
+        const t = (video.currentTime || 0) + syncOffset;
+
+        let matched = [];
+        for (let i = 0; i < activeParsedCues.length; i++) {
+            const c = activeParsedCues[i];
+            if (t >= c.start && t <= c.end) {
+                matched.push(c.text);
+            } else if (c.start > t + 2) {
+                break;
+            }
+        }
+
+        const newText = matched.join('\n');
+        if (newText !== currentOverlayText) {
+            currentOverlayText = newText;
+            if (!newText) {
+                subtitlesOverlay.style.display = 'none';
+                subtitlesOverlay.innerHTML = '';
+            } else {
+                subtitlesOverlay.style.display = 'flex';
+                subtitlesOverlay.innerHTML = `<div class="milkbox-subtitle-line">${_milkboxCleanSubtitleHtml(newText)}</div>`;
+            }
+        }
+    }
+
+    video.addEventListener('timeupdate', updateSubtitleOverlay);
+    video.addEventListener('seeked', updateSubtitleOverlay);
+
     subtitleTrackSelect.addEventListener('change', () => {
-        const selectedIndex = subtitleTrackSelect.value === 'off' ? -1 : Number(subtitleTrackSelect.value);
+        const val = subtitleTrackSelect.value;
+        if (val === 'off') {
+            activeParsedCues = [];
+            activeSubtitleTrackIndex = -1;
+            updateSubtitleOverlay();
+            Array.from(video.textTracks || []).forEach(t => {
+                if (['subtitles', 'captions'].includes(t.kind)) t.mode = 'disabled';
+            });
+            renderSearchResults();
+            return;
+        }
+        const selectedIndex = Number(val);
+        activeSubtitleTrackIndex = selectedIndex;
         Array.from(video.textTracks || []).forEach((track, index) => {
             if (['subtitles', 'captions'].includes(track.kind)) track.mode = index === selectedIndex ? 'showing' : 'disabled';
         });
+        const sub = currentLoadedSubtitles[selectedIndex];
+        if (sub) {
+            loadCuesForSub(sub);
+        }
+        renderSearchResults();
     });
     video.addEventListener('loadedmetadata', updateTrackSelectors);
     video.addEventListener('loadeddata', updateTrackSelectors);
@@ -533,11 +705,10 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             return;
         }
 
-        const activeTrack = Array.from(video.textTracks || []).find(t => t.mode === 'showing');
-        const activeLabel = activeTrack ? activeTrack.label : '';
+        const activeSub = activeSubtitleTrackIndex >= 0 ? currentLoadedSubtitles[activeSubtitleTrackIndex] : null;
 
         resultsContainer.innerHTML = filtered.map((sub, idx) => {
-            const isActive = activeLabel && (activeLabel === sub.label || activeLabel === sub.language);
+            const isActive = activeSub && (activeSub === sub || activeSub.url === sub.url || activeSub.label === sub.label);
             return `
                 <div class="milkbox-sub-item-card ${isActive ? 'is-active' : ''}" data-sub-idx="${idx}">
                     <div class="milkbox-sub-item-left">
@@ -570,6 +741,10 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             video.appendChild(existingTrack);
         }
 
+        const foundIdx = currentLoadedSubtitles.findIndex(s => s === sub || s.url === sub.url || s.label === sub.label);
+        activeSubtitleTrackIndex = foundIdx >= 0 ? foundIdx : 0;
+        loadCuesForSub(sub);
+
         setTimeout(() => {
             const textTracks = Array.from(video.textTracks || []);
             const target = textTracks.find(t => t.label === (sub.label || sub.language) || (existingTrack && t === existingTrack.track));
@@ -581,7 +756,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             updateTrackSelectors();
             renderSearchResults();
             if (typeof toast === 'function') toast(`Active: ${sub.label || 'Subtitle track'}`, 'success');
-        }, 120);
+        }, 80);
     };
 
     const fetchSubtitlesFromApi = async (customQ = '') => {
@@ -671,6 +846,16 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         subStyleModal.querySelectorAll('.milkbox-style-align-group .milkbox-style-choice-btn').forEach(btn => {
             btn.classList.toggle('is-active', btn.dataset.align === currentDraftStyles.textAlign);
         });
+
+        const syncValEl = subStyleModal.querySelector('.milkbox-style-sync-val');
+        if (syncValEl) {
+            const off = parseFloat(currentDraftStyles.syncOffset || 0);
+            syncValEl.textContent = off > 0 ? `+${off.toFixed(1)}s` : `${off.toFixed(1)}s`;
+        }
+        subStyleModal.querySelectorAll('.milkbox-style-sync-group .milkbox-style-choice-btn').forEach(btn => {
+            btn.classList.toggle('is-active', parseFloat(btn.dataset.sync) === parseFloat(currentDraftStyles.syncOffset || 0));
+        });
+        updateSubtitleOverlay();
     };
 
     updatePreviewAndStyles({});
