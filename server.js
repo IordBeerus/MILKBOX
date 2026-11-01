@@ -4,7 +4,7 @@ const path = require('path');
 const { Writable } = require('stream');
 const { Innertube, Platform } = require('youtubei.js');
 const { handleStreamResolve, handleStreamProxy } = require('./stream-provider');
-const { handleX8rrProxy, handleX8rrStreamApi, handleX8rrSubtitlesApi, handleX8rrVttProxy } = require('./x8rr-movies');
+const { handleX8rrProxy, handleX8rrStreamApi } = require('./x8rr-movies');
 const { initWatchPartyServer } = require('./watch-party-server');
 
 Platform.shim.eval = async (data) => new Function(data.output)();
@@ -998,12 +998,6 @@ const server = http.createServer(async (req, res) => {
     const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
     const query = new URL(req.url || '/', 'http://localhost').searchParams;
     if (proxyHealth(requestPath, res)) return;
-    if (requestPath === '/api/x8rr/subtitles/vtt' || requestPath === '/api/subtitles/vtt') {
-        if (await handleX8rrVttProxy(req, res, query.get('url'))) return;
-    }
-    if (requestPath.startsWith('/api/x8rr/subtitles') || requestPath === '/api/stream/subtitles') {
-        if (await handleX8rrSubtitlesApi(req, res, requestPath, query)) return;
-    }
     if (requestPath === '/api/x8rr/proxy' || requestPath === '/api/proxy') {
         if (await handleX8rrProxy(req, res, query.get('url'))) return;
     }
