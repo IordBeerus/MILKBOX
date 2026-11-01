@@ -3,9 +3,46 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 
 const wasmCache = new Map();
 
-
 const streamCache = new Map();
 const CACHE_TTL_MS = 10 * 60 * 1000;
+
+const TMDB_API_KEY = process.env.TMDB_API_KEY || 'd821ffcf1a2419aa1fcf6923006cfcc4';
+const imdbIdCache = new Map();
+const subtitleCache = new Map();
+const SUB_CACHE_TTL_MS = 30 * 60 * 1000;
+
+const LANGUAGE_LABELS = {
+    eng: 'English', en: 'English',
+    spa: 'Spanish', es: 'Spanish',
+    fre: 'French', fra: 'French', fr: 'French',
+    ger: 'German', deu: 'German', de: 'German',
+    ita: 'Italian', it: 'Italian',
+    por: 'Portuguese', pob: 'Portuguese (BR)', pt: 'Portuguese',
+    jpn: 'Japanese', ja: 'Japanese',
+    kor: 'Korean', ko: 'Korean',
+    zho: 'Chinese', chi: 'Chinese', zh: 'Chinese',
+    rus: 'Russian', ru: 'Russian',
+    ara: 'Arabic', ar: 'Arabic',
+    hin: 'Hindi', hi: 'Hindi',
+    pol: 'Polish', pl: 'Polish',
+    tur: 'Turkish', tr: 'Turkish',
+    dut: 'Dutch', nld: 'Dutch', nl: 'Dutch',
+    swe: 'Swedish', sv: 'Swedish',
+    nor: 'Norwegian', nob: 'Norwegian', no: 'Norwegian',
+    dan: 'Danish', da: 'Danish',
+    fin: 'Finnish', fi: 'Finnish',
+    ind: 'Indonesian', id: 'Indonesian',
+    vie: 'Vietnamese', vi: 'Vietnamese',
+    tha: 'Thai', th: 'Thai',
+    ell: 'Greek', gre: 'Greek', el: 'Greek',
+    heb: 'Hebrew', he: 'Hebrew',
+    ces: 'Czech', cze: 'Czech', cs: 'Czech',
+    hun: 'Hungarian', hu: 'Hungarian',
+    ron: 'Romanian', rum: 'Romanian', ro: 'Romanian',
+    ukr: 'Ukrainian', uk: 'Ukrainian',
+    msa: 'Malay', ms: 'Malay',
+    fil: 'Filipino', tl: 'Filipino'
+};
 
 async function getWasmModule(vs) {
     if (!vs) return null;
@@ -306,6 +343,263 @@ async function handleX8rrProxy(req, res, targetUrl) {
 }
 
 
+async function getImdbId(type, tmdbId) {
+    if (!tmdbId) return null;
+    const strId = String(tmdbId);
+    if (strId.startsWith('tt')) return strId;
+    const cacheKey = `${type}:${strId}`;
+    if (imdbIdCache.has(cacheKey)) return imdbIdCache.get(cacheKey);
+
+    try {
+        const isTV = type === 'tv';
+        const url = `https://api.themoviedb.org/3/${isTV ? 'tv' : 'movie'}/${encodeURIComponent(strId)}/external_ids?api_key=${TMDB_API_KEY}`;
+        const res = await fetch(url, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && data.imdb_id) {
+                imdbIdCache.set(cacheKey, data.imdb_id);
+                return data.imdb_id;
+            }
+        }
+    } catch {}
+    return null;
+}
+
+function srtToVtt(srtText) {
+    if (!srtText || typeof srtText !== 'string') return 'WEBVTT\n\n';
+    if (srtText.trim().startsWith('WEBVTT')) return srtText;
+    let vtt = srtText
+        .replace(/^\uFEFF/, '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n');
+    vtt = vtt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
+    vtt = vtt.replace(/(\d{2}:\d{2}),(\d{3})/g, '00:$1.$2');
+    return 'WEBVTT\n\n' + vtt.trim() + '\n';
+}
+
+async function fetchSubtitles(type, tmdbId, season = 1, episode = 1, explicitImdbId = '') {
+    const isTV = type === 'tv';
+    const se = season || 1;
+    const ep = episode || 1;
+    const cacheKey = `${type}:${tmdbId || explicitImdbId}:${isTV ? `${se}:${ep}` : '0'}`;
+
+    const cached = subtitleCache.get(cacheKey);
+    if (cached && Date.now() - cached.time < SUB_CACHE_TTL_MS) {
+        return cached.subtitles;
+    }
+
+    let imdbId = explicitImdbId;
+    if (!imdbId || !imdbId.startsWith('tt')) {
+        imdbId = await getImdbId(type, tmdbId);
+    }
+
+    if (!imdbId) {
+        return [];
+    }
+
+    const subtitles = [];
+    const seenUrls = new Set();
+    const seenLangCounts = {};
+
+    try {
+        const stremioUrl = isTV
+            ? `https://opensubtitles-v3.strem.io/subtitles/series/${encodeURIComponent(imdbId)}:${encodeURIComponent(se)}:${encodeURIComponent(ep)}.json`
+            : `https://opensubtitles-v3.strem.io/subtitles/movie/${encodeURIComponent(imdbId)}.json`;
+
+        const res = await fetch(stremioUrl, {
+            headers: { 'User-Agent': UA, Accept: 'application/json' },
+            signal: AbortSignal.timeout(7000)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const rawSubs = Array.isArray(data?.subtitles) ? data.subtitles : [];
+
+            for (const s of rawSubs) {
+                if (!s || !s.url || seenUrls.has(s.url)) continue;
+                seenUrls.add(s.url);
+
+                const rawLang = String(s.lang || 'eng').toLowerCase();
+                const baseLabel = LANGUAGE_LABELS[rawLang] || rawLang.toUpperCase();
+                const count = (seenLangCounts[rawLang] || 0) + 1;
+                seenLangCounts[rawLang] = count;
+
+                let label = baseLabel;
+                if (count > 1) {
+                    label = `${baseLabel} (${count})`;
+                }
+
+                subtitles.push({
+                    id: s.id ? `sub-${s.id}` : `sub-${rawLang}-${count}`,
+                    lang: rawLang.slice(0, 2),
+                    langCode: rawLang,
+                    label,
+                    url: s.url,
+                    vttUrl: `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(s.url)}`,
+                    source: 'OpenSubtitles'
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('[x8rr/movies] Subtitle fetch notice:', e.message);
+    }
+
+    if (subtitles.length > 0) {
+        const langPriority = ['eng', 'en', 'spa', 'es', 'fre', 'fra', 'fr', 'ger', 'deu', 'de', 'ita', 'it', 'por', 'pob', 'pt', 'jpn', 'ja', 'kor', 'ko', 'zho', 'zh'];
+        subtitles.sort((a, b) => {
+            const idxA = langPriority.indexOf(a.langCode);
+            const idxB = langPriority.indexOf(b.langCode);
+            if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+            if (idxA !== -1) return -1;
+            if (idxB !== -1) return 1;
+            return a.label.localeCompare(b.label);
+        });
+        subtitleCache.set(cacheKey, { subtitles, time: Date.now() });
+    }
+
+    return subtitles;
+}
+
+async function handleX8rrVttProxy(req, res, targetUrl) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return true;
+    }
+
+    if (!targetUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'url required' }));
+        return true;
+    }
+
+    try {
+        const parsed = new URL(targetUrl);
+        if (!['http:', 'https:'].includes(parsed.protocol)) {
+            res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Invalid URL protocol' }));
+            return true;
+        }
+
+        const r = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': UA,
+                Referer: parsed.origin + '/'
+            },
+            signal: AbortSignal.timeout(10000)
+        });
+
+        if (!r.ok) {
+            res.writeHead(r.status, { 'Content-Type': 'text/plain; charset=utf-8' });
+            res.end(`Upstream subtitle returned ${r.status}`);
+            return true;
+        }
+
+        const text = await r.text();
+        const vtt = srtToVtt(text);
+
+        res.writeHead(200, {
+            'Content-Type': 'text/vtt; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400'
+        });
+        res.end(vtt);
+        return true;
+    } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Subtitle proxy failed', message: e.message }));
+        return true;
+    }
+}
+
+async function handleX8rrSubtitlesApi(req, res, requestPath, query) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return true;
+    }
+
+    let type = 'movie';
+    let tmdbId = '';
+    let season = 1;
+    let episode = 1;
+
+    const movieMatch = requestPath.match(/^\/api\/(?:x8rr\/)?subtitles\/movie\/([0-9]+)$/i);
+    const tvMatch = requestPath.match(/^\/api\/(?:x8rr\/)?subtitles\/tv\/([0-9]+)\/([0-9]+)\/([0-9]+)$/i);
+
+    if (movieMatch) {
+        type = 'movie';
+        tmdbId = movieMatch[1];
+    } else if (tvMatch) {
+        type = 'tv';
+        tmdbId = tvMatch[1];
+        season = parseInt(tvMatch[2], 10) || 1;
+        episode = parseInt(tvMatch[3], 10) || 1;
+    } else if (requestPath === '/api/x8rr/subtitles' || requestPath === '/api/stream/subtitles') {
+        type = (query.get('type') || 'movie').toLowerCase();
+        tmdbId = query.get('id') || query.get('tmdb') || '';
+        season = parseInt(query.get('season') || query.get('s') || '1', 10);
+        episode = parseInt(query.get('episode') || query.get('e') || '1', 10);
+    } else {
+        return false;
+    }
+
+    let imdbId = query.get('imdb') || '';
+    const searchQuery = (query.get('q') || query.get('query') || '').trim();
+
+    if (!tmdbId && searchQuery) {
+        if (/^tt\d{5,}$/i.test(searchQuery)) {
+            imdbId = searchQuery;
+        } else {
+            try {
+                const sUrl = `https://api.themoviedb.org/3/search/${type === 'tv' ? 'tv' : 'movie'}?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(searchQuery)}`;
+                const sRes = await fetch(sUrl, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(5000) });
+                if (sRes.ok) {
+                    const sData = await sRes.json();
+                    if (sData.results && sData.results.length > 0) {
+                        tmdbId = String(sData.results[0].id);
+                    }
+                }
+            } catch {}
+        }
+    }
+
+    if (!tmdbId && !imdbId) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Missing TMDB ID, IMDb ID, or search query', subtitles: [] }));
+        return true;
+    }
+
+    try {
+        const subtitles = await fetchSubtitles(type, tmdbId, season, episode, imdbId);
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=600'
+        });
+        res.end(JSON.stringify({
+            ok: true,
+            source: 'x8rr/subtitles',
+            type,
+            tmdbId,
+            imdbId,
+            season: type === 'tv' ? season : undefined,
+            episode: type === 'tv' ? episode : undefined,
+            subtitles
+        }));
+    } catch (e) {
+        res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: e.message, subtitles: [] }));
+    }
+    return true;
+}
+
 async function handleX8rrStreamApi(req, res, requestPath, query) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -317,7 +611,6 @@ async function handleX8rrStreamApi(req, res, requestPath, query) {
         return true;
     }
 
-    
     let type = 'movie';
     let tmdbId = '';
     let season = 1;
@@ -350,7 +643,11 @@ async function handleX8rrStreamApi(req, res, requestPath, query) {
     }
 
     try {
-        const streams = await scrapeAll(type, tmdbId, season, episode);
+        const [streams, subtitles] = await Promise.all([
+            scrapeAll(type, tmdbId, season, episode),
+            fetchSubtitles(type, tmdbId, season, episode).catch(() => [])
+        ]);
+
         res.writeHead(200, {
             'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': 'public, max-age=180'
@@ -362,17 +659,22 @@ async function handleX8rrStreamApi(req, res, requestPath, query) {
             tmdbId,
             season: type === 'tv' ? season : undefined,
             episode: type === 'tv' ? episode : undefined,
-            streams
+            streams,
+            subtitles
         }));
     } catch (e) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-        res.end(JSON.stringify({ error: e.message, streams: [] }));
+        res.end(JSON.stringify({ error: e.message, streams: [], subtitles: [] }));
     }
     return true;
 }
 
 module.exports = {
     scrapeAll,
+    fetchSubtitles,
+    srtToVtt,
     handleX8rrProxy,
+    handleX8rrVttProxy,
+    handleX8rrSubtitlesApi,
     handleX8rrStreamApi
 };

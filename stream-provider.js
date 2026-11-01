@@ -1,5 +1,5 @@
 const TMDB_API_KEY = process.env.TMDB_API_KEY || 'd821ffcf1a2419aa1fcf6923006cfcc4';
-const { scrapeAll: scrapeX8rrStreams } = require('./x8rr-movies');
+const { scrapeAll: scrapeX8rrStreams, fetchSubtitles } = require('./x8rr-movies');
 
 
 const cache = new Map();
@@ -327,6 +327,12 @@ async function handleStreamResolve(req, res, requestPath, query) {
 
     let directStream = null;
     let directStreams = [];
+    let subtitles = [];
+    if (type !== 'anime') {
+        try {
+            subtitles = await fetchSubtitles(type, id, season, episode, meta?.imdbId);
+        } catch {}
+    }
     if (active.id === 'x8rrmovies' && type !== 'anime') {
         try {
             const scraped = await scrapeX8rrStreams(type, id, season, episode);
@@ -358,6 +364,7 @@ async function handleStreamResolve(req, res, requestPath, query) {
         streamUrl: active.url,
         directStream: directStream || undefined,
         directStreams: (directStreams && directStreams.length > 0) ? directStreams : undefined,
+        subtitles: (subtitles && subtitles.length > 0) ? subtitles : undefined,
         embedCode: `<iframe src="${active.url}" width="100%" height="100%" frameborder="0" allowfullscreen allow="autoplay; fullscreen; encrypted-media"></iframe>`,
         servers: servers.map(s => ({
             id: s.id,
