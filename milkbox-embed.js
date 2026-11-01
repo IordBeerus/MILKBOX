@@ -13,8 +13,6 @@
         currentServer: 'x8rrmovies',
         x8rrStreams: [],
         activeX8rrIndex: 0,
-        subtitles: [],
-        activeSubtitleIndex: -1,
         isPlaying: false,
         isMuted: false,
         volume: 1,
@@ -72,11 +70,6 @@
         qualityActiveLabel: document.getElementById('mbQualityActiveLabel'),
         qualityMenu: document.getElementById('mbQualityMenu'),
         qualityList: document.getElementById('mbQualityList'),
-        subtitlesWrap: document.getElementById('mbSubtitlesWrap'),
-        subtitlesBtn: document.getElementById('mbSubtitlesBtn'),
-        subtitlesActiveLabel: document.getElementById('mbSubtitlesActiveLabel'),
-        subtitlesMenu: document.getElementById('mbSubtitlesMenu'),
-        subtitlesList: document.getElementById('mbSubtitlesList'),
         speedBtn: document.getElementById('mbSpeedBtn'),
         speedBadge: document.getElementById('mbSpeedBadge'),
         speedMenu: document.getElementById('mbSpeedMenu'),
@@ -334,80 +327,6 @@
         elements.qualityList.innerHTML = html;
     }
 
-    function loadSubtitles(subsList) {
-        state.subtitles = Array.isArray(subsList) ? subsList : [];
-        if (!elements.nativeVideo) return;
-
-        const existing = elements.nativeVideo.querySelectorAll('track');
-        existing.forEach(t => t.remove());
-
-        if (!state.subtitles || state.subtitles.length === 0) {
-            if (elements.subtitlesWrap) elements.subtitlesWrap.style.display = 'none';
-            return;
-        }
-
-        elements.nativeVideo.crossOrigin = 'anonymous';
-
-        state.subtitles.forEach((sub, idx) => {
-            const track = document.createElement('track');
-            track.kind = 'subtitles';
-            track.label = sub.label || sub.language || `Subtitle ${idx + 1}`;
-            track.srclang = sub.lang || sub.language || 'en';
-            let src = sub.vttUrl || sub.url;
-            if (src && !src.startsWith('/api/') && !src.endsWith('.vtt')) {
-                src = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(src)}`;
-            }
-            track.src = src;
-            if (sub.default) track.default = true;
-            elements.nativeVideo.appendChild(track);
-        });
-
-        if (elements.subtitlesWrap) elements.subtitlesWrap.style.display = 'inline-block';
-        renderSubtitlesMenu();
-    }
-
-    function renderSubtitlesMenu() {
-        if (!elements.subtitlesWrap || !elements.subtitlesList) return;
-        if (!state.subtitles || state.subtitles.length === 0) {
-            elements.subtitlesWrap.style.display = 'none';
-            return;
-        }
-
-        elements.subtitlesWrap.style.display = 'inline-block';
-        const isOff = state.activeSubtitleIndex === -1;
-
-        if (elements.subtitlesActiveLabel) {
-            if (isOff) {
-                elements.subtitlesActiveLabel.textContent = 'CC';
-            } else {
-                const activeSub = state.subtitles[state.activeSubtitleIndex];
-                const code = (activeSub?.lang || activeSub?.language || 'CC').toUpperCase().slice(0, 3);
-                elements.subtitlesActiveLabel.textContent = code;
-            }
-        }
-
-        let html = '<div class="mb-menu-header">Subtitles</div>';
-        html += `
-            <button class="mb-menu-item mb-subtitle-item ${isOff ? 'active' : ''}" data-subtitle="-1">
-                <span>Off</span>
-                ${isOff ? '<span class="mb-menu-check">✓</span>' : ''}
-            </button>
-        `;
-
-        state.subtitles.forEach((sub, index) => {
-            const isActive = state.activeSubtitleIndex === index;
-            const label = sub.label || sub.language || `Subtitle ${index + 1}`;
-            html += `
-                <button class="mb-menu-item mb-subtitle-item ${isActive ? 'active' : ''}" data-subtitle="${index}">
-                    <span>${escapeHtml(label)}</span>
-                    ${isActive ? '<span class="mb-menu-check">✓</span>' : ''}
-                </button>
-            `;
-        });
-
-        elements.subtitlesList.innerHTML = html;
-    }
-
     function switchX8rrMirror(index) {
         if (!state.x8rrStreams || !state.x8rrStreams[index]) return;
         state.activeX8rrIndex = index;
@@ -479,24 +398,8 @@
                             if (Array.isArray(x8Data.streams) && x8Data.streams.length > 0) {
                                 state.x8rrStreams = x8Data.streams;
                             }
-                            if (Array.isArray(x8Data.subtitles) && x8Data.subtitles.length > 0) {
-                                loadSubtitles(x8Data.subtitles);
-                            }
                         }
                     } catch {}
-                }
-
-                if (data.subtitles && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
-                    loadSubtitles(data.subtitles);
-                } else if ((!state.subtitles || state.subtitles.length === 0) && state.type !== 'anime') {
-                    fetch(`/api/x8rr/subtitles?type=${encodeURIComponent(state.type)}&id=${encodeURIComponent(id)}&season=${state.season}&episode=${state.episode}`)
-                        .then(r => r.ok ? r.json() : null)
-                        .then(subData => {
-                            if (subData && Array.isArray(subData.subtitles) && subData.subtitles.length > 0) {
-                                loadSubtitles(subData.subtitles);
-                            }
-                        })
-                        .catch(() => {});
                 }
 
                 const currentMirror = state.x8rrStreams && state.x8rrStreams[state.activeX8rrIndex];
@@ -510,7 +413,6 @@
                     elements.iframe.style.display = 'none';
                     elements.iframe.src = 'about:blank';
                     elements.nativeVideo.style.display = 'block';
-                    elements.nativeVideo.crossOrigin = 'anonymous';
 
                     hlsInstance = new window.Hls({
                         enableWorker: true,
@@ -1050,35 +952,6 @@
         });
     }
 
-    if (elements.subtitlesBtn) {
-        elements.subtitlesBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            elements.serverMenu.hidden = true;
-            elements.speedMenu.hidden = true;
-            if (elements.qualityMenu) elements.qualityMenu.hidden = true;
-            elements.subtitlesMenu.hidden = !elements.subtitlesMenu.hidden;
-        });
-    }
-
-    if (elements.subtitlesList) {
-        elements.subtitlesList.addEventListener('click', (e) => {
-            const item = e.target.closest('.mb-subtitle-item');
-            if (!item) return;
-            const subIdx = parseInt(item.dataset.subtitle, 10);
-            state.activeSubtitleIndex = subIdx;
-
-            const textTracks = Array.from(elements.nativeVideo?.textTracks || []);
-            textTracks.forEach((track, index) => {
-                if (['subtitles', 'captions'].includes(track.kind)) {
-                    track.mode = index === subIdx ? 'showing' : 'disabled';
-                }
-            });
-
-            renderSubtitlesMenu();
-            elements.subtitlesMenu.hidden = true;
-        });
-    }
-
     
     elements.nextSourceBtn.addEventListener('click', () => {
         const curIdx = SERVERS.findIndex(s => s.id === state.currentServer);
@@ -1094,7 +967,6 @@
         e.stopPropagation();
         elements.serverMenu.hidden = true;
         if (elements.qualityMenu) elements.qualityMenu.hidden = true;
-        if (elements.subtitlesMenu) elements.subtitlesMenu.hidden = true;
         elements.speedMenu.hidden = !elements.speedMenu.hidden;
     });
 
@@ -1120,7 +992,6 @@
         elements.serverMenu.hidden = true;
         elements.speedMenu.hidden = true;
         if (elements.qualityMenu) elements.qualityMenu.hidden = true;
-        if (elements.subtitlesMenu) elements.subtitlesMenu.hidden = true;
     });
 
     
@@ -1166,7 +1037,7 @@
         elements.player.classList.remove('is-idle');
         clearTimeout(state.idleTimer);
         state.idleTimer = setTimeout(() => {
-            if (!elements.serverMenu.hidden || !elements.speedMenu.hidden || (elements.qualityMenu && !elements.qualityMenu.hidden) || (elements.subtitlesMenu && !elements.subtitlesMenu.hidden) || !elements.epDrawer.hidden) return;
+            if (!elements.serverMenu.hidden || !elements.speedMenu.hidden || (elements.qualityMenu && !elements.qualityMenu.hidden) || !elements.epDrawer.hidden) return;
             elements.player.classList.add('is-idle');
         }, 3500);
     }
