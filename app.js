@@ -4164,11 +4164,6 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                 servers: data.streams,
                 activeServerId: stream.id,
                 activeServerIndex: 0,
-                subtitles: data.subtitles || [],
-                tmdbId: tmdbId,
-                mediaType: isTV ? 'tv' : 'movie',
-                season: isTV ? season : 1,
-                episode: isTV ? episode : 1,
                 onServerChange: (newStream, idx) => {
                     toast(`x8rr Movies: Switched to ${newStream.serverLabel || `Server ${idx + 1}`}`, 'success');
                 }
