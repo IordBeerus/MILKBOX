@@ -685,18 +685,90 @@
     }
 }
 
-/* Subtitle styling for native HTML5 video tracks */
-.milkbox-player video::cue,
-video::cue {
-    color: #ffffff;
-    background-color: rgba(0, 0, 0, 0.78);
+/* Custom Subtitles Overlay Display */
+.milkbox-subtitles-overlay {
+    position: absolute;
+    left: 24px;
+    right: 24px;
+    bottom: 96px; /* Positioned safely above controls dock */
+    z-index: 22;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+    transition: bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+/* When controls fade in idle state, smoothly settle into lower third */
+.milkbox-player.is-idle .milkbox-subtitles-overlay {
+    bottom: 30px;
+}
+
+.milkbox-player:fullscreen .milkbox-subtitles-overlay {
+    bottom: 112px;
+}
+
+.milkbox-player:fullscreen.is-idle .milkbox-subtitles-overlay {
+    bottom: 38px;
+}
+
+@media (max-width: 640px) {
+    .milkbox-subtitles-overlay {
+        left: 12px;
+        right: 12px;
+        bottom: 84px;
+    }
+    .milkbox-player.is-idle .milkbox-subtitles-overlay {
+        bottom: 20px;
+    }
+}
+
+.milkbox-subtitle-line {
+    display: inline-block;
+    max-width: 88%;
+    margin: 0 auto;
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 1.15rem;
     font-weight: 600;
-    line-height: 1.4;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    padding: 3px 8px;
+    line-height: 1.45;
+    letter-spacing: 0.3px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: var(--milkbox-sub-color, #ffffff);
+    background-color: var(--milkbox-sub-bg, rgba(0, 0, 0, 0.82));
+    font-size: var(--milkbox-sub-size, 1.2rem);
+    text-align: var(--milkbox-sub-align, center);
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.95),
+        0 0 8px rgba(0, 0, 0, 0.8),
+        -1px -1px 0 rgba(0, 0, 0, 0.9),
+        1px -1px 0 rgba(0, 0, 0, 0.9),
+        -1px 1px 0 rgba(0, 0, 0, 0.9),
+        1px 1px 0 rgba(0, 0, 0, 0.9);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: none;
+    pointer-events: none;
+    transition: font-size 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.milkbox-subtitle-line i, .milkbox-subtitle-line em {
+    font-style: italic;
+}
+.milkbox-subtitle-line b, .milkbox-subtitle-line strong {
+    font-weight: 700;
+}
+.milkbox-subtitle-line u {
+    text-decoration: underline;
+}
+
+/* Hide native cues to prevent overlap/double-rendering */
+.milkbox-player video::cue {
+    opacity: 0 !important;
+    color: transparent !important;
+    background: transparent !important;
+    text-shadow: none !important;
 }
 
 /* Player Modals (Search Subtitles & Subtitle Styling) */

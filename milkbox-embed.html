@@ -11,7 +11,8 @@
 <body>
     <div class="mb-player" id="mbPlayer">
         <div class="mb-stream-container" id="mbStreamContainer">
-            <video id="mbNativeVideo" class="mb-native-video" playsinline preload="auto" style="display:none;"></video>
+            <video id="mbNativeVideo" class="mb-native-video" playsinline preload="auto" crossorigin="anonymous" style="display:none;"></video>
+            <div class="mb-subtitles-overlay" id="mbSubtitlesOverlay" aria-live="polite"></div>
             <iframe id="mbStreamIframe" class="mb-stream-iframe" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
             <div class="mb-click-overlay" id="mbClickOverlay"></div>
         </div>
@@ -384,6 +385,20 @@
                             <button class="mb-style-choice-btn" data-align="right" type="button">
                                 <span>Right</span>
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="mb-style-section">
+                        <div class="mb-style-section-title">
+                            <span>Subtitle Timing Sync (Audio Offset)</span>
+                            <span class="mb-style-sync-val" id="mbStyleSyncVal" style="margin-left:auto;color:var(--mb-pink-soft);font-weight:700;">0.0s</span>
+                        </div>
+                        <div class="mb-style-btn-group mb-style-sync-group" id="mbStyleSyncGroup">
+                            <button class="mb-style-choice-btn" data-sync="-1" type="button">−1.0s</button>
+                            <button class="mb-style-choice-btn" data-sync="-0.5" type="button">−0.5s</button>
+                            <button class="mb-style-choice-btn is-active" data-sync="0" type="button">0.0s (Normal)</button>
+                            <button class="mb-style-choice-btn" data-sync="0.5" type="button">+0.5s</button>
+                            <button class="mb-style-choice-btn" data-sync="1" type="button">+1.0s</button>
                         </div>
                     </div>
 

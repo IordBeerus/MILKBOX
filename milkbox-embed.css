@@ -1036,18 +1036,88 @@ html, body {
     }
 }
 
-/* Subtitles / Captions cue styling */
-.mb-native-video::cue,
-video::cue {
-    color: #ffffff;
-    background-color: rgba(0, 0, 0, 0.82);
+/* Custom Subtitles Overlay Display in Embed */
+.mb-subtitles-overlay {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    bottom: 94px; /* Positioned safely above controls dock */
+    z-index: 22;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    text-align: center;
+    transition: bottom 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+}
+
+.mb-player.is-idle .mb-subtitles-overlay {
+    bottom: 28px;
+}
+
+.mb-player:fullscreen .mb-subtitles-overlay {
+    bottom: 110px;
+}
+
+.mb-player:fullscreen.is-idle .mb-subtitles-overlay {
+    bottom: 36px;
+}
+
+@media (max-width: 640px) {
+    .mb-subtitles-overlay {
+        left: 10px;
+        right: 10px;
+        bottom: 82px;
+    }
+    .mb-player.is-idle .mb-subtitles-overlay {
+        bottom: 18px;
+    }
+}
+
+.mb-subtitle-line {
+    display: inline-block;
+    max-width: 88%;
+    margin: 0 auto;
     font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    font-size: 1.15rem;
     font-weight: 600;
-    line-height: 1.4;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
-    border-radius: 4px;
-    padding: 3px 8px;
+    line-height: 1.45;
+    letter-spacing: 0.3px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    color: var(--mb-sub-color, #ffffff);
+    background-color: var(--mb-sub-bg, rgba(0, 0, 0, 0.82));
+    font-size: var(--mb-sub-size, 1.2rem);
+    text-align: var(--mb-sub-align, center);
+    text-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.95),
+        0 0 8px rgba(0, 0, 0, 0.8),
+        -1px -1px 0 rgba(0, 0, 0, 0.9),
+        1px -1px 0 rgba(0, 0, 0, 0.9),
+        -1px 1px 0 rgba(0, 0, 0, 0.9),
+        1px 1px 0 rgba(0, 0, 0, 0.9);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    white-space: pre-wrap;
+    word-break: break-word;
+    user-select: none;
+    pointer-events: none;
+    transition: font-size 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.mb-subtitle-line i, .mb-subtitle-line em {
+    font-style: italic;
+}
+.mb-subtitle-line b, .mb-subtitle-line strong {
+    font-weight: 700;
+}
+.mb-subtitle-line u {
+    text-decoration: underline;
+}
+
+.mb-native-video::cue {
+    opacity: 0 !important;
+    color: transparent !important;
+    background: transparent !important;
+    text-shadow: none !important;
 }
 
 /* Modals (Search Subtitles & Subtitle Styling) */
