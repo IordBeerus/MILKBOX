@@ -43,6 +43,61 @@ function _milkboxFormatTime(seconds) {
         : `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
 
+const MILKBOX_DEFAULT_SUB_STYLES = {
+    fontSize: '1.15rem',
+    color: '#ffffff',
+    bgOpacity: '0.82',
+    textAlign: 'center'
+};
+
+function _milkboxGetSubtitleStyles() {
+    try {
+        const saved = localStorage.getItem('milkbox_subtitle_styles');
+        if (saved) return Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES, JSON.parse(saved));
+    } catch {}
+    return Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES);
+}
+
+function _milkboxApplySubtitleStyles(styles) {
+    let styleEl = document.getElementById('milkbox-dynamic-sub-styles');
+    if (!styleEl) {
+        styleEl = document.createElement('style');
+        styleEl.id = 'milkbox-dynamic-sub-styles';
+        document.head.appendChild(styleEl);
+    }
+    const s = Object.assign({}, MILKBOX_DEFAULT_SUB_STYLES, styles);
+    const bgAlpha = parseFloat(s.bgOpacity ?? '0.82');
+    const bgColor = bgAlpha === 0 ? 'transparent' : (bgAlpha === 1 ? '#000000' : `rgba(0, 0, 0, ${bgAlpha})`);
+    styleEl.textContent = `
+        .milkbox-player video::cue,
+        .mb-native-video::cue,
+        video::cue {
+            color: ${s.color || '#ffffff'} !important;
+            background-color: ${bgColor} !important;
+            font-size: ${s.fontSize || '1.15rem'} !important;
+            text-align: ${s.textAlign || 'center'} !important;
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+            font-weight: 600 !important;
+            line-height: 1.4 !important;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6) !important;
+            border-radius: 4px !important;
+            padding: 3px 8px !important;
+        }
+    `;
+}
+
+function _milkboxSaveSubtitleStyles(styles) {
+    try {
+        localStorage.setItem('milkbox_subtitle_styles', JSON.stringify(styles));
+    } catch {}
+    _milkboxApplySubtitleStyles(styles);
+}
+
+// Initial apply
+if (typeof document !== 'undefined') {
+    _milkboxApplySubtitleStyles(_milkboxGetSubtitleStyles());
+}
+
 function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleText, extraOptions) {
     const player = document.createElement('section');
     player.className = 'milkbox-player';
@@ -53,6 +108,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     video.className = 'milkbox-player-video';
     video.preload = 'metadata';
     video.playsInline = true;
+    video.crossOrigin = 'anonymous';
     video.setAttribute('aria-label', titleText || 'Video');
 
     const loading = document.createElement('div');
@@ -157,6 +213,14 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                         </label>
                     </div>
 
+                    <button class="milkbox-player-button milkbox-player-search-subs" type="button" aria-label="Search Subtitles" title="Search & Load Subtitles">
+                        <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
+                    </button>
+
+                    <button class="milkbox-player-button milkbox-player-sub-style" type="button" aria-label="Subtitle Styling" title="Subtitle Styling Settings">
+                        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
+                    </button>
+
                     <label class="milkbox-player-track-label milkbox-player-speed-label" title="Playback Speed">
                         <span class="material-symbols-outlined milkbox-player-chip-icon">speed</span>
                         <select class="milkbox-player-speed" aria-label="Playback speed">
@@ -180,7 +244,150 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 </div>
             </div>
         </div>`;
-    player.append(video, loading, error, centerPlay, controls);
+
+    const searchSubsModal = document.createElement('div');
+    searchSubsModal.className = 'milkbox-player-modal milkbox-player-search-subs-modal';
+    searchSubsModal.hidden = true;
+    searchSubsModal.innerHTML = `
+        <div class="milkbox-player-modal-backdrop"></div>
+        <div class="milkbox-player-modal-content">
+            <div class="milkbox-player-modal-header">
+                <div class="milkbox-player-modal-title-group">
+                    <span class="material-symbols-outlined milkbox-player-modal-icon">subtitles</span>
+                    <span class="milkbox-player-modal-title">Search Subtitles</span>
+                    <span class="milkbox-player-modal-badge">${_milkboxEscapeHtml(titleText || 'Media')}</span>
+                </div>
+                <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="milkbox-player-modal-body">
+                <div class="milkbox-subs-search-bar">
+                    <span class="material-symbols-outlined milkbox-subs-search-icon">search</span>
+                    <input class="milkbox-subs-search-input" type="search" placeholder="Search by language (e.g. Spanish, French) or keyword..." autocomplete="off">
+                    <button class="milkbox-subs-refresh-btn" type="button" title="Refetch subtitles from API">
+                        <span class="material-symbols-outlined">sync</span>
+                    </button>
+                </div>
+                <div class="milkbox-subs-filter-chips">
+                    <button class="milkbox-subs-chip is-active" data-lang="all" type="button">All</button>
+                    <button class="milkbox-subs-chip" data-lang="en" type="button">English</button>
+                    <button class="milkbox-subs-chip" data-lang="es" type="button">Spanish</button>
+                    <button class="milkbox-subs-chip" data-lang="fr" type="button">French</button>
+                    <button class="milkbox-subs-chip" data-lang="de" type="button">German</button>
+                    <button class="milkbox-subs-chip" data-lang="it" type="button">Italian</button>
+                    <button class="milkbox-subs-chip" data-lang="pt" type="button">Portuguese</button>
+                    <button class="milkbox-subs-chip" data-lang="ar" type="button">Arabic</button>
+                    <button class="milkbox-subs-chip" data-lang="ja" type="button">Japanese</button>
+                </div>
+                <div class="milkbox-subs-list-status">
+                    <span class="milkbox-subs-count-label">Loading subtitles…</span>
+                    <button class="milkbox-subs-custom-toggle" type="button">+ Load Custom File or URL</button>
+                </div>
+                <div class="milkbox-subs-custom-panel" hidden>
+                    <div class="milkbox-subs-custom-row">
+                        <input class="milkbox-subs-url-input" type="url" placeholder="Paste .vtt or .srt subtitle link (https://...)">
+                        <button class="milkbox-subs-url-load-btn" type="button">Load</button>
+                    </div>
+                    <div class="milkbox-subs-custom-row">
+                        <label class="milkbox-subs-file-label">
+                            <span class="material-symbols-outlined">upload_file</span>
+                            <span>Upload subtitle file (.vtt, .srt)</span>
+                            <input class="milkbox-subs-file-input" type="file" accept=".vtt,.srt">
+                        </label>
+                    </div>
+                </div>
+                <div class="milkbox-subs-results-list"></div>
+            </div>
+        </div>
+    `;
+
+    const subStyleModal = document.createElement('div');
+    subStyleModal.className = 'milkbox-player-modal milkbox-player-sub-style-modal';
+    subStyleModal.hidden = true;
+    subStyleModal.innerHTML = `
+        <div class="milkbox-player-modal-backdrop"></div>
+        <div class="milkbox-player-modal-content">
+            <div class="milkbox-player-modal-header">
+                <div class="milkbox-player-modal-title-group">
+                    <span class="material-symbols-outlined milkbox-player-modal-icon">tune</span>
+                    <span class="milkbox-player-modal-title">Subtitle Styling</span>
+                </div>
+                <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="milkbox-player-modal-body">
+                <div class="milkbox-style-preview-container">
+                    <div class="milkbox-style-preview-label">LIVE PREVIEW</div>
+                    <div class="milkbox-style-preview-box">
+                        <div class="milkbox-style-preview-text">Sample Subtitle · The greatest glory in living lies not in never falling, but in rising every time we fall.</div>
+                    </div>
+                </div>
+                <div class="milkbox-style-section">
+                    <div class="milkbox-style-section-title">
+                        <span class="material-symbols-outlined">format_size</span>
+                        <span>Font Size</span>
+                    </div>
+                    <div class="milkbox-style-btn-group milkbox-style-size-group">
+                        <button class="milkbox-style-choice-btn" data-size="0.9rem" type="button">Small (75%)</button>
+                        <button class="milkbox-style-choice-btn is-active" data-size="1.15rem" type="button">Normal (100%)</button>
+                        <button class="milkbox-style-choice-btn" data-size="1.45rem" type="button">Large (125%)</button>
+                        <button class="milkbox-style-choice-btn" data-size="1.8rem" type="button">Extra Large (150%)</button>
+                    </div>
+                </div>
+                <div class="milkbox-style-section">
+                    <div class="milkbox-style-section-title">
+                        <span class="material-symbols-outlined">palette</span>
+                        <span>Text Color</span>
+                    </div>
+                    <div class="milkbox-style-color-group">
+                        <button class="milkbox-style-color-swatch is-active" data-color="#ffffff" style="--swatch-color:#ffffff;" type="button"><span>White</span></button>
+                        <button class="milkbox-style-color-swatch" data-color="#ffe600" style="--swatch-color:#ffe600;" type="button"><span>Yellow</span></button>
+                        <button class="milkbox-style-color-swatch" data-color="#00f0ff" style="--swatch-color:#00f0ff;" type="button"><span>Cyan</span></button>
+                        <button class="milkbox-style-color-swatch" data-color="#76ff03" style="--swatch-color:#76ff03;" type="button"><span>Green</span></button>
+                        <button class="milkbox-style-color-swatch" data-color="#ffb6d8" style="--swatch-color:#ffb6d8;" type="button"><span>Pink</span></button>
+                        <button class="milkbox-style-color-swatch" data-color="#ff2e63" style="--swatch-color:#ff2e63;" type="button"><span>Coral</span></button>
+                    </div>
+                </div>
+                <div class="milkbox-style-section">
+                    <div class="milkbox-style-section-title">
+                        <span class="material-symbols-outlined">opacity</span>
+                        <span>Background Opacity</span>
+                    </div>
+                    <div class="milkbox-style-btn-group milkbox-style-bg-group">
+                        <button class="milkbox-style-choice-btn" data-opacity="0" type="button">None (0%)</button>
+                        <button class="milkbox-style-choice-btn" data-opacity="0.35" type="button">Subtle (35%)</button>
+                        <button class="milkbox-style-choice-btn" data-opacity="0.6" type="button">Medium (60%)</button>
+                        <button class="milkbox-style-choice-btn is-active" data-opacity="0.82" type="button">Standard (80%)</button>
+                        <button class="milkbox-style-choice-btn" data-opacity="1" type="button">Solid (100%)</button>
+                    </div>
+                </div>
+                <div class="milkbox-style-section">
+                    <div class="milkbox-style-section-title">
+                        <span class="material-symbols-outlined">format_align_center</span>
+                        <span>Text Alignment</span>
+                    </div>
+                    <div class="milkbox-style-btn-group milkbox-style-align-group">
+                        <button class="milkbox-style-choice-btn" data-align="left" type="button">
+                            <span class="material-symbols-outlined">format_align_left</span>
+                            <span>Left</span>
+                        </button>
+                        <button class="milkbox-style-choice-btn is-active" data-align="center" type="button">
+                            <span class="material-symbols-outlined">format_align_center</span>
+                            <span>Center</span>
+                        </button>
+                        <button class="milkbox-style-choice-btn" data-align="right" type="button">
+                            <span class="material-symbols-outlined">format_align_right</span>
+                            <span>Right</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="milkbox-style-footer">
+                    <button class="milkbox-style-reset-btn" type="button">Reset to Defaults</button>
+                    <button class="milkbox-style-save-btn" type="button">Done</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    player.append(video, loading, error, centerPlay, controls, searchSubsModal, subStyleModal);
     container.replaceChildren(player);
 
     const playButton = controls.querySelector('.milkbox-player-play');
@@ -206,6 +413,8 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     const audioTrackSelect = controls.querySelector('.milkbox-player-audio-track');
     const subtitleTrackLabel = controls.querySelector('.milkbox-player-subtitle-label');
     const subtitleTrackSelect = controls.querySelector('.milkbox-player-subtitle-track');
+    const searchSubsBtn = controls.querySelector('.milkbox-player-search-subs');
+    const subStyleBtn = controls.querySelector('.milkbox-player-sub-style');
     let hideControlsTimer;
     if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) pictureInPictureButton.hidden = true;
 
@@ -290,6 +499,338 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             trackList.addEventListener('change', updateTrackSelectors);
         }
     }
+
+    let currentLoadedSubtitles = [];
+    let currentSearchFilterLang = 'all';
+    let currentSearchQuery = '';
+
+    const renderSearchResults = () => {
+        const resultsContainer = searchSubsModal.querySelector('.milkbox-subs-results-list');
+        const countLabel = searchSubsModal.querySelector('.milkbox-subs-count-label');
+        if (!resultsContainer) return;
+
+        let filtered = currentLoadedSubtitles.slice();
+        if (currentSearchFilterLang !== 'all') {
+            filtered = filtered.filter(s => (s.lang || '').toLowerCase() === currentSearchFilterLang || (s.langCode || '').toLowerCase() === currentSearchFilterLang);
+        }
+        if (currentSearchQuery) {
+            const q = currentSearchQuery.toLowerCase().trim();
+            filtered = filtered.filter(s => (s.label || '').toLowerCase().includes(q) || (s.lang || '').toLowerCase().includes(q) || (s.langCode || '').toLowerCase().includes(q));
+        }
+
+        if (countLabel) {
+            countLabel.textContent = filtered.length > 0
+                ? `${filtered.length} subtitle${filtered.length === 1 ? '' : 's'} available`
+                : (currentLoadedSubtitles.length === 0 ? 'No subtitles found from provider' : 'No subtitles matching filter');
+        }
+
+        if (filtered.length === 0) {
+            resultsContainer.innerHTML = `
+                <div style="text-align: center; padding: 24px 10px; color: rgba(255,255,255,0.45); font-size: 13px;">
+                    ${currentLoadedSubtitles.length === 0 ? 'Click sync 🔄 or load a custom .vtt/.srt file below.' : 'No subtitles matched your search.'}
+                </div>
+            `;
+            return;
+        }
+
+        const activeTrack = Array.from(video.textTracks || []).find(t => t.mode === 'showing');
+        const activeLabel = activeTrack ? activeTrack.label : '';
+
+        resultsContainer.innerHTML = filtered.map((sub, idx) => {
+            const isActive = activeLabel && (activeLabel === sub.label || activeLabel === sub.language);
+            return `
+                <div class="milkbox-sub-item-card ${isActive ? 'is-active' : ''}" data-sub-idx="${idx}">
+                    <div class="milkbox-sub-item-left">
+                        <span class="milkbox-sub-lang-pill">${_milkboxEscapeHtml((sub.lang || sub.langCode || 'CC').slice(0, 3).toUpperCase())}</span>
+                        <div class="milkbox-sub-item-info">
+                            <span class="milkbox-sub-item-label">${_milkboxEscapeHtml(sub.label || sub.language || `Subtitle ${idx + 1}`)}</span>
+                            <span class="milkbox-sub-item-source">${_milkboxEscapeHtml(sub.source || 'OpenSubtitles')}</span>
+                        </div>
+                    </div>
+                    <button class="milkbox-sub-item-load-btn" type="button">
+                        ${isActive ? '✓ Active' : 'Load & Play'}
+                    </button>
+                </div>
+            `;
+        }).join('');
+    };
+
+    const activateSubtitleTrack = (sub) => {
+        let existingTrack = Array.from(video.querySelectorAll('track')).find(t => t.src === sub.vttUrl || t.src === sub.url);
+        if (!existingTrack) {
+            existingTrack = document.createElement('track');
+            existingTrack.kind = 'subtitles';
+            existingTrack.label = sub.label || sub.language || 'Subtitle';
+            existingTrack.srclang = sub.lang || sub.language || 'en';
+            let trackSrc = sub.vttUrl || sub.url;
+            if (trackSrc && !trackSrc.startsWith('/api/') && !trackSrc.endsWith('.vtt') && !trackSrc.startsWith('blob:')) {
+                trackSrc = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(trackSrc)}`;
+            }
+            existingTrack.src = trackSrc;
+            video.appendChild(existingTrack);
+        }
+
+        setTimeout(() => {
+            const textTracks = Array.from(video.textTracks || []);
+            const target = textTracks.find(t => t.label === (sub.label || sub.language) || (existingTrack && t === existingTrack.track));
+            textTracks.forEach(t => {
+                if (['subtitles', 'captions'].includes(t.kind)) {
+                    t.mode = (t === target || (target && t.label === target.label)) ? 'showing' : 'disabled';
+                }
+            });
+            updateTrackSelectors();
+            renderSearchResults();
+            if (typeof toast === 'function') toast(`Active: ${sub.label || 'Subtitle track'}`, 'success');
+        }, 120);
+    };
+
+    const fetchSubtitlesFromApi = async (customQ = '') => {
+        const countLabel = searchSubsModal.querySelector('.milkbox-subs-count-label');
+        if (countLabel) countLabel.textContent = 'Fetching subtitles…';
+        const mType = extraOptions?.mediaType || extraOptions?.type || 'movie';
+        const mId = extraOptions?.tmdbId || extraOptions?.imdbId || '';
+        const sNum = extraOptions?.season || 1;
+        const eNum = extraOptions?.episode || 1;
+        let url = `/api/x8rr/subtitles?type=${encodeURIComponent(mType)}&id=${encodeURIComponent(mId)}&season=${sNum}&episode=${eNum}`;
+        if (customQ) {
+            url += `&q=${encodeURIComponent(customQ)}`;
+        } else if (extraOptions?.imdbId) {
+            url += `&imdb=${encodeURIComponent(extraOptions.imdbId)}`;
+        }
+        try {
+            const res = await fetch(url);
+            if (res.ok) {
+                const data = await res.json();
+                if (data && Array.isArray(data.subtitles) && data.subtitles.length > 0) {
+                    currentLoadedSubtitles = data.subtitles;
+                    applySubtitles(data.subtitles);
+                    renderSearchResults();
+                    return;
+                }
+            }
+        } catch {}
+        renderSearchResults();
+    };
+
+    const applySubtitles = (subsList) => {
+        if (!Array.isArray(subsList) || subsList.length === 0) return;
+        currentLoadedSubtitles = subsList.slice();
+        video.querySelectorAll('track').forEach(t => t.remove());
+
+        subsList.forEach((sub, idx) => {
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.label = sub.label || sub.language || `Subtitle ${idx + 1}`;
+            track.srclang = sub.lang || sub.language || 'en';
+            let trackSrc = sub.vttUrl || sub.url;
+            if (trackSrc && !trackSrc.startsWith('/api/') && !trackSrc.endsWith('.vtt')) {
+                trackSrc = `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(trackSrc)}`;
+            }
+            track.src = trackSrc;
+            if (sub.default) track.default = true;
+            video.appendChild(track);
+        });
+
+        setTimeout(updateTrackSelectors, 50);
+        setTimeout(updateTrackSelectors, 300);
+        setTimeout(updateTrackSelectors, 800);
+        renderSearchResults();
+    };
+
+    if (extraOptions?.subtitles && Array.isArray(extraOptions.subtitles) && extraOptions.subtitles.length > 0) {
+        applySubtitles(extraOptions.subtitles);
+    } else if (extraOptions?.tmdbId || extraOptions?.imdbId) {
+        fetchSubtitlesFromApi();
+    }
+
+    // Subtitle Styling interactive state and bindings
+    let currentDraftStyles = _milkboxGetSubtitleStyles();
+    const previewText = subStyleModal.querySelector('.milkbox-style-preview-text');
+
+    const updatePreviewAndStyles = (newStyles) => {
+        currentDraftStyles = Object.assign({}, currentDraftStyles, newStyles);
+        _milkboxSaveSubtitleStyles(currentDraftStyles);
+
+        if (previewText) {
+            previewText.style.fontSize = currentDraftStyles.fontSize;
+            previewText.style.color = currentDraftStyles.color;
+            const bgAlpha = parseFloat(currentDraftStyles.bgOpacity ?? '0.82');
+            previewText.style.backgroundColor = bgAlpha === 0 ? 'transparent' : (bgAlpha === 1 ? '#000000' : `rgba(0, 0, 0, ${bgAlpha})`);
+            previewText.style.textAlign = currentDraftStyles.textAlign;
+        }
+
+        subStyleModal.querySelectorAll('.milkbox-style-size-group .milkbox-style-choice-btn').forEach(btn => {
+            btn.classList.toggle('is-active', btn.dataset.size === currentDraftStyles.fontSize);
+        });
+        subStyleModal.querySelectorAll('.milkbox-style-color-group .milkbox-style-color-swatch').forEach(btn => {
+            btn.classList.toggle('is-active', (btn.dataset.color || '').toLowerCase() === (currentDraftStyles.color || '').toLowerCase());
+        });
+        subStyleModal.querySelectorAll('.milkbox-style-bg-group .milkbox-style-choice-btn').forEach(btn => {
+            btn.classList.toggle('is-active', btn.dataset.opacity === String(currentDraftStyles.bgOpacity));
+        });
+        subStyleModal.querySelectorAll('.milkbox-style-align-group .milkbox-style-choice-btn').forEach(btn => {
+            btn.classList.toggle('is-active', btn.dataset.align === currentDraftStyles.textAlign);
+        });
+    };
+
+    updatePreviewAndStyles({});
+
+    if (searchSubsBtn) {
+        searchSubsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            searchSubsModal.hidden = false;
+            subStyleModal.hidden = true;
+            if (currentLoadedSubtitles.length === 0) {
+                fetchSubtitlesFromApi();
+            } else {
+                renderSearchResults();
+            }
+        });
+    }
+
+    if (subStyleBtn) {
+        subStyleBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            subStyleModal.hidden = false;
+            searchSubsModal.hidden = true;
+            updatePreviewAndStyles(_milkboxGetSubtitleStyles());
+        });
+    }
+
+    searchSubsModal.querySelectorAll('.milkbox-player-modal-close, .milkbox-player-modal-backdrop').forEach(el => {
+        el.addEventListener('click', () => { searchSubsModal.hidden = true; });
+    });
+
+    subStyleModal.querySelectorAll('.milkbox-player-modal-close, .milkbox-player-modal-backdrop, .milkbox-style-save-btn').forEach(el => {
+        el.addEventListener('click', () => { subStyleModal.hidden = true; });
+    });
+
+    const resetStyleBtn = subStyleModal.querySelector('.milkbox-style-reset-btn');
+    if (resetStyleBtn) {
+        resetStyleBtn.addEventListener('click', () => {
+            updatePreviewAndStyles(MILKBOX_DEFAULT_SUB_STYLES);
+            if (typeof toast === 'function') toast('Subtitle styles reset to defaults', 'info');
+        });
+    }
+
+    subStyleModal.querySelector('.milkbox-style-size-group')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.milkbox-style-choice-btn');
+        if (btn?.dataset.size) updatePreviewAndStyles({ fontSize: btn.dataset.size });
+    });
+
+    subStyleModal.querySelector('.milkbox-style-color-group')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.milkbox-style-color-swatch');
+        if (btn?.dataset.color) updatePreviewAndStyles({ color: btn.dataset.color });
+    });
+
+    subStyleModal.querySelector('.milkbox-style-bg-group')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.milkbox-style-choice-btn');
+        if (btn?.dataset.opacity) updatePreviewAndStyles({ bgOpacity: btn.dataset.opacity });
+    });
+
+    subStyleModal.querySelector('.milkbox-style-align-group')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.milkbox-style-choice-btn');
+        if (btn?.dataset.align) updatePreviewAndStyles({ textAlign: btn.dataset.align });
+    });
+
+    searchSubsModal.querySelector('.milkbox-subs-filter-chips')?.addEventListener('click', (e) => {
+        const chip = e.target.closest('.milkbox-subs-chip');
+        if (!chip || !chip.dataset.lang) return;
+        searchSubsModal.querySelectorAll('.milkbox-subs-chip').forEach(c => c.classList.remove('is-active'));
+        chip.classList.add('is-active');
+        currentSearchFilterLang = chip.dataset.lang;
+        renderSearchResults();
+    });
+
+    const searchInput = searchSubsModal.querySelector('.milkbox-subs-search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            currentSearchQuery = e.target.value;
+            renderSearchResults();
+        });
+    }
+
+    const refreshSubsBtn = searchSubsModal.querySelector('.milkbox-subs-refresh-btn');
+    if (refreshSubsBtn) {
+        refreshSubsBtn.addEventListener('click', () => {
+            fetchSubtitlesFromApi(searchInput ? searchInput.value : '');
+        });
+    }
+
+    const customToggle = searchSubsModal.querySelector('.milkbox-subs-custom-toggle');
+    const customPanel = searchSubsModal.querySelector('.milkbox-subs-custom-panel');
+    if (customToggle && customPanel) {
+        customToggle.addEventListener('click', () => {
+            customPanel.hidden = !customPanel.hidden;
+            customToggle.textContent = customPanel.hidden ? '+ Load Custom File or URL' : '− Hide Custom Subtitle Loader';
+        });
+    }
+
+    const urlInput = searchSubsModal.querySelector('.milkbox-subs-url-input');
+    const urlLoadBtn = searchSubsModal.querySelector('.milkbox-subs-url-load-btn');
+    if (urlLoadBtn && urlInput) {
+        urlLoadBtn.addEventListener('click', () => {
+            const raw = urlInput.value.trim();
+            if (!raw) return;
+            const customSub = {
+                id: `custom-${Date.now()}`,
+                label: 'Custom Subtitle (URL)',
+                lang: 'en',
+                langCode: 'custom',
+                url: raw,
+                vttUrl: raw.endsWith('.vtt') ? raw : `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(raw)}`,
+                source: 'Custom URL'
+            };
+            currentLoadedSubtitles.unshift(customSub);
+            activateSubtitleTrack(customSub);
+            urlInput.value = '';
+        });
+    }
+
+    const fileInput = searchSubsModal.querySelector('.milkbox-subs-file-input');
+    if (fileInput) {
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                let text = ev.target.result;
+                if (!text.trim().startsWith('WEBVTT')) {
+                    text = 'WEBVTT\n\n' + text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2').trim() + '\n';
+                }
+                const blob = new Blob([text], { type: 'text/vtt;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(blob);
+                const fileSub = {
+                    id: `file-${Date.now()}`,
+                    label: file.name.replace(/\.[^/.]+$/, ''),
+                    lang: 'en',
+                    langCode: 'file',
+                    url: blobUrl,
+                    vttUrl: blobUrl,
+                    source: 'Local File'
+                };
+                currentLoadedSubtitles.unshift(fileSub);
+                activateSubtitleTrack(fileSub);
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    searchSubsModal.querySelector('.milkbox-subs-results-list')?.addEventListener('click', (e) => {
+        const card = e.target.closest('.milkbox-sub-item-card');
+        if (!card) return;
+        const subIdx = parseInt(card.dataset.subIdx, 10);
+        let filtered = currentLoadedSubtitles.slice();
+        if (currentSearchFilterLang !== 'all') {
+            filtered = filtered.filter(s => (s.lang || '').toLowerCase() === currentSearchFilterLang || (s.langCode || '').toLowerCase() === currentSearchFilterLang);
+        }
+        if (currentSearchQuery) {
+            const q = currentSearchQuery.toLowerCase().trim();
+            filtered = filtered.filter(s => (s.label || '').toLowerCase().includes(q) || (s.lang || '').toLowerCase().includes(q) || (s.langCode || '').toLowerCase().includes(q));
+        }
+        const selectedSub = filtered[subIdx];
+        if (selectedSub) activateSubtitleTrack(selectedSub);
+    });
 
     const updatePlayState = () => {
         const icon = playButton.querySelector('span');
