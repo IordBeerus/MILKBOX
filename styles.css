@@ -3683,6 +3683,7 @@ body.high-contrast-mode .settings-card {
     gap: 10px;
 }
 .theme-card {
+    position: relative;
     background: #2a2a2a;
     border: 2px solid #444;
     border-radius: 8px;
@@ -3698,6 +3699,41 @@ body.high-contrast-mode .settings-card {
 .theme-card.active {
     border-color: #e50914;
     box-shadow: 0 0 10px var(--bg-shadow, rgba(229, 9, 20, 0.3));
+}
+.theme-card.holiday-ended {
+    opacity: 0.68;
+    filter: saturate(0.6);
+    border-style: dashed;
+}
+.theme-card.holiday-ended:hover {
+    opacity: 0.88;
+    filter: saturate(0.8);
+    transform: translateY(-1px);
+}
+.theme-holiday-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    border-radius: 9999px;
+    pointer-events: none;
+    line-height: 1.2;
+    z-index: 3;
+}
+.theme-holiday-badge.is-active {
+    background: rgba(16, 185, 129, 0.25);
+    border: 1px solid rgba(16, 185, 129, 0.65);
+    color: #34d399;
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+.theme-holiday-badge.is-ended {
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.65);
 }
 .theme-card[data-theme="halloween"] {
     background: rgba(22, 14, 30, 0.7);

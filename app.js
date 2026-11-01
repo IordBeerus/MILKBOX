@@ -1122,27 +1122,193 @@ function updateBgPreview() {
     }
 }
 
-function getSeasonalThemeName() {
-    const month = new Date().getMonth();
-    if (month === 9) return 'halloween'; 
-    if (month === 10 || month === 11) return 'christmas'; 
-    if (month === 0) return 'newyear'; 
-    if (month === 1) return 'snow'; 
-    if (month === 2 || month === 3) return 'sakura'; 
+const HOLIDAY_THEMES = {
+    halloween: {
+        name: 'Halloween',
+        seasonDesc: 'Oct 1 – Oct 31',
+        isActive: (d = new Date()) => {
+            const m = d.getMonth(); // 9 = October (0-indexed)
+            return m === 9; // Oct 1 to Oct 31
+        }
+    },
+    christmas: {
+        name: 'Christmas',
+        seasonDesc: 'Dec 1 – Dec 26',
+        isActive: (d = new Date()) => {
+            const m = d.getMonth(); // 11 = December
+            const date = d.getDate();
+            return m === 11 && date >= 1 && date <= 26; // Dec 1 to Dec 26
+        }
+    },
+    newyear: {
+        name: 'New Year',
+        seasonDesc: 'Dec 27 – Jan 5',
+        isActive: (d = new Date()) => {
+            const m = d.getMonth();
+            const date = d.getDate();
+            return (m === 11 && date >= 27) || (m === 0 && date <= 5); // Dec 27 to Jan 5
+        }
+    },
+    snow: {
+        name: 'Winter Snow',
+        seasonDesc: 'Jan 6 – Feb 28',
+        isActive: (d = new Date()) => {
+            const m = d.getMonth();
+            const date = d.getDate();
+            return (m === 0 && date >= 6) || m === 1; // Jan 6 to Feb 28/29
+        }
+    },
+    sakura: {
+        name: 'Sakura Spring',
+        seasonDesc: 'Mar 15 – Apr 25',
+        isActive: (d = new Date()) => {
+            const m = d.getMonth(); // 2 = March, 3 = April
+            const date = d.getDate();
+            return (m === 2 && date >= 15) || (m === 3 && date <= 25); // Mar 15 to Apr 25
+        }
+    }
+};
+
+function isHolidayTheme(themeKey) {
+    return Boolean(themeKey && Object.prototype.hasOwnProperty.call(HOLIDAY_THEMES, themeKey));
+}
+
+function isHolidayActive(themeKey, d = new Date()) {
+    if (!isHolidayTheme(themeKey)) return false;
+    return HOLIDAY_THEMES[themeKey].isActive(d);
+}
+
+function isHolidayOver(themeKey, d = new Date()) {
+    if (!isHolidayTheme(themeKey)) return false;
+    return !HOLIDAY_THEMES[themeKey].isActive(d);
+}
+
+function getActiveHolidayTheme(d = new Date()) {
+    for (const [key, holiday] of Object.entries(HOLIDAY_THEMES)) {
+        if (holiday.isActive(d)) {
+            return key;
+        }
+    }
     return '';
 }
 
+function updateThemeCardsUI() {
+    if (typeof document === 'undefined') return;
+    document.querySelectorAll('.theme-card').forEach(card => {
+        const themeKey = card.dataset.theme;
+        const isActive = (themeKey === settings.activeTheme) || (themeKey === 'default' && (!settings.activeTheme || settings.activeTheme === 'default'));
+        card.classList.toggle('active', isActive);
+
+        if (isHolidayTheme(themeKey)) {
+            const holiday = HOLIDAY_THEMES[themeKey];
+            const activeNow = isHolidayActive(themeKey);
+            card.classList.toggle('holiday-active', activeNow);
+            card.classList.toggle('holiday-ended', !activeNow);
+
+            let badge = card.querySelector('.theme-holiday-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'theme-holiday-badge';
+                card.appendChild(badge);
+            }
+            if (activeNow) {
+                badge.className = 'theme-holiday-badge is-active';
+                badge.textContent = 'In Season';
+                badge.title = `${holiday.name} is currently active (${holiday.seasonDesc})`;
+            } else {
+                badge.className = 'theme-holiday-badge is-ended';
+                badge.textContent = 'Ended';
+                badge.title = `${holiday.name} holiday has ended (${holiday.seasonDesc})`;
+            }
+        }
+    });
+}
+
+function cleanExpiredHolidayThemes(showNotice = false) {
+    if (typeof settings === 'undefined' || !settings) return false;
+    const curTheme = settings.activeTheme || (typeof document !== 'undefined' && document.body && document.body.dataset.theme) || '';
+
+    let isExpiredTheme = Boolean(curTheme && isHolidayTheme(curTheme) && isHolidayOver(curTheme));
+
+    let expiredBgKey = '';
+    if (settings.bgImage) {
+        for (const [key] of Object.entries(HOLIDAY_THEMES)) {
+            if (settings.bgImage.includes(`${key}-backdrop.svg`) && isHolidayOver(key)) {
+                expiredBgKey = key;
+                isExpiredTheme = true;
+                break;
+            }
+        }
+    }
+
+    if (isExpiredTheme) {
+        const themeNameKey = (curTheme && isHolidayTheme(curTheme)) ? curTheme : expiredBgKey;
+        const holiday = HOLIDAY_THEMES[themeNameKey] || { name: 'Holiday', seasonDesc: '' };
+        console.log(`[Milkbox Theme] Holiday "${holiday.name}" has ended (${holiday.seasonDesc}). Retiring theme and reverting to default.`);
+
+        let fallbackTheme = 'default';
+        if (settings.preHolidayTheme && !isHolidayTheme(settings.preHolidayTheme)) {
+            fallbackTheme = settings.preHolidayTheme;
+        }
+
+        settings.activeTheme = fallbackTheme === 'default' ? '' : fallbackTheme;
+        if (fallbackTheme === 'default') {
+            settings.bgColor = '#141414';
+            settings.bgImage = '';
+            settings.bgOpacity = 30;
+            settings.bgBlur = 0;
+        }
+        delete settings.preHolidayTheme;
+        if (typeof saveData === 'function') saveData();
+
+        if (typeof document !== 'undefined') {
+            if (document.body) {
+                document.body.dataset.theme = settings.activeTheme || '';
+            }
+            const seasonalDecorations = document.getElementById('seasonalDecorations');
+            if (seasonalDecorations) seasonalDecorations.hidden = true;
+
+            if (typeof applyBackground === 'function') applyBackground();
+            if (typeof updateThemeCardsUI === 'function') updateThemeCardsUI();
+
+            if (showNotice && typeof toast === 'function') {
+                toast(`${holiday.name} season has ended. Theme returned to default.`, 'info');
+            }
+        }
+        return true;
+    }
+    return false;
+}
+
+function getSeasonalThemeName() {
+    return getActiveHolidayTheme();
+}
+
 function applySeasonalThemeIfNeeded() {
-    const seasonalTheme = getSeasonalThemeName();
+    cleanExpiredHolidayThemes();
+
+    const seasonalTheme = getActiveHolidayTheme();
     if (!seasonalTheme) return;
+
     const currentlySelected = settings.activeTheme || '';
     const shouldAutoApply = !currentlySelected || currentlySelected === 'default';
     if (shouldAutoApply) {
-        applyTheme(seasonalTheme);
+        if (!settings.preHolidayTheme && currentlySelected) {
+            settings.preHolidayTheme = currentlySelected;
+        }
+        applyTheme(seasonalTheme, false);
     }
 }
 
-function applyTheme(themeName) {
+function applyTheme(themeName, showToast = true) {
+    if (isHolidayTheme(themeName) && isHolidayOver(themeName)) {
+        const holiday = HOLIDAY_THEMES[themeName];
+        if (showToast && typeof toast === 'function') {
+            toast(`"${holiday.name}" holiday has ended (${holiday.seasonDesc}). Holiday themes cannot be used once the holiday is over.`, 'error');
+        }
+        return;
+    }
+
     const themes = {
         
         default:  { bgColor: '#141414', bgImage: '', bgOpacity: 30, bgBlur: 0 },
@@ -1204,14 +1370,17 @@ function applyTheme(themeName) {
     };
     const theme = themes[themeName] || customThemes.find(t => t.name === themeName);
     if (!theme) return;
+    if (isHolidayTheme(themeName) && !isHolidayTheme(settings.activeTheme) && settings.activeTheme) {
+        settings.preHolidayTheme = settings.activeTheme;
+    }
     Object.assign(settings, { bgColor: theme.bgColor, bgImage: theme.bgImage || '', bgOpacity: theme.bgOpacity ?? 30, bgBlur: theme.bgBlur ?? 0, overlayOpacity: theme.overlayOpacity ?? 60, overlayBlur: theme.overlayBlur ?? 2 });
     settings.activeTheme = themeName;
     saveData();
     applyBackground();
-    document.querySelectorAll('.theme-card').forEach(c => {
-        c.classList.toggle('active', c.dataset.theme === themeName);
-    });
-    toast(`Applied "${themeName}" theme`, 'success');
+    updateThemeCardsUI();
+    if (showToast) {
+        toast(`Applied "${themeName}" theme`, 'success');
+    }
 }
 
 
@@ -8196,9 +8365,8 @@ function syncSettingsInputs() {
 
 document.getElementById('settingsBtn').addEventListener('click', () => {
     document.getElementById('settingsModal').classList.add('active');
-    document.querySelectorAll('.theme-card').forEach(c => {
-        c.classList.toggle('active', c.dataset.theme === settings.activeTheme);
-    });
+    cleanExpiredHolidayThemes();
+    updateThemeCardsUI();
     document.querySelectorAll('.preset-color').forEach(c => {
         c.classList.toggle('active', c.dataset.color === settings.bgColor);
     });
@@ -8551,7 +8719,15 @@ document.querySelectorAll('.preset-color').forEach(btn => {
 
 
 document.querySelectorAll('.theme-card').forEach(card => {
-    card.addEventListener('click', () => applyTheme(card.dataset.theme));
+    card.addEventListener('click', () => {
+        const themeKey = card.dataset.theme;
+        if (isHolidayTheme(themeKey) && isHolidayOver(themeKey)) {
+            const holiday = HOLIDAY_THEMES[themeKey];
+            toast(`"${holiday.name}" holiday has ended (${holiday.seasonDesc}). Holiday themes cannot be selected once the holiday is over.`, 'error');
+            return;
+        }
+        applyTheme(themeKey);
+    });
 });
 
 
@@ -11511,8 +11687,10 @@ document.getElementById('logoWrap').addEventListener('click', (e) => {
 function initAll() {
     try { initGenreOptions(); } catch (e) { console.error('initGenreOptions error:', e); }
     try { applyCloak(); } catch (e) { console.error('applyCloak error:', e); }
+    try { cleanExpiredHolidayThemes(); } catch (e) { console.error('cleanExpiredHolidayThemes error:', e); }
     try { applySeasonalThemeIfNeeded(); } catch (e) { console.error('applySeasonalThemeIfNeeded error:', e); }
     try { applyBackground(); } catch (e) { console.error('applyBackground error:', e); }
+    try { updateThemeCardsUI(); } catch (e) { console.error('updateThemeCardsUI error:', e); }
     try { scanMovieQualities(true); } catch (e) { console.error('scanMovieQualities error:', e); }
     try {
         const hg = document.getElementById('homeGenres');
@@ -11532,6 +11710,16 @@ function initAll() {
 }
 initAll();
 checkCatalogAvailability();
+
+// Periodically check if a holiday has ended (e.g. across midnight or on tab focus)
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        try { cleanExpiredHolidayThemes(true); } catch (_) {}
+    }
+});
+setInterval(() => {
+    try { cleanExpiredHolidayThemes(true); } catch (_) {}
+}, 30 * 60 * 1000);
 
 
 document.addEventListener('click', (e) => {
