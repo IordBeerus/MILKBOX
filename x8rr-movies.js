@@ -372,7 +372,6 @@ function srtToVtt(srtText) {
         .replace(/^\uFEFF/, '')
         .replace(/\r\n/g, '\n')
         .replace(/\r/g, '\n');
-    vtt = vtt.replace(/(\d+)\n(\d{2}:\d{2}:\d{2})/g, '\n$1\n$2');
     vtt = vtt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
     vtt = vtt.replace(/(\d{2}:\d{2}),(\d{3})/g, '00:$1.$2');
     return 'WEBVTT\n\n' + vtt.trim() + '\n';
