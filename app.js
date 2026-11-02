@@ -2102,43 +2102,252 @@ async function renderProviders() {
     }
 }
 
+let providerCategoryFilter = 'all';
+let providerSearchQuery = '';
+
+const PROVIDER_METADATA = {
+    // SVOD
+    '8': { cat: 'svod', typeLabel: 'Subscription', accent: '#E50914', glow: 'rgba(229, 9, 20, 0.45)' },
+    '9': { cat: 'svod', typeLabel: 'Subscription', accent: '#00A8E1', glow: 'rgba(0, 168, 225, 0.45)' },
+    '337': { cat: 'svod', typeLabel: 'Subscription', accent: '#113CCF', glow: 'rgba(17, 60, 207, 0.45)' },
+    '350': { cat: 'svod', typeLabel: 'Subscription', accent: '#ffffff', glow: 'rgba(255, 255, 255, 0.25)' },
+    '15': { cat: 'svod', typeLabel: 'Subscription', accent: '#1CE783', glow: 'rgba(28, 231, 131, 0.45)' },
+    '1899': { cat: 'svod', typeLabel: 'Subscription', accent: '#002BE7', glow: 'rgba(0, 43, 231, 0.45)' },
+    '2303': { cat: 'svod', typeLabel: 'Subscription', accent: '#0064FF', glow: 'rgba(0, 100, 255, 0.45)' },
+    '386': { cat: 'svod', typeLabel: 'Subscription', accent: '#00A3E0', glow: 'rgba(0, 163, 224, 0.45)' },
+    '188': { cat: 'svod', typeLabel: 'Subscription', accent: '#FF0000', glow: 'rgba(255, 0, 0, 0.45)' },
+
+    // Anime
+    '283': { cat: 'anime', typeLabel: 'Anime Sub', accent: '#F47521', glow: 'rgba(244, 117, 33, 0.45)' },
+
+    // Free & FAST
+    '300': { cat: 'free', typeLabel: 'Free with Ads', accent: '#FFE600', glow: 'rgba(255, 230, 0, 0.45)' },
+    '73': { cat: 'free', typeLabel: 'Free with Ads', accent: '#6A00F5', glow: 'rgba(106, 0, 245, 0.45)' },
+    '192': { cat: 'free', typeLabel: 'Free Video', accent: '#FF0000', glow: 'rgba(255, 0, 0, 0.45)' },
+
+    // Premium Channels
+    '43': { cat: 'premium', typeLabel: 'Premium Channel', accent: '#C8A051', glow: 'rgba(200, 160, 81, 0.45)' },
+    '526': { cat: 'premium', typeLabel: 'Premium Channel', accent: '#0E1E3A', glow: 'rgba(14, 30, 58, 0.45)' },
+    '34': { cat: 'premium', typeLabel: 'Premium Channel', accent: '#C59B27', glow: 'rgba(197, 155, 39, 0.45)' },
+    '11': { cat: 'premium', typeLabel: 'Curated Cinema', accent: '#002F6C', glow: 'rgba(0, 47, 108, 0.45)' },
+    '151': { cat: 'premium', typeLabel: 'British TV', accent: '#1A1A5E', glow: 'rgba(26, 26, 94, 0.45)' },
+
+    // Digital Stores
+    '2': { cat: 'store', typeLabel: 'Digital Store', accent: '#A2AAAD', glow: 'rgba(162, 170, 173, 0.35)' },
+    '7': { cat: 'store', typeLabel: 'Buy & Rent', accent: '#0877C9', glow: 'rgba(8, 119, 201, 0.45)' },
+    '10': { cat: 'store', typeLabel: 'Digital Store', accent: '#00A8E1', glow: 'rgba(0, 168, 225, 0.45)' },
+    '3': { cat: 'store', typeLabel: 'Digital Store', accent: '#4285F4', glow: 'rgba(66, 133, 244, 0.45)' },
+    '68': { cat: 'store', typeLabel: 'Digital Store', accent: '#0078D7', glow: 'rgba(0, 120, 215, 0.45)' }
+};
+
+function getProviderMeta(p) {
+    if (PROVIDER_METADATA[p.id]) return PROVIDER_METADATA[p.id];
+    return {
+        cat: 'svod',
+        typeLabel: 'Streaming',
+        accent: p.bg || '#e50914',
+        glow: 'rgba(229, 9, 20, 0.35)'
+    };
+}
+
 async function renderProviderGrid() {
     const grid = document.getElementById('providerGrid');
     if (!grid) return;
-    grid.innerHTML = '';
-    const renderGridBatch = (start, end) => {
-        grid.insertAdjacentHTML('beforeend', PROVIDERS.slice(start, end).map(p => {
-            const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
-            const logoUrl = logo
-                ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
-                : '';
-            const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="70" height="70" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
-            const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
-            return `<div class="provider-item" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}"><div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div><span class="provider-label">${escapeHtml(p.label)}</span></div>`;
-        }).join(''));
-    };
-    const initialCount = Math.min(60, PROVIDERS.length);
-    renderGridBatch(0, initialCount);
-    let next = initialCount;
-    const appendGridBatch = () => {
-        if (next >= PROVIDERS.length) return;
-        const end = Math.min(next + 60, PROVIDERS.length);
-        renderGridBatch(next, end);
-        next = end;
-        if (next < PROVIDERS.length) {
-            if (window.requestIdleCallback) window.requestIdleCallback(appendGridBatch, { timeout: 500 });
-            else window.setTimeout(appendGridBatch, 100);
-        }
-    };
-    if (next < PROVIDERS.length) {
-        if (window.requestIdleCallback) window.requestIdleCallback(appendGridBatch, { timeout: 500 });
-        else window.setTimeout(appendGridBatch, 100);
-    }
+
     await loadLocalProviderIcons();
     if (!providerLogosFetched) {
         try { await fetchProviderLogos(); } catch {}
-        grid.innerHTML = '';
-        renderGridBatch(0, Math.min(60, PROVIDERS.length));
+    }
+
+    const needle = String(providerSearchQuery || '').trim().toLowerCase();
+    const filtered = PROVIDERS.filter(p => {
+        const meta = getProviderMeta(p);
+        if (providerCategoryFilter !== 'all' && meta.cat !== providerCategoryFilter) {
+            return false;
+        }
+        if (needle) {
+            const matchName = String(p.label || '').toLowerCase().includes(needle);
+            const matchKey = String(p.key || '').toLowerCase().includes(needle);
+            const matchType = String(meta.typeLabel || '').toLowerCase().includes(needle);
+            if (!matchName && !matchKey && !matchType) return false;
+        }
+        return true;
+    });
+
+    const countBadge = document.getElementById('providerCountBadge');
+    if (countBadge) {
+        countBadge.textContent = needle || providerCategoryFilter !== 'all'
+            ? `Showing ${filtered.length} of ${PROVIDERS.length} services`
+            : `Showing all ${PROVIDERS.length} services`;
+    }
+
+    const totalStat = document.getElementById('providersTotalStat');
+    if (totalStat) {
+        totalStat.textContent = `${PROVIDERS.length}+ Services`;
+    }
+
+    const emptyState = document.getElementById('providerEmptyState');
+    if (emptyState) {
+        emptyState.style.display = filtered.length === 0 ? '' : 'none';
+    }
+    grid.style.display = filtered.length === 0 ? 'none' : 'grid';
+
+    updateProviderActiveSpotlight();
+
+    grid.innerHTML = filtered.map(p => {
+        const meta = getProviderMeta(p);
+        const isActive = activeProvider === p.id;
+        const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
+        const logoUrl = logo
+            ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
+            : '';
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="62" height="62" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
+        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
+
+        return `
+        <div class="provider-item ${isActive ? 'active' : ''}" data-provider="${escapeHtml(p.id)}" style="--prov-accent:${meta.accent}; --prov-glow:${meta.glow};" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}" role="button" tabindex="0">
+            ${isActive ? '<span class="provider-active-badge">✓ ACTIVE</span>' : ''}
+            <div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div>
+            <div class="provider-label">${escapeHtml(p.label)}</div>
+            <span class="provider-type-tag">${escapeHtml(meta.typeLabel)}</span>
+            <span class="provider-action-hint">${isActive ? 'Active Filter ✕' : 'Filter Titles →'}</span>
+        </div>`;
+    }).join('');
+    setupProviderDirectoryControls();
+}
+
+function updateProviderActiveSpotlight() {
+    const spotlight = document.getElementById('providerActiveSpotlight');
+    const nameEl = document.getElementById('providerActiveName');
+    const hintEl = document.getElementById('providerActiveHint');
+    const logoWrap = document.getElementById('providerActiveLogoWrap');
+    if (!spotlight) return;
+
+    if (!activeProvider) {
+        spotlight.style.display = 'none';
+        return;
+    }
+
+    const prov = PROVIDERS.find(p => p.id === activeProvider);
+    if (!prov) {
+        spotlight.style.display = 'none';
+        return;
+    }
+
+    spotlight.style.display = '';
+    if (nameEl) nameEl.textContent = prov.label;
+    if (hintEl) hintEl.textContent = `Browsing filtered catalog on TMDB (streaming now)`;
+
+    if (logoWrap) {
+        const logo = LOCAL_PROVIDER_ICONS[prov.id] || providerLogoMap[prov.id];
+        const logoUrl = logo
+            ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
+            : '';
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(prov.label)}" width="48" height="48" loading="lazy">` : '';
+        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:16px;width:100%;height:100%;align-items:center;justify-content:center;background:${prov.bg};color:${prov.color}">${escapeHtml(prov.short.slice(0, 3).toUpperCase())}</span>`;
+        logoWrap.innerHTML = img || fallback;
+    }
+}
+
+function setupProviderDirectoryControls() {
+    const searchInput = document.getElementById('providerSearchInput');
+    const searchClear = document.getElementById('providerSearchClearBtn');
+    const catFilters = document.getElementById('providerCatFilters');
+    const resetBtn = document.getElementById('providerResetSearchBtn');
+    const clearFilterBtn = document.getElementById('providerClearFilterBtn');
+    const jumpBtn = document.getElementById('providerJumpStreamingBtn');
+    const grid = document.getElementById('providerGrid');
+
+    if (searchInput && !searchInput.dataset.bound) {
+        searchInput.dataset.bound = 'true';
+        searchInput.addEventListener('input', (e) => {
+            providerSearchQuery = e.target.value;
+            if (searchClear) searchClear.style.display = providerSearchQuery.trim() ? 'block' : 'none';
+            renderProviderGrid();
+        });
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                searchInput.value = '';
+                providerSearchQuery = '';
+                if (searchClear) searchClear.style.display = 'none';
+                renderProviderGrid();
+            }
+        });
+    }
+
+    if (searchClear && !searchClear.dataset.bound) {
+        searchClear.dataset.bound = 'true';
+        searchClear.addEventListener('click', () => {
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            providerSearchQuery = '';
+            searchClear.style.display = 'none';
+            renderProviderGrid();
+        });
+    }
+
+    if (catFilters && !catFilters.dataset.bound) {
+        catFilters.dataset.bound = 'true';
+        catFilters.addEventListener('click', (e) => {
+            const btn = e.target.closest('.providers-cat-tab');
+            if (!btn) return;
+            catFilters.querySelectorAll('.providers-cat-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            providerCategoryFilter = btn.dataset.provCat || 'all';
+            renderProviderGrid();
+        });
+    }
+
+    if (resetBtn && !resetBtn.dataset.bound) {
+        resetBtn.dataset.bound = 'true';
+        resetBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (searchClear) searchClear.style.display = 'none';
+            providerSearchQuery = '';
+            providerCategoryFilter = 'all';
+            if (catFilters) {
+                catFilters.querySelectorAll('.providers-cat-tab').forEach(b => {
+                    b.classList.toggle('active', b.dataset.provCat === 'all');
+                });
+            }
+            renderProviderGrid();
+        });
+    }
+
+    if (clearFilterBtn && !clearFilterBtn.dataset.bound) {
+        clearFilterBtn.dataset.bound = 'true';
+        clearFilterBtn.addEventListener('click', () => {
+            if (activeProvider) {
+                browseProvider(activeProvider);
+            }
+        });
+    }
+
+    if (jumpBtn && !jumpBtn.dataset.bound) {
+        jumpBtn.dataset.bound = 'true';
+        jumpBtn.addEventListener('click', () => {
+            const target = document.getElementById('streamingSection');
+            if (target) {
+                target.style.display = '';
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    if (grid && !grid.dataset.boundKeys) {
+        grid.dataset.boundKeys = 'true';
+        grid.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const item = e.target.closest('.provider-item');
+                if (item && item.dataset.provider) {
+                    e.preventDefault();
+                    browseProvider(item.dataset.provider);
+                }
+            }
+        });
     }
 }
 
@@ -2152,6 +2361,7 @@ async function browseProvider(providerId) {
         liveState.streaming.page = 1;
         delete liveFed['streaming'];
         renderProviders();
+        renderProviderGrid();
         toast(`Cleared ${prov.label} filter`);
         const hint = document.querySelector('#streamingSection .live-hint');
         if (hint) hint.textContent = 'Live from TMDB · movies & shows on streaming services';
@@ -2160,6 +2370,7 @@ async function browseProvider(providerId) {
             show('streamingSection', false);
             show('moviesSection', false);
             show('tvShowsSection', false);
+            show('providersSection', true);
             return;
         } else if (currentSection==='streaming') {
             renderLiveTab('streaming');
@@ -2174,6 +2385,7 @@ async function browseProvider(providerId) {
     }
     activeProvider=providerId;
     renderProviders();
+    renderProviderGrid();
     toast(`Browsing ${prov.label}...`);
     const providerGridClick = currentSection === 'providers';
     
@@ -10754,6 +10966,7 @@ function applySectionChange(section, link, pushHistory = true) {
         show('popularSection', false);
         show('mangaSection', false);
         show('collectionsSection', false);
+        show('providersSection', true);
         const providersHint = document.getElementById('providersHint'); if (providersHint) providersHint.style.display = 'block';
         const streamingHint = document.querySelector('#streamingSection .live-hint'); if (streamingHint) streamingHint.style.display = '';
         document.getElementById('heroSection').style.display = 'none';
