@@ -1850,121 +1850,72 @@ body.light-mode .loaded-genre-close-btn {
 }
 
 /* Loaded Genre Row Item Sizing — Compact Cards & Smaller Images */
-#loadedGenreSection .slider-container .slider-btn,
-#loadedGenreSection .slider-btn {
-    top: 50% !important;
-    bottom: auto !important;
-    transform: translateY(-50%) !important;
-    height: 32px !important;
-    width: 32px !important;
-    min-width: 32px !important;
-    max-width: 32px !important;
-    font-size: 13px !important;
-    border-radius: 50% !important;
-    background: rgba(14, 14, 18, 0.85) !important;
-    border: 1px solid rgba(255, 255, 255, 0.18) !important;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
-    opacity: 0.9 !important;
-    z-index: 25 !important;
-    padding: 0 !important;
-    line-height: 1 !important;
-}
-
-#loadedGenreSection .slider-container:hover .slider-btn {
-    opacity: 1 !important;
-}
-
-#loadedGenreSection .slider-container .slider-btn:hover,
-#loadedGenreSection .slider-btn:hover {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    max-width: 34px !important;
-    background: rgba(229, 9, 20, 0.85) !important;
-    border-color: rgba(229, 9, 20, 0.95) !important;
-    color: #fff !important;
-    transform: translateY(-50%) scale(1.08) !important;
-    box-shadow: 0 6px 18px rgba(229, 9, 20, 0.45) !important;
-}
-
-#loadedGenreSection .slider-container .slider-left,
-#loadedGenreSection .slider-left {
-    left: 6px !important;
-    border-radius: 50% !important;
-}
-
-#loadedGenreSection .slider-container .slider-right,
-#loadedGenreSection .slider-right {
-    right: 6px !important;
-    border-radius: 50% !important;
-}
-
 #loadedGenreSlider {
-    gap: 10px;
-    padding: 6px 0 14px;
+    gap: 14px;
+    padding: 8px 0 18px;
 }
 
 #loadedGenreSlider .card {
-    flex: 0 0 135px !important;
-    min-width: 135px !important;
-    max-width: 135px !important;
-    width: 135px !important;
-    border-radius: 8px !important;
+    flex: 0 0 165px !important;
+    min-width: 165px !important;
+    max-width: 165px !important;
+    width: 165px !important;
+    border-radius: 9px !important;
 }
 
 #loadedGenreSlider .card:not(.card-landscape) .card-img,
 #loadedGenreSlider .card:not(.card-landscape) .card-placeholder {
-    height: 175px !important;
-    max-height: 175px !important;
-    border-radius: 8px !important;
+    height: 220px !important;
+    max-height: 220px !important;
+    border-radius: 9px !important;
 }
 
 #loadedGenreSlider .card.card-landscape {
-    flex: 0 0 140px !important;
-    min-width: 140px !important;
-    max-width: 140px !important;
-    width: 140px !important;
+    flex: 0 0 175px !important;
+    min-width: 175px !important;
+    max-width: 175px !important;
+    width: 175px !important;
 }
 
 #loadedGenreSlider .card.card-landscape .card-media {
     width: 100% !important;
     aspect-ratio: 16 / 9 !important;
-    max-height: 78px !important;
-    border-radius: 6px !important;
+    max-height: 98px !important;
+    border-radius: 7px !important;
 }
 
 #loadedGenreSlider .card.card-landscape .card-img,
 #loadedGenreSlider .card.card-landscape .card-backdrop-img,
 #loadedGenreSlider .card.card-landscape .card-placeholder {
     height: 100% !important;
-    max-height: 78px !important;
+    max-height: 98px !important;
     border-radius: 0 !important;
 }
 
 #loadedGenreSlider .card .card-title,
 #loadedGenreSlider .card.card-landscape .card-title {
-    font-size: 11px !important;
+    font-size: 12px !important;
     font-weight: 700 !important;
     line-height: 1.25 !important;
-    margin: 3px 0 2px 0 !important;
+    margin: 4px 0 2px 0 !important;
     white-space: nowrap !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
 }
 
 #loadedGenreSlider .card.card-landscape .card-sub {
-    font-size: 9.5px !important;
-    gap: 3px !important;
+    font-size: 10.5px !important;
+    gap: 4px !important;
 }
 
 #loadedGenreSlider .card .card-info {
-    padding: 14px 6px 5px !important;
+    padding: 18px 8px 6px !important;
 }
 
 #loadedGenreSlider .card-action-btn {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
 }
 
 /* Content Sections */
