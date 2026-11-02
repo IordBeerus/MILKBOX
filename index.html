@@ -191,9 +191,62 @@
             </div>
             <div class="pagination" id="homeRecommendationsPager" style="display:none"></div>
         </section>
-        <section class="content-section home-discovery-section" id="exploreGenresSection" style="display:none">
-            <h3 class="section-title">Explore by Genre</h3>
-            <div class="home-genre-links" id="homeGenreLinks"></div>
+        <section class="content-section home-discovery-section genre-discovery-section" id="exploreGenresSection" style="display:none">
+            <div class="genre-section-header">
+                <div class="genre-header-left">
+                    <h3 class="section-title">
+                        <span>Explore by Genre</span>
+                    </h3>
+                    <p class="genre-header-desc">Dive into curated universes, themes &amp; cinematic collections</p>
+                </div>
+                <div class="genre-header-right">
+                    <div class="genre-cat-filter" id="genreCatFilter" role="tablist" aria-label="Genre categories">
+                        <button class="genre-cat-pill active" type="button" data-cat="all">All</button>
+                        <button class="genre-cat-pill" type="button" data-cat="popular">Popular</button>
+                        <button class="genre-cat-pill" type="button" data-cat="action">Action &amp; Sci-Fi</button>
+                        <button class="genre-cat-pill" type="button" data-cat="drama">Drama &amp; Crime</button>
+                        <button class="genre-cat-pill" type="button" data-cat="comedy">Comedy &amp; Family</button>
+                        <button class="genre-cat-pill" type="button" data-cat="thrills">Horror &amp; Thriller</button>
+                    </div>
+                    <button class="genre-view-toggle-btn" id="genreViewToggleBtn" type="button" aria-label="Toggle Full Grid View" title="Toggle Full Grid View">
+                        <svg class="genre-toggle-icon-grid" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h7v7H4zm0 9h7v7H4zm9-9h7v7h-7zm0 9h7v7h-7z"/></svg>
+                        <svg class="genre-toggle-icon-slider" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="display:none;"><path d="M4 6h16v3H4zm0 6h16v3H4zm0 6h16v3H4z"/></svg>
+                        <span class="genre-toggle-label" id="genreToggleLabel">Show All</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="genre-showcase-container" id="genreShowcaseContainer">
+                <button class="slider-btn slider-left genre-slider-btn" id="genreSliderLeft" aria-label="Scroll genres left">❮</button>
+                <div class="genre-cards-slider" id="homeGenreLinks"></div>
+                <button class="slider-btn slider-right genre-slider-btn" id="genreSliderRight" aria-label="Scroll genres right">❯</button>
+            </div>
+        </section>
+        <section class="content-section loaded-genre-section" id="loadedGenreSection" style="display:none">
+            <div class="loaded-genre-header">
+                <div class="loaded-genre-header-left">
+                    <span class="loaded-genre-icon" id="loadedGenreIcon">🎬</span>
+                    <div>
+                        <div class="loaded-genre-badge-row">
+                            <span class="loaded-genre-badge">LOADED GENRE</span>
+                            <span class="loaded-genre-count" id="loadedGenreCount">0 Titles</span>
+                        </div>
+                        <h3 class="section-title loaded-genre-title" id="loadedGenreTitle">Action</h3>
+                    </div>
+                </div>
+                <div class="loaded-genre-header-right">
+                    <button class="btn-secondary loaded-genre-spotlight-btn" id="loadedGenreSpotlightBtn" type="button">
+                        <span>⚡ Spotlight Grid</span>
+                    </button>
+                    <button class="btn-secondary loaded-genre-close-btn" id="closeLoadedGenreBtn" type="button" title="Close this genre row">✕ Close Row</button>
+                </div>
+            </div>
+            <div class="slider-container">
+                <button class="slider-btn slider-left" data-slider="loadedGenreSlider" aria-label="Scroll left">❮</button>
+                <div class="slider" id="loadedGenreSlider"></div>
+                <button class="slider-btn slider-right" data-slider="loadedGenreSlider" aria-label="Scroll right">❯</button>
+            </div>
+            <div class="pagination" id="loadedGenrePager" style="display:none"></div>
         </section>
         <section class="content-section" id="searchResultsSection" style="display:none">
             <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
@@ -1527,6 +1580,8 @@
         </div>
     </div>
 
+
+
     
     <div class="modal" id="editModal">
         <div class="modal-content">
@@ -2394,6 +2449,44 @@
     </div>
 
     
+    
+    <div class="modal genre-spotlight-modal" id="genreSpotlightModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="genreSpotlightTitle">
+        <div class="modal-content genre-spotlight-content">
+            <button type="button" class="close genre-spotlight-close" id="closeGenreSpotlight" aria-label="Close Genre Spotlight">&times;</button>
+            <div class="genre-spotlight-banner" id="genreSpotlightBanner">
+                <div class="genre-spotlight-banner-bg" id="genreSpotlightBannerBg"></div>
+                <div class="genre-spotlight-banner-glow"></div>
+                <div class="genre-spotlight-banner-content">
+                    <div class="genre-spotlight-badge-row">
+                        <span class="genre-spotlight-icon" id="genreSpotlightIcon">🎬</span>
+                        <span class="genre-spotlight-tag" id="genreSpotlightTag">COLLECTION</span>
+                        <span class="genre-spotlight-count-badge" id="genreSpotlightCountBadge">0 Titles</span>
+                    </div>
+                    <h2 class="genre-spotlight-title" id="genreSpotlightTitle">Action</h2>
+                    <p class="genre-spotlight-desc" id="genreSpotlightDesc">High-octane blockbusters, explosive thrills, and heroic journeys.</p>
+                    <div class="genre-spotlight-actions">
+                        <button type="button" class="btn-primary genre-spotlight-jump-btn" id="genreSpotlightJumpBtn">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                            <span>Jump to Row on Home</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="genre-spotlight-filter-bar">
+                <div class="genre-spotlight-tabs" id="genreSpotlightTabs" role="tablist">
+                    <button type="button" class="genre-spotlight-tab active" data-filter="all">All</button>
+                    <button type="button" class="genre-spotlight-tab" data-filter="movie">Movies</button>
+                    <button type="button" class="genre-spotlight-tab" data-filter="tv">TV Shows</button>
+                    <button type="button" class="genre-spotlight-tab" data-filter="top">Top Rated</button>
+                </div>
+                <div class="genre-spotlight-count-indicator" id="genreSpotlightFilteredCount">Showing titles</div>
+            </div>
+            <div class="genre-spotlight-scroll-area">
+                <div class="genre-spotlight-grid" id="genreSpotlightGrid"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="watch-party-drawer" id="watchPartyDrawer" style="display:none" aria-label="Watch Party Drawer">
         
         <button type="button" class="wp-drawer-toggle" id="wpDrawerToggle" title="Toggle Watch Party chat & participants">

@@ -2943,9 +2943,10 @@ let _genreIdleTimer = null;
 function renderGenreRows() {
     const container = document.getElementById('homeGenres');
     if (!container) return;
-    const hideOnSections = ['theaters', 'streaming', 'free', 'popular', 'manga', 'music', 'providers', 'mylist'];
-    if (hideOnSections.includes(currentSection)) {
+    // Genres removed from static page layout per user request; loaded on-demand via Browse Row
+    if (currentSection !== 'anime') {
         container.style.display = 'none';
+        container.innerHTML = '';
         return;
     }
     container.style.display = '';
@@ -3172,21 +3173,510 @@ function renderHomeDiscovery() {
         ...[...counts.keys()].filter(key => !knownSet.has(genreKey(key))).sort((a, b) => counts.get(b) - counts.get(a))
     ];
     genreSection.style.display = keys.length ? '' : 'none';
+
+    
+    const genrePoolMap = new Map();
+    pool.forEach(item => {
+        genArr(item.genre).forEach(g => {
+            const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).trim().toLowerCase();
+            if (!genrePoolMap.has(norm)) genrePoolMap.set(norm, []);
+            genrePoolMap.get(norm).push(item);
+        });
+    });
+
     genreLinks.innerHTML = keys.map(key => {
         const normalizedKey = genreKey(key);
+        const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(key) : normalizedKey;
         const label = labels.get(normalizedKey) || key.charAt(0).toUpperCase() + key.slice(1);
-        return `<button class="home-genre-link" type="button" data-home-genre="${escapeHtml(key)}">${escapeHtml(label)}<span>${counts.get(key)}</span></button>`;
+        const count = counts.get(key) || 0;
+        const meta = GENRE_METADATA[norm] || GENRE_METADATA[normalizedKey] || {
+            icon: '🎬',
+            tagline: `Discover top-rated ${label} stories`,
+            cat: 'all',
+            accent: '#ffb6d8',
+            glow: 'rgba(255, 182, 216, 0.4)',
+            gradient: 'linear-gradient(135deg, #e50914, #ffb6d8)',
+            popular: count >= 40
+        };
+
+        
+        const gItems = genrePoolMap.get(norm) || [];
+        const top3 = gItems.slice(0, 3);
+        const posterImgs = top3.map(it => {
+            const imgUrl = it.poster || it.backdrop || '';
+            return imgUrl ? `<div class="genre-card-art-poster" style="background-image: url('${escapeHtml(imgUrl)}')"></div>` : '';
+        }).filter(Boolean).join('');
+
+        return `
+        <div class="genre-card" role="button" tabindex="0" data-genre-key="${escapeHtml(key)}" data-genre-norm="${escapeHtml(norm)}" data-genre-cat="${escapeHtml(meta.cat)}" data-genre-popular="${meta.popular ? '1' : '0'}" style="--genre-accent:${meta.accent}; --genre-glow:${meta.glow}; --genre-gradient:${meta.gradient};" aria-label="Explore ${escapeHtml(label)}">
+            <div class="genre-card-accent-strip"></div>
+            <div class="genre-card-art">
+                <div class="genre-card-art-posters">
+                    ${posterImgs || '<div class="genre-card-art-poster" style="background:#1e2029"></div>'}
+                </div>
+                <div class="genre-card-overlay"></div>
+            </div>
+            <div class="genre-card-content">
+                <div class="genre-card-top">
+                    <span class="genre-card-glyph">${meta.icon}</span>
+                    <span class="genre-card-count">${count} Titles</span>
+                </div>
+                <h4 class="genre-card-title">${escapeHtml(label)}</h4>
+                <p class="genre-card-tagline">${escapeHtml(meta.tagline)}</p>
+                <div class="genre-card-footer">
+                    <button type="button" class="genre-card-btn-spotlight" data-spotlight-genre="${escapeHtml(key)}" title="Open ${escapeHtml(label)} Spotlight">
+                        <span>⚡ Spotlight</span>
+                    </button>
+                    <button type="button" class="genre-card-btn-browse" data-browse-genre="${escapeHtml(key)}" title="Browse ${escapeHtml(label)} Row">
+                        <span>Browse Row ❯</span>
+                    </button>
+                </div>
+            </div>
+        </div>`;
     }).join('');
 }
 
+const GENRE_METADATA = {
+    action: {
+        icon: '💥',
+        tagline: 'High-octane blockbusters & adrenaline rushes',
+        cat: 'action',
+        accent: '#e50914',
+        glow: 'rgba(229, 9, 20, 0.45)',
+        gradient: 'linear-gradient(135deg, #e50914 0%, #ff5e62 100%)',
+        popular: true
+    },
+    adventure: {
+        icon: '🗺️',
+        tagline: 'Epic journeys & uncharted worlds',
+        cat: 'action',
+        accent: '#f59e0b',
+        glow: 'rgba(245, 158, 11, 0.45)',
+        gradient: 'linear-gradient(135deg, #d97706 0%, #fbbf24 100%)',
+        popular: true
+    },
+    animation: {
+        icon: '🎨',
+        tagline: 'Visual masterpieces & imaginative artistry',
+        cat: 'comedy',
+        accent: '#ec4899',
+        glow: 'rgba(236, 72, 153, 0.45)',
+        gradient: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)',
+        popular: true
+    },
+    comedy: {
+        icon: '😂',
+        tagline: 'Laugh-out-loud hits & feel-good vibes',
+        cat: 'comedy',
+        accent: '#38bdf8',
+        glow: 'rgba(56, 189, 248, 0.45)',
+        gradient: 'linear-gradient(135deg, #0284c7 0%, #38bdf8 100%)',
+        popular: true
+    },
+    crime: {
+        icon: '🕵️',
+        tagline: 'Gritty underworlds, capers & masterminds',
+        cat: 'drama',
+        accent: '#94a3b8',
+        glow: 'rgba(148, 163, 184, 0.4)',
+        gradient: 'linear-gradient(135deg, #334155 0%, #64748b 100%)',
+        popular: true
+    },
+    documentary: {
+        icon: '🎥',
+        tagline: 'Real stories, revelations & human truths',
+        cat: 'drama',
+        accent: '#10b981',
+        glow: 'rgba(16, 185, 129, 0.45)',
+        gradient: 'linear-gradient(135deg, #059669 0%, #34d399 100%)',
+        popular: false
+    },
+    drama: {
+        icon: '🎭',
+        tagline: 'Powerfully acted stories & human conflicts',
+        cat: 'drama',
+        accent: '#8b5cf6',
+        glow: 'rgba(139, 92, 246, 0.45)',
+        gradient: 'linear-gradient(135deg, #6d28d9 0%, #a78bfa 100%)',
+        popular: true
+    },
+    family: {
+        icon: '👨‍👩‍👧‍👦',
+        tagline: 'Heartwarming stories for movie night with everyone',
+        cat: 'comedy',
+        accent: '#fb7185',
+        glow: 'rgba(251, 113, 133, 0.45)',
+        gradient: 'linear-gradient(135deg, #e11d48 0%, #fda4af 100%)',
+        popular: false
+    },
+    fantasy: {
+        icon: '🔮',
+        tagline: 'Mythical legends, magic & otherworldly wonders',
+        cat: 'action',
+        accent: '#c084fc',
+        glow: 'rgba(192, 132, 252, 0.45)',
+        gradient: 'linear-gradient(135deg, #7c3aed 0%, #c084fc 100%)',
+        popular: false
+    },
+    history: {
+        icon: '📜',
+        tagline: 'Triumphs, wars & milestones that shaped history',
+        cat: 'drama',
+        accent: '#d97706',
+        glow: 'rgba(217, 119, 6, 0.45)',
+        gradient: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)',
+        popular: false
+    },
+    horror: {
+        icon: '👻',
+        tagline: 'Spine-chilling scares, monsters & nightmare fuel',
+        cat: 'thrills',
+        accent: '#dc2626',
+        glow: 'rgba(220, 38, 38, 0.5)',
+        gradient: 'linear-gradient(135deg, #7f1d1d 0%, #dc2626 100%)',
+        popular: true
+    },
+    musical: {
+        icon: '🎵',
+        tagline: 'Showstopping anthems & broadway rhythms',
+        cat: 'comedy',
+        accent: '#f472b6',
+        glow: 'rgba(244, 114, 182, 0.45)',
+        gradient: 'linear-gradient(135deg, #be185d 0%, #f472b6 100%)',
+        popular: false
+    },
+    mystery: {
+        icon: '🔍',
+        tagline: 'Twists, whodunits & puzzles you cannot predict',
+        cat: 'thrills',
+        accent: '#818cf8',
+        glow: 'rgba(129, 140, 248, 0.45)',
+        gradient: 'linear-gradient(135deg, #4338ca 0%, #818cf8 100%)',
+        popular: true
+    },
+    romance: {
+        icon: '💖',
+        tagline: 'Sparks fly, heartbreaks heal & soulmates unite',
+        cat: 'drama',
+        accent: '#f43f5e',
+        glow: 'rgba(244, 63, 94, 0.45)',
+        gradient: 'linear-gradient(135deg, #be123c 0%, #fb7185 100%)',
+        popular: true
+    },
+    scifi: {
+        icon: '🚀',
+        tagline: 'Futuristic galaxies, artificial intelligence & spacetime',
+        cat: 'action',
+        accent: '#06b6d4',
+        glow: 'rgba(6, 182, 212, 0.45)',
+        gradient: 'linear-gradient(135deg, #0e7490 0%, #22d3ee 100%)',
+        popular: true
+    },
+    sport: {
+        icon: '🏆',
+        tagline: 'Championship grit, rivalries & unforgettable glory',
+        cat: 'action',
+        accent: '#22c55e',
+        glow: 'rgba(34, 197, 94, 0.45)',
+        gradient: 'linear-gradient(135deg, #15803d 0%, #4ade80 100%)',
+        popular: false
+    },
+    thriller: {
+        icon: '⚡',
+        tagline: 'Nail-biting tension, paranoia & shocking turns',
+        cat: 'thrills',
+        accent: '#ea580c',
+        glow: 'rgba(234, 88, 12, 0.5)',
+        gradient: 'linear-gradient(135deg, #9a3412 0%, #ea580c 100%)',
+        popular: true
+    },
+    war: {
+        icon: '🪖',
+        tagline: 'Sacrifice, frontline courage & brotherhood in arms',
+        cat: 'drama',
+        accent: '#a8a29e',
+        glow: 'rgba(168, 162, 158, 0.4)',
+        gradient: 'linear-gradient(135deg, #44403c 0%, #78716c 100%)',
+        popular: false
+    },
+    western: {
+        icon: '🤠',
+        tagline: 'Dusty trails, fast-draw standoffs & outlaws',
+        cat: 'action',
+        accent: '#b45309',
+        glow: 'rgba(180, 83, 9, 0.45)',
+        gradient: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)',
+        popular: false
+    }
+};
+
+let _currentSpotlightGenre = null;
+let _currentSpotlightFilter = 'all';
+
+let _currentLoadedGenre = null;
+
+function loadGenreRow(genreKey) {
+    if (!genreKey) return;
+    closeGenreSpotlight();
+    const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(genreKey) : genreKey.toLowerCase();
+    _currentLoadedGenre = genreKey;
+
+    let pool = [];
+    let suffix = '';
+    if (currentSection === 'movies' || (currentSection === 'home' && homeFilter === 'movies')) {
+        pool = movies.filter(completeItem);
+        suffix = ' Movies';
+    } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
+        pool = tvShows.filter(completeItem);
+        suffix = ' Shows';
+    } else {
+        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
+    }
+
+    const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
+
+    const meta = GENRE_METADATA[norm] || {
+        icon: '🎬',
+        tagline: `Curated collection of ${genreKey} titles`,
+        accent: '#ffb6d8',
+        glow: 'rgba(255, 182, 216, 0.45)',
+        gradient: 'linear-gradient(135deg, #e50914, #ffb6d8)'
+    };
+    const labels = new Map(GENRE_ROWS.map(({ key, label }) => [key, label]));
+    const label = (labels.get(norm) || genreKey.charAt(0).toUpperCase() + genreKey.slice(1)) + suffix;
+
+    const sec = document.getElementById('loadedGenreSection');
+    const iconEl = document.getElementById('loadedGenreIcon');
+    const titleEl = document.getElementById('loadedGenreTitle');
+    const countEl = document.getElementById('loadedGenreCount');
+    const slider = document.getElementById('loadedGenreSlider');
+    if (!sec || !slider) return;
+
+    if (iconEl) iconEl.textContent = meta.icon;
+    if (titleEl) titleEl.textContent = label;
+    if (countEl) countEl.textContent = `${genreItems.length} Title${genreItems.length === 1 ? '' : 's'}`;
+
+    sec.style.display = '';
+    renderSlider('loadedGenreSlider', genreItems, 'mixed', 'loadedGenrePager', 'loaded-genre-' + norm);
+
+    sec.classList.remove('genre-row-highlight');
+    void sec.offsetWidth;
+    sec.classList.add('genre-row-highlight');
+    setTimeout(() => sec.classList.remove('genre-row-highlight'), 2600);
+
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    toast(`Loaded ${label} row (${genreItems.length} titles)`, 'info');
+}
+window.loadGenreRow = loadGenreRow;
+
+function closeLoadedGenreRow() {
+    const sec = document.getElementById('loadedGenreSection');
+    if (sec) sec.style.display = 'none';
+    _currentLoadedGenre = null;
+    const exploreSec = document.getElementById('exploreGenresSection');
+    if (exploreSec) exploreSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+window.closeLoadedGenreRow = closeLoadedGenreRow;
+
+function jumpToGenreRow(genreKey) {
+    loadGenreRow(genreKey);
+}
+window.jumpToGenreRow = jumpToGenreRow;
+
+function openGenreSpotlight(genreKey) {
+    const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(genreKey) : genreKey.toLowerCase();
+    _currentSpotlightGenre = genreKey;
+    _currentSpotlightFilter = 'all';
+
+    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
+
+    const meta = GENRE_METADATA[norm] || {
+        icon: '🎬',
+        tagline: `Curated collection of ${genreKey} titles`,
+        accent: '#ffb6d8',
+        glow: 'rgba(255, 182, 216, 0.45)',
+        gradient: 'linear-gradient(135deg, #e50914, #ffb6d8)'
+    };
+    const labels = new Map(GENRE_ROWS.map(({ key, label }) => [key, label]));
+    const label = labels.get(norm) || genreKey.charAt(0).toUpperCase() + genreKey.slice(1);
+
+    const modal = document.getElementById('genreSpotlightModal');
+    if (!modal) return;
+
+    const iconEl = document.getElementById('genreSpotlightIcon');
+    const titleEl = document.getElementById('genreSpotlightTitle');
+    const descEl = document.getElementById('genreSpotlightDesc');
+    const countBadge = document.getElementById('genreSpotlightCountBadge');
+    const bannerBg = document.getElementById('genreSpotlightBannerBg');
+    const banner = document.getElementById('genreSpotlightBanner');
+
+    if (iconEl) iconEl.textContent = meta.icon;
+    if (titleEl) titleEl.textContent = label;
+    if (descEl) descEl.textContent = meta.tagline;
+    if (countBadge) countBadge.textContent = `${genreItems.length} Titles`;
+    if (banner) banner.style.setProperty('--genre-glow-color', meta.glow || 'rgba(229, 9, 20, 0.45)');
+
+    const topBackdrop = genreItems.find(i => i.backdrop)?.backdrop || genreItems.find(i => i.poster)?.poster || '';
+    if (bannerBg) {
+        bannerBg.style.backgroundImage = topBackdrop ? `url('${topBackdrop}')` : 'none';
+    }
+
+    const tabs = document.querySelectorAll('.genre-spotlight-tab');
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.filter === 'all'));
+
+    renderGenreSpotlightGrid(genreItems, 'all');
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+}
+window.openGenreSpotlight = openGenreSpotlight;
+
+function renderGenreSpotlightGrid(items, filter) {
+    const grid = document.getElementById('genreSpotlightGrid');
+    const indicator = document.getElementById('genreSpotlightFilteredCount');
+    if (!grid) return;
+
+    let filtered = items;
+    if (filter === 'movie') {
+        filtered = items.filter(it => it.type === 'movie' || !it.type);
+    } else if (filter === 'tv') {
+        filtered = items.filter(it => it.type === 'tv');
+    } else if (filter === 'top') {
+        filtered = [...items].sort((a, b) => (parseFloat(b.rating) || 0) - (parseFloat(a.rating) || 0));
+    }
+
+    if (indicator) {
+        indicator.textContent = `Showing ${filtered.length} of ${items.length} titles`;
+    }
+
+    grid.replaceChildren();
+    if (!filtered.length) {
+        grid.innerHTML = '<div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: #888;">No titles found in this category.</div>';
+        return;
+    }
+
+    const fragment = document.createDocumentFragment();
+    filtered.slice(0, 48).forEach(item => {
+        const card = createCard(item, item.type || 'movie', true);
+        fragment.appendChild(card);
+    });
+    grid.appendChild(fragment);
+}
+
+function closeGenreSpotlight() {
+    const modal = document.getElementById('genreSpotlightModal');
+    if (modal) modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+}
+window.closeGenreSpotlight = closeGenreSpotlight;
+
+
 document.addEventListener('click', (e) => {
-    const button = e.target.closest('.home-genre-link[data-home-genre]');
-    if (!button) return;
-    const gKey = button.dataset.homeGenre;
-    if (window._ensureGenreRendered) window._ensureGenreRendered(gKey);
-    const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(gKey) : gKey;
-    const section = document.getElementById(`genreSection-${norm}`) || document.getElementById(`genreSection-${gKey}`);
-    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    const spotlightBtn = e.target.closest('[data-spotlight-genre]');
+    if (spotlightBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        openGenreSpotlight(spotlightBtn.dataset.spotlightGenre);
+        return;
+    }
+
+    
+    const browseBtn = e.target.closest('[data-browse-genre]');
+    if (browseBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        jumpToGenreRow(browseBtn.dataset.browseGenre);
+        return;
+    }
+
+    
+    const card = e.target.closest('.genre-card[data-genre-key]');
+    if (card) {
+        e.preventDefault();
+        jumpToGenreRow(card.dataset.genreKey);
+        return;
+    }
+
+    
+    const legacyBtn = e.target.closest('.home-genre-link[data-home-genre]');
+    if (legacyBtn) {
+        jumpToGenreRow(legacyBtn.dataset.homeGenre);
+        return;
+    }
+});
+
+
+document.getElementById('genreCatFilter')?.addEventListener('click', (e) => {
+    const pill = e.target.closest('.genre-cat-pill');
+    if (!pill) return;
+    document.querySelectorAll('.genre-cat-pill').forEach(p => p.classList.toggle('active', p === pill));
+    const cat = pill.dataset.cat || 'all';
+    const cards = document.querySelectorAll('.genre-card[data-genre-cat]');
+    cards.forEach(card => {
+        if (cat === 'all') {
+            card.style.display = '';
+        } else if (cat === 'popular') {
+            card.style.display = card.dataset.genrePopular === '1' ? '' : 'none';
+        } else {
+            card.style.display = card.dataset.genreCat === cat ? '' : 'none';
+        }
+    });
+});
+
+
+document.getElementById('genreViewToggleBtn')?.addEventListener('click', () => {
+    const slider = document.getElementById('homeGenreLinks');
+    const container = document.getElementById('genreShowcaseContainer');
+    const label = document.getElementById('genreToggleLabel');
+    const btn = document.getElementById('genreViewToggleBtn');
+    if (!slider || !container) return;
+
+    const isGrid = slider.classList.toggle('is-grid-view');
+    container.classList.toggle('is-grid-mode', isGrid);
+
+    if (label) label.textContent = isGrid ? 'Carousel' : 'Show All';
+    const gridIcon = btn?.querySelector('.genre-toggle-icon-grid');
+    const sliderIcon = btn?.querySelector('.genre-toggle-icon-slider');
+    if (gridIcon) gridIcon.style.display = isGrid ? 'none' : '';
+    if (sliderIcon) sliderIcon.style.display = isGrid ? '' : 'none';
+});
+
+// Slider buttons
+document.getElementById('genreSliderLeft')?.addEventListener('click', () => {
+    const slider = document.getElementById('homeGenreLinks');
+    if (slider) slider.scrollBy({ left: -540, behavior: 'smooth' });
+});
+document.getElementById('genreSliderRight')?.addEventListener('click', () => {
+    const slider = document.getElementById('homeGenreLinks');
+    if (slider) slider.scrollBy({ left: 540, behavior: 'smooth' });
+});
+
+// Loaded genre row controls
+document.getElementById('closeLoadedGenreBtn')?.addEventListener('click', closeLoadedGenreRow);
+document.getElementById('loadedGenreSpotlightBtn')?.addEventListener('click', () => {
+    if (_currentLoadedGenre) openGenreSpotlight(_currentLoadedGenre);
+});
+
+// Spotlight modal event listeners
+document.getElementById('closeGenreSpotlight')?.addEventListener('click', closeGenreSpotlight);
+document.getElementById('genreSpotlightModal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'genreSpotlightModal') closeGenreSpotlight();
+});
+document.getElementById('genreSpotlightJumpBtn')?.addEventListener('click', () => {
+    if (_currentSpotlightGenre) jumpToGenreRow(_currentSpotlightGenre);
+});
+document.getElementById('genreSpotlightTabs')?.addEventListener('click', (e) => {
+    const tab = e.target.closest('.genre-spotlight-tab');
+    if (!tab || !_currentSpotlightGenre) return;
+    document.querySelectorAll('.genre-spotlight-tab').forEach(t => t.classList.toggle('active', t === tab));
+    _currentSpotlightFilter = tab.dataset.filter || 'all';
+
+    const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(_currentSpotlightGenre) : _currentSpotlightGenre.toLowerCase();
+    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
+    renderGenreSpotlightGrid(genreItems, _currentSpotlightFilter);
 });
 
 document.addEventListener('click', (e) => {
@@ -7190,7 +7680,7 @@ let searchTotalPages = 1;
 let searchRequestId = 0;
 
 function showSearchResults() {
-    ['moviesSection','tvShowsSection','myListSection','homeGenres','trendingSection','streamingSection','freeSection','theatersSection','popularSection','mangaSection','musicSection','heroSection'].forEach(id => {
+    ['moviesSection','tvShowsSection','myListSection','homeGenres','trendingSection','streamingSection','freeSection','theatersSection','popularSection','mangaSection','musicSection','heroSection','exploreGenresSection','loadedGenreSection'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
     });
@@ -7252,7 +7742,7 @@ function hideSearchResults() {
         show('heroSection', false); show('providerSection', false); show('collectionsSection', false);
     } else {
         
-        show('moviesSection', true); show('tvShowsSection', true); show('myListSection', true); show('homeGenres', true);
+        show('moviesSection', true); show('tvShowsSection', true); show('myListSection', true); show('homeGenres', false); show('exploreGenresSection', true);
         show('trendingSection', true); show('streamingSection', false); show('theatersSection', false); show('popularSection', true); show('mangaSection', false); show('musicSection', false);
         show('heroSection', true); show('providerSection', true); show('collectionsSection', true);
     }
@@ -12186,7 +12676,7 @@ function isOwnerAuthenticated() {
         if (localStorage.getItem('milkbox_owner_authenticated') === 'true' || sessionStorage.getItem('milkbox_owner_authenticated') === 'true') {
             return true;
         }
-        // Auto-verify if the user has configured their GitHub token for the repo (IordBeerus/MILKBOX)
+        
         const ghToken = localStorage.getItem('milkbox_github_token');
         if (ghToken && (ghToken.startsWith('ghp_') || ghToken.startsWith('github_pat_'))) {
             localStorage.setItem('milkbox_owner_authenticated', 'true');
