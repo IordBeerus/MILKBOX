@@ -321,6 +321,64 @@
             </div>
             <div class="pagination" id="tvPager" style="display:none"></div>
         </section>
+        <section class="content-section providers-page-section" id="providersSection" style="display:none">
+            <div class="providers-hero-banner">
+                <div class="providers-hero-bg-glow"></div>
+                <div class="providers-hero-content">
+                    <div class="providers-hero-badge-row">
+                        <span class="providers-hero-badge">STREAMING DIRECTORY</span>
+                        <span class="providers-hero-stat" id="providersTotalStat">50+ Services</span>
+                    </div>
+                    <h2 class="providers-hero-title">Streaming Services &amp; Networks</h2>
+                    <p class="providers-hero-desc">Explore movies, series, and live catalogs across your favorite platforms. Pick any provider to filter titles instantly.</p>
+                </div>
+                <div class="providers-active-spotlight" id="providerActiveSpotlight" style="display:none;">
+                    <div class="providers-active-inner">
+                        <div class="providers-active-icon" id="providerActiveLogoWrap"></div>
+                        <div class="providers-active-meta">
+                            <div class="providers-active-status-row">
+                                <span class="providers-active-tag">FILTER APPLIED</span>
+                                <span class="providers-active-pulse"></span>
+                            </div>
+                            <h4 class="providers-active-name" id="providerActiveName">Netflix</h4>
+                            <p class="providers-active-hint" id="providerActiveHint">Browsing titles available on this service</p>
+                        </div>
+                        <div class="providers-active-actions">
+                            <button type="button" class="btn-clear-provider" id="providerClearFilterBtn" title="Clear active provider filter">✕ Clear Filter</button>
+                            <button type="button" class="btn-jump-streaming" id="providerJumpStreamingBtn" title="Scroll down to titles">View Titles ↓</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="providers-toolbar">
+                <div class="providers-search-box">
+                    <span class="providers-search-glyph">🔍</span>
+                    <input type="search" id="providerSearchInput" class="providers-search-input" placeholder="Search providers (Netflix, Prime, Disney+, Max...)" aria-label="Search providers">
+                    <button type="button" class="providers-search-clear" id="providerSearchClearBtn" style="display:none;" aria-label="Clear search">✕</button>
+                </div>
+                <div class="providers-count-indicator">
+                    <span id="providerCountBadge">Showing all services</span>
+                </div>
+            </div>
+
+            <div class="providers-cat-pills" id="providerCatFilters" role="tablist" aria-label="Provider categories">
+                <button type="button" class="providers-cat-tab active" data-prov-cat="all">All Services</button>
+                <button type="button" class="providers-cat-tab" data-prov-cat="svod">Popular Subscriptions</button>
+                <button type="button" class="providers-cat-tab" data-prov-cat="free">Free &amp; FAST</button>
+                <button type="button" class="providers-cat-tab" data-prov-cat="anime">Anime</button>
+                <button type="button" class="providers-cat-tab" data-prov-cat="premium">Premium Channels</button>
+                <button type="button" class="providers-cat-tab" data-prov-cat="store">Digital Stores</button>
+            </div>
+
+            <div class="provider-grid" id="providerGrid"></div>
+            <div class="providers-empty-state" id="providerEmptyState" style="display:none;">
+                <span class="providers-empty-icon">📺</span>
+                <h4>No streaming services found</h4>
+                <p>Try searching with another name or pick a different category.</p>
+                <button type="button" class="btn-secondary" id="providerResetSearchBtn">Show All Providers</button>
+            </div>
+        </section>
         <section class="content-section live-section" id="streamingSection">
             <h3 class="section-title">Streaming Now</h3>
             <p class="live-hint">Live from TMDB · movies &amp; shows on streaming services</p>
@@ -348,16 +406,6 @@
                 </div>
                 <div class="pagination" id="freePager" style="display:none"></div>
             </div>
-        </section>
-        <section class="content-section providers-page-section" id="providersSection" style="display:none">
-            <div class="providers-page-heading">
-                <div>
-                    <h3 class="section-title">Browse by Providers</h3>
-                    <p class="live-hint providers-page-hint" id="providersHint">Live from TMDB · movies &amp; shows on streaming services</p>
-                </div>
-            </div>
-            <div class="provider-grid" id="providerGrid"></div>
-        </section>
         <div id="homeGenres" style="display:none"></div>
         <div class="modal" id="createCollectionModal">
             <div class="modal-content" style="max-width:560px">
