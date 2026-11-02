@@ -1083,17 +1083,17 @@ body.light-mode .home-pill.active[data-filter="tvshows"] { background: #ffb6d8; 
 
 .genre-cards-slider.is-grid-view {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+    gap: 14px;
     overflow-x: visible;
-    padding: 10px 0 26px 0;
+    padding: 10px 0 22px 0;
 }
 
 /* Individual Genre Card */
 .genre-card {
-    flex: 0 0 270px;
-    height: 182px;
-    border-radius: 18px;
+    flex: 0 0 220px;
+    height: 148px;
+    border-radius: 14px;
     position: relative;
     overflow: hidden;
     cursor: pointer;
@@ -1102,7 +1102,7 @@ body.light-mode .home-pill.active[data-filter="tvshows"] { background: #ffb6d8; 
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    padding: 18px;
+    padding: 14px;
     box-sizing: border-box;
     scroll-snap-align: start;
     transition: transform 0.28s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.28s ease, border-color 0.28s ease;
@@ -1583,8 +1583,70 @@ body.light-mode .genre-card-btn-browse {
 
 .genre-spotlight-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-    gap: 18px;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 155px));
+    justify-content: center;
+    gap: 12px;
+}
+
+.genre-spotlight-grid .card {
+    min-width: 0 !important;
+    max-width: 155px !important;
+    width: 100% !important;
+    border-radius: 8px !important;
+}
+
+.genre-spotlight-grid .card:not(.card-landscape) .card-img,
+.genre-spotlight-grid .card:not(.card-landscape) .card-placeholder {
+    height: 185px !important;
+    max-height: 190px !important;
+    border-radius: 8px !important;
+}
+
+.genre-spotlight-grid .card.card-landscape {
+    min-width: 0 !important;
+    max-width: 160px !important;
+    width: 100% !important;
+}
+
+.genre-spotlight-grid .card.card-landscape .card-media {
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    max-height: 90px !important;
+    border-radius: 6px !important;
+}
+
+.genre-spotlight-grid .card.card-landscape .card-img,
+.genre-spotlight-grid .card.card-landscape .card-backdrop-img,
+.genre-spotlight-grid .card.card-landscape .card-placeholder {
+    height: 100% !important;
+    max-height: 90px !important;
+    border-radius: 0 !important;
+}
+
+.genre-spotlight-grid .card .card-title,
+.genre-spotlight-grid .card.card-landscape .card-title {
+    font-size: 11.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    margin: 4px 0 2px 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+.genre-spotlight-grid .card.card-landscape .card-sub {
+    font-size: 10px !important;
+    gap: 4px !important;
+}
+
+.genre-spotlight-grid .card .card-info {
+    padding: 16px 8px 6px !important;
+}
+
+.genre-spotlight-grid .card-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
 }
 
 /* Highlight row pulse when scrolling from genre card */
@@ -1622,9 +1684,9 @@ body.light-mode .genre-card-btn-browse {
         max-width: calc(100% - 95px);
     }
     .genre-card {
-        flex: 0 0 230px;
-        height: 168px;
-        padding: 14px;
+        flex: 0 0 185px;
+        height: 130px;
+        padding: 12px;
     }
     .genre-spotlight-banner {
         padding: 24px 18px 20px 18px;
@@ -1636,8 +1698,27 @@ body.light-mode .genre-card-btn-browse {
         padding: 16px;
     }
     .genre-spotlight-grid {
-        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-        gap: 12px;
+        grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+        gap: 10px;
+    }
+    .genre-spotlight-grid .card,
+    .genre-spotlight-grid .card.card-landscape {
+        max-width: none !important;
+    }
+    .genre-spotlight-grid .card.card-landscape .card-media {
+        max-height: 75px !important;
+    }
+    #loadedGenreSlider .card {
+        flex: 0 0 135px !important;
+        min-width: 135px !important;
+        max-width: 135px !important;
+        width: 135px !important;
+    }
+    #loadedGenreSlider .card.card-landscape .card-media {
+        max-height: 76px !important;
+    }
+    #loadedGenreSlider .card:not(.card-landscape) .card-img {
+        height: 180px !important;
     }
 }
 
@@ -1766,6 +1847,75 @@ body.light-mode .loaded-genre-close-btn {
     background: #f1f5f9;
     border-color: #cbd5e1;
     color: #334155;
+}
+
+/* Loaded Genre Row Item Sizing — Compact Cards & Smaller Images */
+#loadedGenreSlider {
+    gap: 14px;
+    padding: 8px 0 18px;
+}
+
+#loadedGenreSlider .card {
+    flex: 0 0 165px !important;
+    min-width: 165px !important;
+    max-width: 165px !important;
+    width: 165px !important;
+    border-radius: 9px !important;
+}
+
+#loadedGenreSlider .card:not(.card-landscape) .card-img,
+#loadedGenreSlider .card:not(.card-landscape) .card-placeholder {
+    height: 220px !important;
+    max-height: 220px !important;
+    border-radius: 9px !important;
+}
+
+#loadedGenreSlider .card.card-landscape {
+    flex: 0 0 175px !important;
+    min-width: 175px !important;
+    max-width: 175px !important;
+    width: 175px !important;
+}
+
+#loadedGenreSlider .card.card-landscape .card-media {
+    width: 100% !important;
+    aspect-ratio: 16 / 9 !important;
+    max-height: 98px !important;
+    border-radius: 7px !important;
+}
+
+#loadedGenreSlider .card.card-landscape .card-img,
+#loadedGenreSlider .card.card-landscape .card-backdrop-img,
+#loadedGenreSlider .card.card-landscape .card-placeholder {
+    height: 100% !important;
+    max-height: 98px !important;
+    border-radius: 0 !important;
+}
+
+#loadedGenreSlider .card .card-title,
+#loadedGenreSlider .card.card-landscape .card-title {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    margin: 4px 0 2px 0 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+#loadedGenreSlider .card.card-landscape .card-sub {
+    font-size: 10.5px !important;
+    gap: 4px !important;
+}
+
+#loadedGenreSlider .card .card-info {
+    padding: 18px 8px 6px !important;
+}
+
+#loadedGenreSlider .card-action-btn {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 11px !important;
 }
 
 /* Content Sections */
