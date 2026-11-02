@@ -18,6 +18,32 @@ function loadEnvFile() {
     } catch {}
 }
 
+function ensureSafeDirectory() {
+    try {
+        execSync('git config --global --add safe.directory "*"', { stdio: 'ignore' });
+        execSync(`git config --global --add safe.directory "${__dirname}"`, { stdio: 'ignore' });
+    } catch {}
+}
+ensureSafeDirectory();
+
+function run(cmd, options = {}) {
+    ensureSafeDirectory();
+    return execSync(cmd, {
+        cwd: __dirname,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        timeout: 25000,
+        env: {
+            ...process.env,
+            GIT_TERMINAL_PROMPT: '0',
+            GIT_ASKPASS: '',
+            GIT_CONFIG_PARAMETERS: "'safe.directory=*'",
+            ...options.env
+        },
+        ...options
+    });
+}
+
 loadEnvFile();
 
 let _cachedCreds = null;
@@ -42,7 +68,7 @@ function resolveCredentials(forceRefresh = false) {
 
     if (!token) {
         try {
-            const currentOrigin = execSync('git remote get-url origin', { cwd: __dirname, encoding: 'utf8', stdio: 'pipe', timeout: 4000 }).trim();
+            const currentOrigin = run('git remote get-url origin', { timeout: 4000 }).trim();
             const match = currentOrigin.match(/https:\/\/([^:@]+)@github\.com/);
             if (match && match[1] && match[1].startsWith('ghp_')) {
                 token = match[1];
@@ -52,7 +78,7 @@ function resolveCredentials(forceRefresh = false) {
 
     if (!token) {
         try {
-            const cfgToken = execSync('git config --local --get milkbox.token', { cwd: __dirname, encoding: 'utf8', stdio: 'pipe', timeout: 4000 }).trim();
+            const cfgToken = run('git config --local --get milkbox.token', { timeout: 4000 }).trim();
             if (cfgToken && cfgToken.startsWith('ghp_')) {
                 token = cfgToken;
             }
@@ -122,22 +148,6 @@ function saveToken(token) {
     return true;
 }
 
-function run(cmd, options = {}) {
-    return execSync(cmd, {
-        cwd: __dirname,
-        encoding: 'utf8',
-        stdio: 'pipe',
-        timeout: 25000,
-        env: {
-            ...process.env,
-            GIT_TERMINAL_PROMPT: '0',
-            GIT_ASKPASS: '',
-            ...options.env
-        },
-        ...options
-    });
-}
-
 let lastSyncStatus = {
     lastAttempt: null,
     lastSuccess: null,
@@ -177,7 +187,8 @@ function syncToGitHub(customMessage) {
     }
 
     try {
-        // 1. Ensure git repo is initialized
+        // 1. Ensure git repo is initialized and workspace directory trusted
+        ensureSafeDirectory();
         try {
             run('git rev-parse --is-inside-work-tree');
         } catch {
