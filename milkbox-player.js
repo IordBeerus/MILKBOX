@@ -117,7 +117,7 @@ function _milkboxParseTimestamp(ts) {
 function _milkboxParseVttOrSrtCues(text) {
     if (!text) return [];
     const cues = [];
-    const clean = text.replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const clean = _milkboxFixSubtitleMojibake(text).replace(/^\uFEFF/, '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const blocks = clean.split(/\n\s*\n/);
     for (const block of blocks) {
         const lines = block.trim().split('\n');
@@ -144,9 +144,78 @@ function _milkboxParseVttOrSrtCues(text) {
     return cues.sort((a, b) => a.start - b.start);
 }
 
+const _MILKBOX_CP1252_MAP = {
+    '\u20AC': '\x80', '\u201A': '\x82', '\u0192': '\x83', '\u201E': '\x84',
+    '\u2026': '\x85', '\u2020': '\x86', '\u2021': '\x87', '\u02C6': '\x88',
+    '\u2030': '\x89', '\u0160': '\x8A', '\u2039': '\x8B', '\u0152': '\x8C',
+    '\u017D': '\x8E', '\u2018': '\x91', '\u2019': '\x92', '\u201C': '\x93',
+    '\u201D': '\x94', '\u2022': '\x95', '\u2013': '\x96', '\u2014': '\x97',
+    '\u02DC': '\x98', '\u2122': '\x99', '\u0161': '\x9A', '\u203A': '\x9B',
+    '\u0153': '\x9C', '\u017E': '\x9E', '\u0178': '\x9F'
+};
+
+const _MILKBOX_MOJIBAKE_MAP = [
+    [/PokÃ©mon/g, 'Pokémon'],
+    [/pokÃ©mon/g, 'pokémon'],
+    [/PokÃ©/g, 'Poké'],
+    [/pokÃ©/g, 'poké'],
+    [/â€™/g, '’'], [/â€˜/g, '‘'], [/â€œ/g, '“'], [/â€\u009d/g, '”'], [/â€/g, '”'],
+    [/â€”/g, '—'], [/â€“/g, '–'], [/â€¦/g, '…'], [/â€¢/g, '•'], [/â„¢/g, '™'],
+    [/â™ª/g, '♪'], [/â™«/g, '♫'], [/Â♪/g, '♪'], [/Â♫/g, '♫'],
+    [/Â¿/g, '¿'], [/Â¡/g, '¡'], [/Â«/g, '«'], [/Â»/g, '»'],
+    [/Â°/g, '°'], [/Â±/g, '±'], [/Â©/g, '©'], [/Â®/g, '®'],
+    [/Ã©/g, 'é'], [/Ã¨/g, 'è'], [/Ãª/g, 'ê'], [/Ã«/g, 'ë'],
+    [/Ã¡/g, 'á'], [/Ã /g, 'à'], [/Ã¢/g, 'â'], [/Ã¤/g, 'ä'], [/Ã£/g, 'ã'], [/Ã¥/g, 'å'],
+    [/Ã­/g, 'í'], [/Ã¬/g, 'ì'], [/Ã®/g, 'î'], [/Ã¯/g, 'ï'],
+    [/Ã³/g, 'ó'], [/Ã²/g, 'ò'], [/Ã´/g, 'ô'], [/Ã¶/g, 'ö'], [/Ãµ/g, 'õ'], [/Ã¸/g, 'ø'],
+    [/Ãº/g, 'ú'], [/Ã¹/g, 'ù'], [/Ã»/g, 'û'], [/Ã¼/g, 'ü'],
+    [/Ã½/g, 'ý'], [/Ã¿/g, 'ÿ'], [/Ã±/g, 'ñ'], [/Ã§/g, 'ç'],
+    [/Ã‰/g, 'É'], [/Ãˆ/g, 'È'], [/ÃŠ/g, 'Ê'], [/Ã‹/g, 'Ë'],
+    [/Ã\u0081/g, 'Á'], [/Ã\u0080/g, 'À'], [/Ã\u0082/g, 'Â'], [/Ã\u0084/g, 'Ä'],
+    [/Ã\u008D/g, 'Í'], [/Ã\u008C/g, 'Ì'], [/Ã\u008E/g, 'Î'], [/Ã\u008F/g, 'Ï'],
+    [/Ã\u0093/g, 'Ó'], [/Ã\u0092/g, 'Ò'], [/Ã\u0094/g, 'Ô'], [/Ã\u0096/g, 'Ö'],
+    [/Ã\u009A/g, 'Ú'], [/Ã\u0099/g, 'Ù'], [/Ã\u009B/g, 'Û'], [/Ã\u009C/g, 'Ü'],
+    [/Ã\u0091/g, 'Ñ'], [/Ã\u0087/g, 'Ç'],
+    [/Â(?=[\x20-\x7E])/g, '']
+];
+
+function _milkboxFixSubtitleMojibake(text) {
+    if (!text || typeof text !== 'string') return text || '';
+    if (!/[ÃÂâ][\u0080-\u00FF\u2000-\u2122]|\uFFFD|PokÃ©/i.test(text)) {
+        return text;
+    }
+
+    let normalized = text;
+    for (const [k, v] of Object.entries(_MILKBOX_CP1252_MAP)) {
+        if (normalized.includes(k)) {
+            normalized = normalized.split(k).join(v);
+        }
+    }
+
+    const utf8Regex = /(?:[\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{3})+/g;
+    let repaired = normalized.replace(utf8Regex, (match) => {
+        try {
+            const bytes = new Uint8Array(match.length);
+            for (let i = 0; i < match.length; i++) {
+                bytes[i] = match.charCodeAt(i) & 0xFF;
+            }
+            return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+        } catch {
+            return match;
+        }
+    });
+
+    for (const [regex, rep] of _MILKBOX_MOJIBAKE_MAP) {
+        repaired = repaired.replace(regex, rep);
+    }
+
+    return repaired;
+}
+
 function _milkboxCleanSubtitleHtml(raw) {
     if (!raw) return '';
-    let s = raw.replace(/\{[^}]+\}/g, '').trim();
+    let s = _milkboxFixSubtitleMojibake(raw);
+    s = s.replace(/\{[^}]+\}/g, '').trim();
     s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     s = s.replace(/&lt;(\/?(?:i|b|u|strong|em))&gt;/gi, '<$1>')
          .replace(/&lt;font(?:\s+color=["']?([^"'>]+)["']?)?&gt;/gi, (m, color) => color ? `<span style="color:${color}">` : '<span>')
