@@ -9607,7 +9607,7 @@ const liveState = {
     free: { items: [], page: 1 },
     theaters: { items: [], page: 1 },
     popular: { items: [], page: 1 },
-    manga: { items: [], page: 1, totalPages: 1, type: 'topview', search: '' }
+    manga: { items: [], page: 1, totalPages: 1, type: '', search: '' }
 };
 const liveFed = {};   
 
@@ -9848,8 +9848,13 @@ function renderLiveTab(section) {
     } else if (section === 'manga') {
         mangaPopulateFilters();
         const st = liveState.manga;
-        if (st.items.length) renderMangaGrid(st.page);
-        else if (!liveFed.manga) fetchMangaList(1, st.type || '');
+        if (st.type === 'topview') st.type = '';
+        if (st.items && st.items.length) {
+            renderMangaGrid(st.page || 1);
+        } else {
+            renderSkeletonGrid('mangaGrid', MANGA_PER_PAGE, false);
+            if (!liveFed.manga) fetchMangaList(1, st.type || '');
+        }
     }
 }
 
@@ -9938,11 +9943,12 @@ function mangaItemToItem(m) {
 
     if (m.attributes && m.relationships) {
         const attrs = m.attributes;
-        const title = attrs.title?.en || attrs.title?.['ja-ro'] || attrs.title?.ja || attrs.title?.['ko-ro'] || attrs.title?.ko || Object.values(attrs.title || {})[0] || 'Untitled Manga';
+        const enAlt = (attrs.altTitles || []).find(t => t && t.en)?.en;
+        const title = attrs.title?.en || enAlt || attrs.title?.['ja-ro'] || attrs.title?.['ko-ro'] || attrs.title?.ja || attrs.title?.ko || Object.values(attrs.title || {})[0] || 'Untitled Manga';
         const coverRel = m.relationships.find(r => r.type === 'cover_art');
         const coverFileName = coverRel?.attributes?.fileName;
         const poster = coverFileName
-            ? `https://uploads.mangadex.org/covers/${m.id}/${coverFileName}.512.jpg`
+            ? `/api/mangadex-cover/${m.id}/${coverFileName}.512.jpg`
             : makeSvgCover(title, 'Manga');
         const desc = attrs.description?.en || Object.values(attrs.description || {})[0] || '';
         const genres = (attrs.tags || [])
@@ -10012,13 +10018,19 @@ async function fetchMangaList(page = 1, type = '') {
     const grid = document.getElementById('mangaGrid');
     const pager = document.getElementById('mangaPager');
     const st = liveState.manga;
+    if (type !== undefined && type !== 'topview') st.type = type;
+    if (st.type === 'topview') st.type = '';
     const now = Date.now();
-    if (st.lastRequestAt && (now - st.lastRequestAt) < 500) {
+    if (st.lastRequestAt && (now - st.lastRequestAt) < 300) {
         return;
     }
     liveFed.manga = 1;
     st.lastRequestAt = now;
     mangaPopulateFilters();
+
+    if (grid && (!st.items || !st.items.length)) {
+        renderSkeletonGrid('mangaGrid', MANGA_PER_PAGE, false);
+    }
 
     const limit = MANGA_PER_PAGE;
     const offset = Math.max(0, (page - 1) * limit);
@@ -10038,8 +10050,8 @@ async function fetchMangaList(page = 1, type = '') {
         if (st.search && st.search.trim()) {
             queryParams.set('title', st.search.trim());
         }
-        if (st.type) {
-            queryParams.append('originalLanguage[]', st.type);
+        if (st.type && /^[a-z]{2}$/i.test(st.type)) {
+            queryParams.append('originalLanguage[]', st.type.toLowerCase());
         }
         if (st.state) {
             queryParams.append('status[]', st.state);
@@ -10197,7 +10209,11 @@ function renderMangaGrid(page) {
     const pager = document.getElementById('mangaPager');
     if (!grid) return;
     const st = liveState.manga;
-    if (!st.items || !st.items.length) return;
+    if (!st.items || !st.items.length) {
+        grid.innerHTML = '<div class="live-error" style="grid-column: 1/-1; text-align: center; padding: 48px 16px; color: #aaa; font-size: 15px;">No manga found for this query. Try a different search or filter.</div>';
+        if (pager) pager.style.display = 'none';
+        return;
+    }
     const total = st.totalPages || 1;
     const p = Math.min(Math.max(1, page || 1), total);
     st.page = p;
@@ -10573,7 +10589,7 @@ document.addEventListener('click', (e) => {
     const page = parseInt(btn.dataset.page, 10);
     if (isNaN(page)) return;
     liveState[key].page = page;
-    if (key === 'manga') fetchMangaList(page, liveState.manga.type || 'topview');
+    if (key === 'manga') fetchMangaList(page, liveState.manga.type || '');
     else renderLiveGrid(key);
 });
 
@@ -10993,13 +11009,17 @@ function applySectionChange(section, link, pushHistory = true) {
         show('tvShowsSection', false);
         show('myListSection', false);
         show('homeGenres', false);
+        show('loadedGenreSection', false);
         show('trendingSection', false);
         show('streamingSection', false);
         show('theatersSection', false);
         show('popularSection', false);
-        show('mangaSection', true);
+        show('musicSection', false);
+        const ms = document.getElementById('mangaSection');
+        if (ms) ms.style.display = 'flex';
         renderLiveTab('manga');
-        document.getElementById('heroSection').style.display = 'none';
+        const hero = document.getElementById('heroSection');
+        if (hero) hero.style.display = 'none';
     } else if (section === 'music') {
         show('moviesSection', false);
         show('tvShowsSection', false);
@@ -12402,6 +12422,12 @@ function initAll() {
     try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
     try { initCardLogoObserver(); } catch (e) { console.error('initCardLogoObserver error:', e); }
     try { initContentSectionObserver(); } catch (e) { console.error('initContentSectionObserver error:', e); }
+    try {
+        const initialSection = getSectionFromPath(window.location.pathname);
+        if (initialSection && initialSection !== 'home') {
+            applySectionChange(initialSection, null, false);
+        }
+    } catch (e) { console.error('initialSection route error:', e); }
 }
 initAll();
 checkCatalogAvailability();
