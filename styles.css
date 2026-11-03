@@ -2545,20 +2545,6 @@ body.mylist-active #homeGenres {
 /* Live tabs (Trending / Streaming / In Theaters / Most Popular) */
 #trendingSection, #streamingSection, #freeSection, #theatersSection, #popularSection, #mangaSection { display: none; }
 
-body.trending-active #trendingSection,
-body.trending-active #trendingSection .section-title,
-body.streaming-active #streamingSection,
-body.streaming-active #streamingSection .section-title,
-body.free-active #freeSection,
-body.free-active #freeSection .section-title,
-body.providers-active #streamingSection,
-body.providers-active #streamingSection .section-title,
-body.theaters-active #theatersSection,
-body.theaters-active #theatersSection .section-title,
-body.popular-active #popularSection,
-body.popular-active #popularSection .section-title,
-body.manga-active #mangaSection,
-body.manga-active #mangaSection .section-title,
 body.trending-active #tvShowsSection,
 body.trending-active #moviesSection,
 body.streaming-active #moviesSection,
@@ -2647,6 +2633,10 @@ body.manga-active #mangaSection {
     min-height: 60vh;
     margin-top: 28px;
     width: 100%;
+}
+
+body.manga-active #mangaSection .section-title {
+    display: block;
 }
 
 #mangaSection .grid-wrap {
