@@ -53,6 +53,32 @@ async function proxyMangaDex(req, res, requestPath, query) {
     return true;
 }
 
+async function proxyMangaDexCover(req, res, requestPath) {
+    if (!requestPath.startsWith('/api/mangadex-cover/')) return false;
+    const subPath = requestPath.slice('/api/mangadex-cover/'.length);
+    if (!subPath) return false;
+    const target = `https://uploads.mangadex.org/covers/${subPath}`;
+    try {
+        const response = await fetch(target);
+        if (!response.ok) {
+            res.writeHead(response.status, { 'Content-Type': 'text/plain' });
+            res.end('Not found');
+            return true;
+        }
+        res.writeHead(200, {
+            'Content-Type': response.headers.get('content-type') || 'image/jpeg',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*'
+        });
+        const arrayBuffer = await response.arrayBuffer();
+        res.end(Buffer.from(arrayBuffer));
+    } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Error loading cover');
+    }
+    return true;
+}
+
 async function resolvePlayback(req, res, requestPath, query) {
     if (requestPath !== '/api/playback/resolve') return false;
     const respond = (status, body) => {
@@ -1014,6 +1040,7 @@ const server = http.createServer(async (req, res) => {
     if (await resolvePlayback(req, res, requestPath, query)) return;
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
+    if (await proxyMangaDexCover(req, res, requestPath)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     if (await proxyMiruro(req, res, requestPath, query)) return;
     if (await downloadYouTube(req, res, requestPath, query)) return;
