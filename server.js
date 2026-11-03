@@ -40,14 +40,11 @@ async function proxyMangaDex(req, res, requestPath, query) {
     const target = new URL(`https://api.mangadex.org${requestPath.slice('/api/mangadex'.length)}`);
     for (const [key, value] of query) target.searchParams.append(key, value);
     try {
-        const headers = { 
-            Accept: 'application/json',
-            'User-Agent': 'MILKBOX/1.0 (https://milkbox.app)'
-        };
+        const headers = { Accept: 'application/json' };
         if (process.env.MANGADEX_ACCESS_TOKEN) headers.Authorization = `Bearer ${process.env.MANGADEX_ACCESS_TOKEN}`;
         const response = await fetch(target, { headers });
         const body = await response.text();
-        res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'public, max-age=300' });
+        res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(body);
     } catch (error) {
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -62,11 +59,7 @@ async function proxyMangaDexCover(req, res, requestPath) {
     if (!subPath) return false;
     const target = `https://uploads.mangadex.org/covers/${subPath}`;
     try {
-        const response = await fetch(target, {
-            headers: {
-                'User-Agent': 'MILKBOX/1.0 (https://milkbox.app)'
-            }
-        });
+        const response = await fetch(target);
         if (!response.ok) {
             res.writeHead(response.status, { 'Content-Type': 'text/plain' });
             res.end('Not found');
