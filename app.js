@@ -9607,7 +9607,7 @@ const liveState = {
     free: { items: [], page: 1 },
     theaters: { items: [], page: 1 },
     popular: { items: [], page: 1 },
-    manga: { items: [], page: 1, totalPages: 1, type: '', search: '' }
+    manga: { items: [], page: 1, totalPages: 1, type: 'topview', search: '' }
 };
 const liveFed = {};   
 
@@ -9848,13 +9848,8 @@ function renderLiveTab(section) {
     } else if (section === 'manga') {
         mangaPopulateFilters();
         const st = liveState.manga;
-        if (st.type === 'topview') st.type = '';
-        if (st.items && st.items.length) {
-            renderMangaGrid(st.page || 1);
-        } else {
-            renderSkeletonGrid('mangaGrid', MANGA_PER_PAGE, false);
-            if (!liveFed.manga) fetchMangaList(1, st.type || '');
-        }
+        if (st.items.length) renderMangaGrid(st.page);
+        else if (!liveFed.manga) fetchMangaList(1, st.type || '');
     }
 }
 
