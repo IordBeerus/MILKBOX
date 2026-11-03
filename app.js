@@ -10278,21 +10278,23 @@ function showMangaReader(m) {
 
             if (feedRes.ok) {
                 const j = await feedRes.json();
-                const readable = (j.data || []).filter(c => !c.attributes?.isUnavailable && Number(c.attributes?.pages || 0) > 0);
+                let readable = (j.data || []).filter(c => !c.attributes?.isUnavailable && (Number(c.attributes?.pages || 0) > 0 || c.attributes?.externalUrl));
                 if (readable.length) {
                     chapterData = readable.map(c => ({
                         id: c.id,
                         chapter: c.attributes?.chapter || '',
                         name: c.attributes?.title
                             ? `${c.attributes.chapter ? 'Ch. ' + c.attributes.chapter + ' — ' : ''}${c.attributes.title}`
-                            : `Chapter ${c.attributes?.chapter || ''}`.trim()
+                            : `Chapter ${c.attributes?.chapter || ''}`.trim(),
+                        externalUrl: c.attributes?.externalUrl || null
                     }));
                 } else if (mangaReader.language !== 'all') {
-                    // Check available languages
-                    const probe = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=1&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
+                    // Check available languages across all chapters
+                    const probe = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
                     if (probe.ok) {
                         const pData = await probe.json();
-                        const avail = pData.data?.[0]?.attributes?.translatedLanguage;
+                        const pReadable = (pData.data || []).filter(c => !c.attributes?.isUnavailable && (Number(c.attributes?.pages || 0) > 0 || c.attributes?.externalUrl));
+                        const avail = pReadable[0]?.attributes?.translatedLanguage;
                         if (avail && avail !== mangaReader.language) {
                             mangaReader.language = avail;
                             localStorage.setItem('milkbox_manga_language', avail);
@@ -10310,14 +10312,15 @@ function showMangaReader(m) {
                             const retry = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=500&translatedLanguage[]=${encodeURIComponent(avail)}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
                             if (retry.ok) {
                                 const retryData = await retry.json();
-                                const retryReadable = (retryData.data || []).filter(c => !c.attributes?.isUnavailable && Number(c.attributes?.pages || 0) > 0);
+                                const retryReadable = (retryData.data || []).filter(c => !c.attributes?.isUnavailable && (Number(c.attributes?.pages || 0) > 0 || c.attributes?.externalUrl));
                                 if (retryReadable.length) {
                                     chapterData = retryReadable.map(c => ({
                                         id: c.id,
                                         chapter: c.attributes?.chapter || '',
                                         name: c.attributes?.title
                                             ? `${c.attributes.chapter ? 'Ch. ' + c.attributes.chapter + ' — ' : ''}${c.attributes.title}`
-                                            : `Chapter ${c.attributes?.chapter || ''}`.trim()
+                                            : `Chapter ${c.attributes?.chapter || ''}`.trim(),
+                                        externalUrl: c.attributes?.externalUrl || null
                                     }));
                                 }
                             }
