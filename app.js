@@ -9846,9 +9846,10 @@ function renderLiveTab(section) {
             })();
         }
     } else if (section === 'manga') {
+        mangaPopulateFilters();
         const st = liveState.manga;
         if (st.items.length) renderMangaGrid(st.page);
-        else if (!liveFed.manga) fetchMangaList(1, 'topview');
+        else if (!liveFed.manga) fetchMangaList(1, st.type || '');
     }
 }
 
@@ -10386,15 +10387,30 @@ async function openChapter(chId) {
     const pagesEl = mrEl('mangaReadPages');
     pagesEl.innerHTML = '<div class="live-loading">Loading manga pages…</div>';
 
+    if (ch && ch.externalUrl) {
+        pagesEl.innerHTML = `<div class="live-error" style="text-align:center; padding: 36px 16px;">
+            <p style="margin-bottom:14px; font-weight:600; font-size:15px;">This chapter is hosted externally by the publisher.</p>
+            <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none; font-weight:600;">Open on Official Publisher ↗</a>
+        </div>`;
+        mangaReader.images = [];
+        mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
+        updatePageNav();
+        updateReaderNav();
+        renderChapterDrawer();
+        return;
+    }
+
     try {
         const r = await fetchMangadex(`https://api.mangadex.org/at-home/server/${encodeURIComponent(chId)}`, { cache: 'no-store' });
         if (r.ok) {
             const j = await r.json();
             const base = j.baseUrl || j.base_url;
             const hash = j.chapter?.hash;
-            const files = j.chapter?.data || j.chapter?.dataSaver;
+            const hasFullData = Array.isArray(j.chapter?.data) && j.chapter.data.length > 0;
+            const files = hasFullData ? j.chapter.data : (j.chapter?.dataSaver || []);
+            const folder = hasFullData ? 'data' : 'data-saver';
             if (base && hash && files && files.length) {
-                mangaReader.images = files.map(f => ({ image: `${base}/data/${hash}/${f}`, title: ch?.name || '' }));
+                mangaReader.images = files.map(f => ({ image: `${base}/${folder}/${hash}/${f}`, title: ch?.name || '' }));
                 mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
                 renderChapterPages();
                 updateReaderNav();

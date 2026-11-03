@@ -3004,6 +3004,12 @@ body.light-mode .manga-filter-row option {
     border-radius: 6px;
     background: #1a1a1f;
 }
+.manga-continuous-page {
+    width: 100%;
+    height: auto;
+    max-width: 900px;
+    margin: 0 auto 10px;
+}
 .manga-page-nav {
     display: flex;
     justify-content: center;
