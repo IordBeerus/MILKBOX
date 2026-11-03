@@ -2551,6 +2551,7 @@ body.streaming-active #moviesSection,
 body.theaters-active #moviesSection,
 body.popular-active #moviesSection,
 body.manga-active #moviesSection,
+body.manga-active #tvShowsSection,
 body.trending-active #myListSection,
 body.streaming-active #myListSection,
 body.theaters-active #myListSection,
@@ -2626,7 +2627,7 @@ body.popular-active #popularSection {
 }
 
 body.manga-active #mangaSection {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
