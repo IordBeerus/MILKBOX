@@ -9911,15 +9911,15 @@ function makeSvgCover(title, subtitle = 'Manga') {
 }
 
 const fallbackMangaLibrary = [
-    { id: "ade0306c-f4b6-4890-9edb-1ddf04df2039", title: "Solo Leveling", poster: "https://uploads.mangadex.org/covers/ade0306c-f4b6-4890-9edb-1ddf04df2039/fe76445d-387f-4ff6-8340-f06403c20dbe.jpg.512.jpg", description: "In a world where hunters battle deadly monsters to protect mankind, Sung Jinwoo, known as the weakest hunter of all mankind, embarks on a journey to become the strongest.", genre: ["action", "fantasy", "adventure"], year: "2018", chapters: "200" },
-    { id: "801513ba-a712-498c-8f57-cae55b38cc92", title: "Berserk", poster: "https://uploads.mangadex.org/covers/801513ba-a712-498c-8f57-cae55b38cc92/81e1c82d-6672-400c-8c58-4ff9bfb89031.jpg.512.jpg", description: "Guts, a former mercenary known as the Black Swordsman, is out for revenge across a dark fantasy world.", genre: ["action", "horror", "drama"], year: "1989", chapters: "375" },
-    { id: "a1c7c817-4e59-43b7-9365-09675a149a6f", title: "One Piece", poster: "https://uploads.mangadex.org/covers/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg", description: "Monkey D. Luffy embarks on a grand voyage with his crew to find the legendary treasure and become King of the Pirates.", genre: ["adventure", "action", "comedy"], year: "1997", chapters: "1100+" },
-    { id: "e896c48c-3150-437d-ba57-d8567eb399ae", title: "Chainsaw Man", poster: "https://uploads.mangadex.org/covers/e896c48c-3150-437d-ba57-d8567eb399ae/fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg.512.jpg", description: "Denji is a teenage boy living with a Chainsaw Devil named Pochita. Together, they hunt devils to repay debts.", genre: ["action", "horror", "supernatural"], year: "2018", chapters: "170+" },
-    { id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a", title: "Jujutsu Kaisen", poster: "https://uploads.mangadex.org/covers/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.512.jpg", description: "High schooler Yuji Itadori swallows a cursed talisman and joins the Tokyo Jujutsu High School to battle curses.", genre: ["action", "supernatural", "fantasy"], year: "2018", chapters: "271" },
-    { id: "b76d94b5-c787-46ff-9925-f4f729b1ed39", title: "Attack on Titan", poster: "https://uploads.mangadex.org/covers/b76d94b5-c787-46ff-9925-f4f729b1ed39/937c8aa2-ed20-4ec5-8c1b-5a7dcdc18df0.jpg.512.jpg", description: "After his hometown is destroyed, young Eren Jaeger vows to cleanse the earth of the giant humanoid Titans.", genre: ["action", "drama", "mystery"], year: "2009", chapters: "139" },
-    { id: "140668fa-eec5-42d1-a6f5-ed65c295c0ee", title: "Monster", poster: "https://uploads.mangadex.org/covers/140668fa-eec5-42d1-a6f5-ed65c295c0ee/730150e1-6546-4321-9306-76c8083958f6.jpg.512.jpg", description: "Dr. Kenzo Tenma risks his stellar reputation to save a young boy who grows up to be a charismatic psychopathic mastermind.", genre: ["mystery", "psychological", "thriller"], year: "1994", chapters: "162" },
-    { id: "36bdbf91-5e57-4b81-a813-4c557091dbce", title: "Death Note", poster: "https://uploads.mangadex.org/covers/36bdbf91-5e57-4b81-a813-4c557091dbce/9e10b0ae-58c0-4c6b-ad0d-8b60b1398c04.jpg.512.jpg", description: "A high school prodigy discovers a supernatural notebook that grants the ability to kill anyone whose name is written in it.", genre: ["mystery", "psychological", "thriller"], year: "2003", chapters: "108" },
-    { id: "6b958848-c885-4735-9201-12ee77abcb3c", title: "Spy x Family", poster: "https://uploads.mangadex.org/covers/6b958848-c885-4735-9201-12ee77abcb3c/91a35e78-62b2-41fe-9869-ce051f2d1070.jpg.512.jpg", description: "A spy on an undercover mission creates a fake family, unknowingly marrying an assassin and adopting a telepathic child.", genre: ["comedy", "action", "slice of life"], year: "2019", chapters: "100+" }
+    { id: "ade0306c-f4b6-4890-9edb-1ddf04df2039", title: "Solo Leveling", poster: "/api/mangadex-cover/ade0306c-f4b6-4890-9edb-1ddf04df2039/fe76445d-387f-4ff6-8340-f06403c20dbe.jpg.512.jpg", description: "In a world where hunters battle deadly monsters to protect mankind, Sung Jinwoo, known as the weakest hunter of all mankind, embarks on a journey to become the strongest.", genre: ["action", "fantasy", "adventure"], year: "2018", chapters: "200" },
+    { id: "801513ba-a712-498c-8f57-cae55b38cc92", title: "Berserk", poster: "/api/mangadex-cover/801513ba-a712-498c-8f57-cae55b38cc92/81e1c82d-6672-400c-8c58-4ff9bfb89031.jpg.512.jpg", description: "Guts, a former mercenary known as the Black Swordsman, is out for revenge across a dark fantasy world.", genre: ["action", "horror", "drama"], year: "1989", chapters: "375" },
+    { id: "a1c7c817-4e59-43b7-9365-09675a149a6f", title: "One Piece", poster: "/api/mangadex-cover/a1c7c817-4e59-43b7-9365-09675a149a6f/2f4aca53-64c7-46ac-ae85-3bc9b3169890.png.512.jpg", description: "Monkey D. Luffy embarks on a grand voyage with his crew to find the legendary treasure and become King of the Pirates.", genre: ["adventure", "action", "comedy"], year: "1997", chapters: "1100+" },
+    { id: "e896c48c-3150-437d-ba57-d8567eb399ae", title: "Chainsaw Man", poster: "/api/mangadex-cover/e896c48c-3150-437d-ba57-d8567eb399ae/fa06e4e4-ef2a-477b-bfb6-a2a88793620b.jpg.512.jpg", description: "Denji is a teenage boy living with a Chainsaw Devil named Pochita. Together, they hunt devils to repay debts.", genre: ["action", "horror", "supernatural"], year: "2018", chapters: "170+" },
+    { id: "c52b2ce3-7f95-469c-96b0-479524fb7a1a", title: "Jujutsu Kaisen", poster: "/api/mangadex-cover/c52b2ce3-7f95-469c-96b0-479524fb7a1a/6d9134b2-21ea-4d02-ac2b-7c0d1c6a2aaa.jpg.512.jpg", description: "High schooler Yuji Itadori swallows a cursed talisman and joins the Tokyo Jujutsu High School to battle curses.", genre: ["action", "supernatural", "fantasy"], year: "2018", chapters: "271" },
+    { id: "b76d94b5-c787-46ff-9925-f4f729b1ed39", title: "Attack on Titan", poster: "/api/mangadex-cover/b76d94b5-c787-46ff-9925-f4f729b1ed39/937c8aa2-ed20-4ec5-8c1b-5a7dcdc18df0.jpg.512.jpg", description: "After his hometown is destroyed, young Eren Jaeger vows to cleanse the earth of the giant humanoid Titans.", genre: ["action", "drama", "mystery"], year: "2009", chapters: "139" },
+    { id: "140668fa-eec5-42d1-a6f5-ed65c295c0ee", title: "Monster", poster: "/api/mangadex-cover/140668fa-eec5-42d1-a6f5-ed65c295c0ee/730150e1-6546-4321-9306-76c8083958f6.jpg.512.jpg", description: "Dr. Kenzo Tenma risks his stellar reputation to save a young boy who grows up to be a charismatic psychopathic mastermind.", genre: ["mystery", "psychological", "thriller"], year: "1994", chapters: "162" },
+    { id: "36bdbf91-5e57-4b81-a813-4c557091dbce", title: "Death Note", poster: "/api/mangadex-cover/36bdbf91-5e57-4b81-a813-4c557091dbce/9e10b0ae-58c0-4c6b-ad0d-8b60b1398c04.jpg.512.jpg", description: "A high school prodigy discovers a supernatural notebook that grants the ability to kill anyone whose name is written in it.", genre: ["mystery", "psychological", "thriller"], year: "2003", chapters: "108" },
+    { id: "6b958848-c885-4735-9201-12ee77abcb3c", title: "Spy x Family", poster: "/api/mangadex-cover/6b958848-c885-4735-9201-12ee77abcb3c/91a35e78-62b2-41fe-9869-ce051f2d1070.jpg.512.jpg", description: "A spy on an undercover mission creates a fake family, unknowingly marrying an assassin and adopting a telepathic child.", genre: ["comedy", "action", "slice of life"], year: "2019", chapters: "100+" }
 ];
 
 function mangaFallbackItems() {
@@ -10793,37 +10793,44 @@ function navigateWithTransition(actionFn) {
     const isReduced = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) || (typeof settings !== 'undefined' && settings.reducedMotion);
     
     if (isReduced) {
-        actionFn();
+        try { actionFn(); } catch (err) { console.error('Navigation action error:', err); }
         return;
     }
     
     const wrapper = document.querySelector('.content-wrapper') || document.body;
     
-    
     wrapper.classList.remove('catalog-slide-in', 'nav-transition-fade-in');
     wrapper.classList.add('catalog-slide-out');
     
+    let cleanedUp = false;
+    const cleanup = () => {
+        if (cleanedUp) return;
+        cleanedUp = true;
+        wrapper.classList.remove('catalog-slide-out', 'nav-transition-fade-out', 'catalog-slide-in-prepare', 'catalog-slide-in');
+    };
+
     setTimeout(() => {
-        
         wrapper.classList.remove('catalog-slide-out', 'nav-transition-fade-out');
         wrapper.classList.add('catalog-slide-in-prepare');
         
-        
-        actionFn();
-        
+        try {
+            actionFn();
+        } catch (err) {
+            console.error('Navigation action error:', err);
+        }
         
         void wrapper.offsetHeight;
-        
         
         requestAnimationFrame(() => {
             wrapper.classList.remove('catalog-slide-in-prepare');
             wrapper.classList.add('catalog-slide-in');
             
-            setTimeout(() => {
-                wrapper.classList.remove('catalog-slide-in');
-            }, 340);
+            setTimeout(cleanup, 320);
         });
     }, 100);
+
+    // Guaranteed fallback timer for low-spec Chromebooks or throttled iframes
+    setTimeout(cleanup, 450);
 }
 
 const ROUTE_URL_MAP = {
@@ -11016,10 +11023,14 @@ function applySectionChange(section, link, pushHistory = true) {
         show('popularSection', false);
         show('musicSection', false);
         const ms = document.getElementById('mangaSection');
-        if (ms) ms.style.display = 'flex';
+        if (ms) {
+            ms.style.display = 'flex';
+            ms.classList.add('is-active');
+        }
         renderLiveTab('manga');
         const hero = document.getElementById('heroSection');
         if (hero) hero.style.display = 'none';
+        try { window.scrollTo({ top: 0, behavior: 'instant' }); } catch (_) {}
     } else if (section === 'music') {
         show('moviesSection', false);
         show('tvShowsSection', false);
