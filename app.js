@@ -253,7 +253,7 @@ function hardenCloudIframe(iframe){
     } catch {}
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
+        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
         if (isCloud && (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled())) {
             setTimeout(showPopupShield, 220);
         }
@@ -1594,37 +1594,14 @@ function initCardLogoObserver() {
 
 function handleCardImgError(img, fallbackPoster) {
     if (!img) return;
-
-    // Try secondary TMDB image (poster/backdrop) first if available
     if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
         img.dataset.triedPoster = 'true';
         img.src = fallbackPoster;
         return;
     }
-
-    // If TMDB failed or is blocked, fallback to Google/web search image proxy
-    if (!img.dataset.triedFallback) {
-        img.dataset.triedFallback = 'true';
-        const card = img.closest('.card, .anime-cw-card, .movie-cw-card, .collection-card');
-        const item = (card && card._itemRef) || (img._itemRef) || null;
-        const title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
-        const year = img.dataset.year || (item && item.year) || '';
-        const isBackdrop = img.classList.contains('card-backdrop-img') || img.classList.contains('hero-bg') || img.classList.contains('collection-backdrop');
-        const effType = isBackdrop ? 'backdrop' : 'poster';
-
-        if (title && title.trim().length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') {
-            const fallbackUrl = `/api/image-fallback?title=${encodeURIComponent(title.trim())}${year ? '&year=' + encodeURIComponent(year) : ''}&type=${effType}`;
-            if (img.src !== fallbackUrl && !img.src.endsWith(fallbackUrl)) {
-                img.src = fallbackUrl;
-                return;
-            }
-        }
-    }
-
-    // Fall back to clean card placeholder
     img.style.setProperty('display', 'none', 'important');
     img.classList.add('img-failed');
-    const media = img.closest('.card-media') || img.closest('.anime-cw-thumb-wrap') || img.parentElement;
+    const media = img.closest('.card-media') || img.parentElement;
     if (media) {
         const ph = media.querySelector('.card-placeholder');
         if (ph) {
@@ -1663,7 +1640,7 @@ function createCard(item, type, isLandscape = true) {
 
         let imgHTML = '';
         if (safeBackdrop) {
-            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
+            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
         }
         imgHTML += `<div class="card-placeholder${safeBackdrop ? ' is-hidden' : ''}" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
 
@@ -1702,7 +1679,7 @@ function createCard(item, type, isLandscape = true) {
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -4470,32 +4447,23 @@ function renderHeroItem(force = false) {
     document.getElementById('heroDesc').textContent = featured.description || `A ${g.length ? g.join(', ') : 'great'} ${featured.type || 'title'}. Rating: ${featured.rating || 'N/A'}/10`;
     const bgUrl = hiRes(featured.backdrop || featured.poster);
     if (bgUrl) {
-        const heroEl = document.getElementById('heroSection');
-        heroEl.style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
-        heroEl.style.backgroundSize = 'cover';
-        heroEl.style.backgroundPosition = 'center top';
-
-        const probeImg = new Image();
-        probeImg.src = bgUrl;
-        probeImg.onerror = () => {
-            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&type=backdrop`;
-            if (heroEl) heroEl.style.backgroundImage = `url("${fallbackHero}")`;
-        };
+        document.getElementById('heroSection').style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
+        document.getElementById('heroSection').style.backgroundSize = 'cover';
+        document.getElementById('heroSection').style.backgroundPosition = 'center top';
     } else {
         document.getElementById('heroSection').style.backgroundImage = '';
     }
     const heroPlayBtn = document.getElementById('heroPlayBtn');
     if (heroPlayBtn) {
-        const isAni = isAnime(featured);
-        const lastProg = isAni ? getAnimeLastProgress(featured) : (typeof getMovieLastProgress === 'function' ? getMovieLastProgress(featured) : null);
-        if (isAni && lastProg && lastProg.episode && featured.type !== 'movie') {
+        const lastProg = isAnime(featured) ? getAnimeLastProgress(featured) : null;
+        if (lastProg && lastProg.episode && featured.type !== 'movie') {
             const timeStr = lastProg.currentTime > 5 ? ` (${formatTimeDisplay(lastProg.currentTime)})` : '';
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume Ep ${lastProg.episode}${timeStr}`;
             heroPlayBtn.onclick = () => resumeAnime(featured, lastProg.season, lastProg.episode);
-        } else if (lastProg && lastProg.currentTime > 10) {
+        } else if (lastProg && lastProg.currentTime > 10 && featured.type === 'movie') {
             const timeStr = formatTimeDisplay(lastProg.currentTime);
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume (${timeStr})`;
-            heroPlayBtn.onclick = () => isAni ? resumeAnime(featured, 1, 1) : resumeMovie(lastProg);
+            heroPlayBtn.onclick = () => resumeAnime(featured, 1, 1);
         } else {
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Play`;
             heroPlayBtn.onclick = () => playItem(featured, featured.type || 'movie');
@@ -4900,9 +4868,9 @@ function scramjetIframe(tmdbId, type, season, episode) {
 function phantomIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://player.vidmario.net/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+        url = `https://vidphantom.com/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     } else {
-        url = `https://player.vidmario.net/embed/movie/${encodeURIComponent(tmdbId)}`;
+        url = `https://vidphantom.com/movie/${encodeURIComponent(tmdbId)}`;
     }
     return makePlaybackIframe(url);
 }
@@ -6213,28 +6181,10 @@ function playItem(item, type) {
         } else if (saved && saved.episode && type !== 'movie' && item.type !== 'movie') {
             try { toast(`Resuming ${item.title} • Episode ${saved.episode}`, 'info'); } catch {}
         }
-    } else if (type === 'movie' || item.type === 'movie') {
-        const saved = typeof getMovieLastProgress === 'function' ? getMovieLastProgress(item) : null;
-        if (saved && saved.currentTime > 5) {
-            initialOffset = saved.currentTime;
-            playContext.resumeTime = initialOffset;
-            window._pendingResumeTime = initialOffset;
-            const timeStr = formatTimeDisplay(initialOffset);
-            try { toast(`Resuming ${item.title} at ${timeStr}`, 'info'); } catch {}
-            setTimeout(() => showPlayerResumePill(initialOffset), 400);
-        }
     }
     startPlaybackTimeTracking(item, initialOffset);
     try { recordWatchProgress(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } catch {}
-    try {
-        if (isAnime(item)) {
-            recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset });
-        } else if (type === 'movie' || item.type === 'movie') {
-            if (typeof recordMovieContinueWatching === 'function') {
-                recordMovieContinueWatching(item, { type: 'movie', currentTime: initialOffset });
-            }
-        }
-    } catch {}
+    try { if (isAnime(item)) { recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } } catch {}
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
     try { wireAnimeTheaterOnce(); } catch {}
     
@@ -8239,7 +8189,6 @@ function clearWatchHistory() {
     playUiSound();
     localStorage.removeItem('sf_watch_history');
     clearAnimeContinueWatching();
-    if (typeof clearMovieContinueWatching === 'function') clearMovieContinueWatching();
     updateWatchHistoryUI();
     toast('Watch history and Continue Watching cleared!', 'success');
 }
@@ -8411,113 +8360,6 @@ function clearAnimeContinueWatching() {
     renderAnimeContinueWatchingRow();
 }
 
-const MOVIE_CW_KEY = 'milkbox_movie_continue_watching';
-
-function getMovieContinueWatching() {
-    try {
-        const raw = localStorage.getItem(MOVIE_CW_KEY);
-        let list = raw ? JSON.parse(raw) : null;
-        if (!Array.isArray(list) || list.length === 0) {
-            const general = getWatchHistory();
-            const movieEntries = general.filter(entry => entry && !isAnime(entry) && (entry.type === 'movie' || (!entry.type && !entry.episode)));
-            if (movieEntries.length > 0) {
-                list = movieEntries.map(e => ({
-                    id: String(e.id || e.tmdbId || e.title),
-                    tmdbId: e.tmdbId || e.id,
-                    title: e.title || 'Untitled Movie',
-                    poster: e.poster || '',
-                    backdrop: e.backdrop || e.poster || '',
-                    currentTime: e.currentTime || 0,
-                    duration: e.duration || 0,
-                    type: 'movie',
-                    server: e.server || playerServer || 'auto',
-                    updatedAt: e.updatedAt || Date.now()
-                }));
-                localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
-            } else {
-                list = [];
-            }
-        }
-        return list;
-    } catch {
-        return [];
-    }
-}
-
-function recordMovieContinueWatching(item, extra = {}) {
-    if (!item) return;
-    try {
-        const itemKey = String(item.id || item.tmdbId || item.title);
-        let list = getMovieContinueWatching();
-        const existing = list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)));
-
-        let curTime = 0;
-        if (extra.currentTime != null && !isNaN(extra.currentTime)) curTime = Math.max(0, Math.floor(parseFloat(extra.currentTime)));
-        else if (existing && existing.currentTime != null) curTime = existing.currentTime;
-
-        let durTime = 0;
-        if (extra.duration != null && !isNaN(extra.duration)) durTime = Math.max(0, Math.floor(parseFloat(extra.duration)));
-        else if (existing && existing.duration != null) durTime = existing.duration;
-
-        const entry = {
-            id: itemKey,
-            tmdbId: item.tmdbId || item.id,
-            title: item.title || item.name || 'Untitled Movie',
-            type: 'movie',
-            poster: item.poster || item.poster_path || '',
-            backdrop: item.backdrop || item.backdrop_path || item.poster || '',
-            genre: item.genre || ['movie'],
-            year: item.year || '',
-            rating: item.rating || '',
-            currentTime: curTime,
-            duration: durTime,
-            server: playerServer || 'auto',
-            updatedAt: Date.now()
-        };
-
-        list = list.filter(x => String(x.id) !== itemKey && String(x.title).toLowerCase() !== String(entry.title).toLowerCase());
-        list.unshift(entry);
-        if (list.length > 40) list = list.slice(0, 40);
-
-        localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
-        if (!document.body.classList.contains('player-active')) {
-            renderMovieContinueWatchingRow();
-        }
-    } catch (e) {
-        console.warn('[MILKBOX] Error recording movie continue watching:', e);
-    }
-}
-
-function getMovieLastProgress(item) {
-    if (!item) return null;
-    try {
-        const itemKey = String(item.id || item.tmdbId || item.title);
-        const titleLower = String(item.title || item.name || '').toLowerCase();
-        const list = getMovieContinueWatching();
-        return list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || (titleLower && String(x.title || '').toLowerCase() === titleLower)) || null;
-    } catch {
-        return null;
-    }
-}
-
-function removeMovieContinueWatching(id) {
-    playUiSound();
-    try {
-        const idStr = String(id);
-        let list = getMovieContinueWatching();
-        list = list.filter(x => String(x.id) !== idStr && String(x.tmdbId) !== idStr);
-        localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
-        renderMovieContinueWatchingRow();
-        toast('Removed from Continue Watching', 'info');
-    } catch {}
-}
-
-function clearMovieContinueWatching() {
-    playUiSound();
-    localStorage.removeItem(MOVIE_CW_KEY);
-    renderMovieContinueWatchingRow();
-}
-
 function formatCwTimeAgo(ts) {
     if (!ts) return '';
     const diff = Math.max(0, Date.now() - ts);
@@ -8595,7 +8437,6 @@ function flushPlaybackTimestamp() {
         commitTimestampProgress(playContext.item, cur, dur, true);
     }
     try { renderAnimeContinueWatchingRow(); } catch {}
-    try { renderMovieContinueWatchingRow(); } catch {}
 }
 
 let _lastProgressStorageSave = 0;
@@ -8611,6 +8452,7 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
         const cur = Math.max(0, Math.floor(currentTime || 0));
         const dur = Math.max(0, Math.floor(duration || 0));
 
+        
         const now = Date.now();
         const shouldSaveStorage = force || (now - _lastProgressStorageSave >= 10000) || Math.abs(cur - _lastSavedCurTime) >= 12;
 
@@ -8622,12 +8464,6 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
                     season,
                     episode,
                     type: isMovie ? 'movie' : 'tv',
-                    currentTime: cur,
-                    duration: dur
-                });
-            } else if (isMovie || item.type === 'movie') {
-                recordMovieContinueWatching(item, {
-                    type: 'movie',
                     currentTime: cur,
                     duration: dur
                 });
@@ -8828,7 +8664,7 @@ function renderAnimeContinueWatchingRow() {
         return `
             <div class="anime-cw-card" data-id="${escapeHtml(item.id)}" data-anime-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" loading="lazy" decoding="async" onerror="if(this.src!=='${escapeHtml(item.poster || '')}'&&'${escapeHtml(item.poster || '')}'){this.src='${escapeHtml(item.poster || '')}';}else{this.style.display='none';}">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge">EPISODE ${episode}</span>
                     ${timeBadge}
@@ -8942,148 +8778,6 @@ function resumeAnime(itemData, season = 1, episode = 1) {
     }
 }
 
-function renderMovieContinueWatchingRow() {
-    const section = document.getElementById('movieContinueWatchingSection');
-    const slider = document.getElementById('movieContinueWatchingSlider');
-    const countBadge = document.getElementById('movieCwCountBadge');
-    if (!section || !slider) return;
-
-    const items = getMovieContinueWatching();
-    if (!items || items.length === 0) {
-        section.style.display = 'none';
-        return;
-    }
-
-    if (currentSection !== 'home' && currentSection !== 'movies') {
-        section.style.display = 'none';
-        return;
-    }
-    if (currentSection === 'home' && homeFilter !== 'all' && homeFilter !== 'movies') {
-        section.style.display = 'none';
-        return;
-    }
-
-    section.style.display = '';
-    if (countBadge) countBadge.textContent = String(items.length);
-
-    slider.innerHTML = items.map(item => {
-        const poster = item.backdrop || item.poster || '';
-        const title = escapeHtml(item.title || 'Untitled Movie');
-        const curTime = item.currentTime || 0;
-        const durTime = item.duration || 0;
-        const timeStr = curTime > 5 ? formatTimeDisplay(curTime) : '';
-        const durStr = durTime > 0 ? formatTimeDisplay(durTime) : '';
-
-        let progressPct = 35;
-        if (curTime > 0 && durTime > 0) {
-            progressPct = Math.min(100, Math.max(5, Math.round((curTime / durTime) * 100)));
-        } else if (curTime > 0) {
-            progressPct = Math.min(95, Math.max(5, Math.round((curTime / 6000) * 100)));
-        }
-
-        const progressLabel = timeStr 
-            ? `${timeStr}${durStr ? ' / ' + durStr : ''}` 
-            : (item.year ? `${item.year}` : 'Movie');
-        const timeAgo = formatCwTimeAgo(item.updatedAt);
-        const itemJson = escapeHtml(JSON.stringify(item));
-        const timeBadge = timeStr ? `<span class="anime-cw-time-pill"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm.5-13h-1.5v6l5.25 3.15.75-1.23-4.5-2.67Z"/></svg> ${timeStr}</span>` : '';
-
-        return `
-            <div class="anime-cw-card movie-cw-card" data-id="${escapeHtml(item.id)}" data-movie-cw="${itemJson}">
-                <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
-                    <div class="anime-cw-scrim"></div>
-                    <span class="anime-cw-badge movie-cw-badge">MOVIE</span>
-                    ${timeBadge}
-                    <button class="anime-cw-remove-btn" data-action="remove-movie-cw" data-id="${escapeHtml(item.id)}" title="Remove from Continue Watching" aria-label="Remove">✕</button>
-                    <div class="anime-cw-play-overlay">
-                        <div class="anime-cw-play-circle">
-                            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                        </div>
-                    </div>
-                    <div class="anime-cw-progress-bar">
-                        <div class="anime-cw-progress-fill" style="width:${progressPct}%"></div>
-                    </div>
-                </div>
-                <div class="anime-cw-info">
-                    <h4 class="anime-cw-title" title="${title}">${title}</h4>
-                    <div class="anime-cw-sub">
-                        <span class="anime-cw-ep-tag">${progressLabel}</span>
-                        ${timeAgo ? `<span class="anime-cw-time">${timeAgo}</span>` : ''}
-                    </div>
-                    <button class="anime-cw-resume-btn movie-cw-resume-btn" type="button" data-action="resume-movie-cw" data-id="${escapeHtml(item.id)}">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-                        <span>${timeStr ? `Resume at ${timeStr}` : `Watch Now`}</span>
-                    </button>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    slider.querySelectorAll('.movie-cw-card').forEach(card => {
-        const raw = card.getAttribute('data-movie-cw');
-        let itemData = null;
-        try { itemData = JSON.parse(raw); } catch {}
-        if (!itemData) return;
-
-        card.addEventListener('click', (e) => {
-            const removeBtn = e.target.closest('[data-action="remove-movie-cw"]');
-            if (removeBtn) {
-                e.preventDefault();
-                e.stopPropagation();
-                removeMovieContinueWatching(itemData.id);
-                return;
-            }
-            resumeMovie(itemData);
-        });
-    });
-}
-
-function resumeMovie(itemData) {
-    playUiSound();
-    const fullItem = [...movies, ...(animeLive.movies || []), ...FALLBACK_ANIME_MOVIES]
-        .find(x => String(x.id) === String(itemData.id) || (x.tmdbId && String(x.tmdbId) === String(itemData.tmdbId)) || (x.title && x.title.toLowerCase() === (itemData.title || '').toLowerCase()))
-        || itemData;
-
-    const savedTime = Math.max(0, parseFloat(itemData.currentTime || 0) || 0);
-    const timeLabel = savedTime > 5 ? ` at ${formatTimeDisplay(savedTime)}` : '';
-    toast(`Resuming ${fullItem.title}${timeLabel}`, 'info');
-
-    playContext = {
-        item: fullItem,
-        type: 'movie',
-        season: 1,
-        episode: 1,
-        resumeTime: savedTime
-    };
-
-    window._pendingResumeTime = savedTime;
-
-    const modal = document.getElementById('playerModal');
-    const title = document.getElementById('playerTitle');
-    const subtitle = document.getElementById('playerSubtitle');
-    if (title) title.textContent = fullItem.title;
-    if (subtitle) subtitle.textContent = savedTime > 5 ? `${fullItem.title} · ${formatTimeDisplay(savedTime)}` : fullItem.title;
-    if (modal) {
-        modal.classList.add('active');
-        modal.classList.remove('anime-mode');
-    }
-    document.body.classList.add('player-active');
-
-    recordMovieContinueWatching(fullItem, {
-        currentTime: savedTime,
-        duration: itemData.duration || 0,
-        type: 'movie'
-    });
-
-    startPlaybackTimeTracking(fullItem, savedTime);
-    renderPlay();
-
-    if (savedTime > 5) {
-        showPlayerResumePill(savedTime);
-    }
-}
-
 
 function exportDataBackup() {
     playUiSound();
@@ -9096,9 +8790,7 @@ function exportDataBackup() {
         myList,
         settings,
         customThemes,
-        watchHistory: getWatchHistory(),
-        animeContinueWatching: getAnimeContinueWatching(),
-        movieContinueWatching: getMovieContinueWatching()
+        watchHistory: getWatchHistory()
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -9147,14 +8839,6 @@ function importDataBackup(file) {
             }
             if (Array.isArray(data.watchHistory)) {
                 localStorage.setItem('sf_watch_history', JSON.stringify(data.watchHistory));
-            }
-            if (Array.isArray(data.animeContinueWatching)) {
-                localStorage.setItem(ANIME_CW_KEY, JSON.stringify(data.animeContinueWatching));
-                try { renderAnimeContinueWatchingRow(); } catch {}
-            }
-            if (Array.isArray(data.movieContinueWatching)) {
-                localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(data.movieContinueWatching));
-                try { renderMovieContinueWatchingRow(); } catch {}
             }
             syncSettingsInputs();
             try { updateNavCounts(); } catch {}
@@ -11217,12 +10901,6 @@ function applySectionChange(section, link, pushHistory = true) {
     if ((section === 'anime' || section === 'home') && hasAnimeCw) {
         renderAnimeContinueWatchingRow();
     }
-    const movieCwList = getMovieContinueWatching();
-    const hasMovieCw = movieCwList && movieCwList.length > 0;
-    show('movieContinueWatchingSection', (section === 'movies' || section === 'home') && hasMovieCw);
-    if ((section === 'movies' || section === 'home') && hasMovieCw) {
-        renderMovieContinueWatchingRow();
-    }
     if (section === 'anime') {
         document.querySelector('#moviesSection .section-title').textContent = 'Anime Movies';
         document.querySelector('#tvShowsSection .section-title').textContent = 'Anime Shows';
@@ -11455,17 +11133,11 @@ function applyHomeFilter() {
         try { renderTop10Row(); } catch(e){ console.error(e); }
         try {
             const animeCwList = getAnimeContinueWatching();
-            const hasAnimeCw = animeCwList && animeCwList.length > 0 && (homeFilter === 'all' || homeFilter === 'anime');
+            const hasAnimeCw = animeCwList && animeCwList.length > 0;
             const cwSec = document.getElementById('animeContinueWatchingSection');
             if (cwSec) cwSec.style.display = hasAnimeCw ? '' : 'none';
             if (hasAnimeCw) renderAnimeContinueWatchingRow();
-
-            const movieCwList = getMovieContinueWatching();
-            const hasMovieCw = movieCwList && movieCwList.length > 0 && (homeFilter === 'all' || homeFilter === 'movies');
-            const movieCwSec = document.getElementById('movieContinueWatchingSection');
-            if (movieCwSec) movieCwSec.style.display = hasMovieCw ? '' : 'none';
-            if (hasMovieCw) renderMovieContinueWatchingRow();
-        } catch(e) { console.error('continue watching render error', e); }
+        } catch(e) { console.error('animeCw render error', e); }
     } catch(e){ console.error('applyHomeFilter', e); }
     try { renderCollections(); } catch {}
     try { observeContentSections(); } catch (_) {}
@@ -13002,11 +12674,6 @@ document.addEventListener('click', (e) => {
 document.getElementById('clearAnimeCwBtn')?.addEventListener('click', () => {
     clearAnimeContinueWatching();
     toast('Anime Continue Watching cleared!', 'success');
-});
-
-document.getElementById('clearMovieCwBtn')?.addEventListener('click', () => {
-    clearMovieContinueWatching();
-    toast('Movies Continue Watching cleared!', 'success');
 });
 
 
