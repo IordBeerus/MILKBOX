@@ -253,7 +253,7 @@ function hardenCloudIframe(iframe){
     } catch {}
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
+        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
         if (isCloud && (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled())) {
             setTimeout(showPopupShield, 220);
         }
@@ -4868,9 +4868,9 @@ function scramjetIframe(tmdbId, type, season, episode) {
 function phantomIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://player.vidmario.net/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+        url = `https://vidphantom.com/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     } else {
-        url = `https://player.vidmario.net/embed/movie/${encodeURIComponent(tmdbId)}`;
+        url = `https://vidphantom.com/movie/${encodeURIComponent(tmdbId)}`;
     }
     return makePlaybackIframe(url);
 }
