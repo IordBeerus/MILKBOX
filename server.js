@@ -93,16 +93,21 @@ async function proxyImageFallback(req, res, requestPath, query) {
 
     const title = (query.get('title') || '').trim();
     const year = (query.get('year') || '').trim();
+    const tmdbId = (query.get('tmdbId') || '').trim();
+    const pathParam = (query.get('path') || '').trim();
     const type = (query.get('type') || 'poster').toLowerCase();
     const isBackdrop = type === 'backdrop';
+    const imgSize = isBackdrop ? 'w1280' : 'w500';
 
-    if (!title) {
+    if (!title && !pathParam && !tmdbId) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Title required' }));
+        res.end(JSON.stringify({ error: 'Title, tmdbId, or path required' }));
         return true;
     }
 
-    const cacheKey = `${title.toLowerCase()}_${year}_${type}`;
+    // Cache key specific to this unique title / item
+    const cleanKey = (pathParam || `${title.toLowerCase()}_${year}_${tmdbId}`).replace(/[^a-z0-9_\-\.]/gi, '_');
+    const cacheKey = `${cleanKey}_${type}`;
     const cached = fallbackImageCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) {
         res.writeHead(200, {
@@ -114,65 +119,23 @@ async function proxyImageFallback(req, res, requestPath, query) {
         return true;
     }
 
-    const candidates = [];
-    const searchTerms = [title, year, isBackdrop ? 'movie backdrop wallpaper' : 'movie poster'].filter(Boolean).join(' ');
+    const tmdbCredential = process.env.TMDB_ACCESS_TOKEN || process.env.TMDB_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkODIxZmZjZjFhMjQxOWFhMWZjZjY5MjMwMDZjZmNjNCIsIm5iZiI6MTc3NzU2MDc0My45NzMsInN1YiI6IjY5ZjM2Y2E3ZDZhZjA3Yjg2Zjg0MzA3MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ._CFnVPW7SyxmHdzu3Uxee0LkMlGm4zdW2uCNFV2g9A8';
 
-    // 1. DuckDuckGo Image Search
-    try {
-        const vqdRes = await fetch('https://duckduckgo.com/?q=' + encodeURIComponent(searchTerms) + '&iax=images&ia=images', {
-            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
-            signal: AbortSignal.timeout(4000)
-        });
-        const vqdHtml = await vqdRes.text();
-        const vqdMatch = vqdHtml.match(/vqd=([0-9-]+)/) || vqdHtml.match(/vqd=\"([0-9-]+)\"/);
-        if (vqdMatch) {
-            const imgRes = await fetch('https://duckduckgo.com/i.js?l=us-en&o=json&q=' + encodeURIComponent(searchTerms) + '&vqd=' + vqdMatch[1] + '&f=,,,', {
-                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-                signal: AbortSignal.timeout(4000)
-            });
-            const data = await imgRes.json();
-            if (data && Array.isArray(data.results)) {
-                for (const r of data.results.slice(0, 5)) {
-                    if (r.image && /^https?:\/\//i.test(r.image)) candidates.push(r.image);
-                }
-            }
-        }
-    } catch (_) {}
-
-    // 2. Wikipedia Summary API
-    if (candidates.length < 2) {
+    async function tryFetchAndSend(imageUrl) {
         try {
-            for (const suffix of ['_(film)', '', '_(movie)', '_(series)']) {
-                const wRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title + suffix), {
-                    headers: { 'User-Agent': 'MILKBOX/1.0 (https://milkbox.app; contact@milkbox.app)' },
-                    signal: AbortSignal.timeout(3000)
-                });
-                if (wRes.ok) {
-                    const wData = await wRes.json();
-                    if (wData.originalimage && wData.originalimage.source) candidates.push(wData.originalimage.source);
-                    else if (wData.thumbnail && wData.thumbnail.source) candidates.push(wData.thumbnail.source);
-                    break;
-                }
-            }
-        } catch (_) {}
-    }
-
-    // Attempt fetching candidates
-    for (const imgUrl of candidates) {
-        try {
-            const imgFetch = await fetch(imgUrl, {
+            const resp = await fetch(imageUrl, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                     'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
                 },
-                signal: AbortSignal.timeout(5000)
+                signal: AbortSignal.timeout(6000)
             });
-            if (imgFetch.ok) {
-                const contentType = imgFetch.headers.get('content-type') || 'image/jpeg';
-                const arrayBuffer = await imgFetch.arrayBuffer();
+            if (resp.ok && (resp.headers.get('content-type') || '').startsWith('image/')) {
+                const contentType = resp.headers.get('content-type') || 'image/jpeg';
+                const arrayBuffer = await resp.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 if (buffer.length > 500) {
-                    if (fallbackImageCache.size >= 500) {
+                    if (fallbackImageCache.size >= 800) {
                         const firstKey = fallbackImageCache.keys().next().value;
                         fallbackImageCache.delete(firstKey);
                     }
@@ -188,25 +151,117 @@ async function proxyImageFallback(req, res, requestPath, query) {
                 }
             }
         } catch (_) {}
+        return false;
     }
 
-    // Fallback SVG with movie branding and title
-    const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // Step 1: Exact TMDB path if provided (guarantees the exact official image without network blocks)
+    if (pathParam && /^\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|webp)$/i.test(pathParam)) {
+        if (await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${pathParam}`)) return true;
+    }
+
+    // Step 2: TMDB by ID
+    if (tmdbId && /^[0-9]+$/.test(tmdbId)) {
+        for (const media of ['movie', 'tv']) {
+            try {
+                const idUrl = `https://api.themoviedb.org/3/${media}/${tmdbId}`;
+                const resp = await fetch(idUrl, {
+                    headers: { 'Authorization': `Bearer ${tmdbCredential}` },
+                    signal: AbortSignal.timeout(3500)
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const p = isBackdrop ? (data.backdrop_path || data.poster_path) : (data.poster_path || data.backdrop_path);
+                    if (p && await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${p}`)) return true;
+                }
+            } catch (_) {}
+        }
+    }
+
+    // Step 3: TMDB Multi-Search by exact movie/show name!
+    if (title) {
+        try {
+            const sUrl = `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(title)}&language=en-US${year ? '&year=' + encodeURIComponent(year) : ''}`;
+            const resp = await fetch(sUrl, {
+                headers: { 'Authorization': `Bearer ${tmdbCredential}` },
+                signal: AbortSignal.timeout(3500)
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const results = data.results || [];
+                const cleanT = title.toLowerCase().trim();
+                const exactMatch = results.find(r => (r.title || r.name || '').toLowerCase().trim() === cleanT && (r.poster_path || r.backdrop_path))
+                    || results.find(r => r.poster_path || r.backdrop_path);
+                if (exactMatch) {
+                    const p = isBackdrop ? (exactMatch.backdrop_path || exactMatch.poster_path) : (exactMatch.poster_path || exactMatch.backdrop_path);
+                    if (p && await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${p}`)) return true;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Step 4: Wikipedia Page Summary API by title
+    if (title) {
+        try {
+            for (const suffix of ['_(film)', '', '_(movie)', '_(series)', '_(anime)']) {
+                const wUrl = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title + suffix)}`;
+                const wRes = await fetch(wUrl, {
+                    headers: { 'User-Agent': 'MILKBOX/1.0 (https://milkbox.app; contact@milkbox.app)' },
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (wRes.ok) {
+                    const wData = await wRes.json();
+                    const wikiImg = (wData.originalimage && wData.originalimage.source) || (wData.thumbnail && wData.thumbnail.source);
+                    if (wikiImg && await tryFetchAndSend(wikiImg)) return true;
+                    break;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Step 5: Web Search for the specific title
+    if (title) {
+        try {
+            const searchTerms = `"${title}" ${year || ''} ${isBackdrop ? 'movie backdrop wallpaper' : 'movie poster'}`.trim();
+            const vqdRes = await fetch(`https://duckduckgo.com/?q=${encodeURIComponent(searchTerms)}&iax=images&ia=images`, {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+                signal: AbortSignal.timeout(3500)
+            });
+            const vqdHtml = await vqdRes.text();
+            const vqdMatch = vqdHtml.match(/vqd=([0-9-]+)/) || vqdHtml.match(/vqd=\"([0-9-]+)\"/);
+            if (vqdMatch) {
+                const imgRes = await fetch(`https://duckduckgo.com/i.js?l=us-en&o=json&q=${encodeURIComponent(searchTerms)}&vqd=${vqdMatch[1]}&f=,,,`, {
+                    headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                    signal: AbortSignal.timeout(3500)
+                });
+                const data = await imgRes.json();
+                if (data && Array.isArray(data.results)) {
+                    for (const r of data.results.slice(0, 3)) {
+                        if (r.image && /^https?:\/\//i.test(r.image)) {
+                            if (await tryFetchAndSend(r.image)) return true;
+                        }
+                    }
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Fallback: Distinct SVG badge with movie title
+    const safeTitle = (title || 'Movie').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     const svgWidth = isBackdrop ? 960 : 500;
     const svgHeight = isBackdrop ? 540 : 750;
     const svg = `
         <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
             <defs>
                 <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#14141e"/>
-                    <stop offset="100%" stop-color="#0a0a0f"/>
+                    <stop offset="0%" stop-color="#181824"/>
+                    <stop offset="100%" stop-color="#0e0e14"/>
                 </linearGradient>
             </defs>
             <rect width="100%" height="100%" fill="url(#bg)"/>
-            <circle cx="${svgWidth / 2}" cy="${svgHeight / 2 - 30}" r="40" fill="rgba(56, 189, 248, 0.15)"/>
-            <path d="M${svgWidth / 2 - 12} ${svgHeight / 2 - 46}v32l26-16z" fill="#38bdf8"/>
-            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 45}" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="${isBackdrop ? 26 : 22}" font-weight="700" text-anchor="middle">${safeTitle}</text>
-            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 75}" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle">MILKBOX · ${year || 'MOVIE'}</text>
+            <circle cx="${svgWidth / 2}" cy="${svgHeight / 2 - 35}" r="38" fill="rgba(56, 189, 248, 0.14)"/>
+            <path d="M${svgWidth / 2 - 10} ${svgHeight / 2 - 50}v30l24-15z" fill="#38bdf8"/>
+            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 35}" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="${isBackdrop ? 26 : 22}" font-weight="700" text-anchor="middle">${safeTitle}</text>
+            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 65}" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle">MILKBOX · ${year || 'CINEMA'}</text>
         </svg>
     `.trim();
 
