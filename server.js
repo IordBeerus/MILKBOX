@@ -86,6 +86,210 @@ async function proxyMangaDexCover(req, res, requestPath) {
     return true;
 }
 
+const fallbackMangaChapterCache = new Map();
+
+async function scrapeMangapillChapter(title, chapterNum) {
+    try {
+        const sUrl = `https://mangapill.com/search?q=${encodeURIComponent(title)}`;
+        const sRes = await fetch(sUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(4500)
+        });
+        if (!sRes.ok) return null;
+        const sHtml = await sRes.text();
+        const mangaLinks = [...sHtml.matchAll(/href="(\/manga\/[0-9]+\/[^"]+)"/g)].map(m => m[1]);
+        if (!mangaLinks.length) return null;
+
+        const mUrl = `https://mangapill.com${mangaLinks[0]}`;
+        const mRes = await fetch(mUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(4500)
+        });
+        if (!mRes.ok) return null;
+        const mHtml = await mRes.text();
+
+        const chMatches = [...mHtml.matchAll(/href="(\/chapters\/[^"]+chapter-([0-9\.]+)[^"]*)"/gi)];
+        if (!chMatches.length) return null;
+
+        const targetNum = parseFloat(chapterNum);
+        let matchedCh = null;
+        if (!isNaN(targetNum)) {
+            matchedCh = chMatches.find(c => parseFloat(c[2]) === targetNum);
+        }
+        if (!matchedCh) {
+            matchedCh = chMatches.find(c => c[2] === String(chapterNum) || c[1].includes(`chapter-${chapterNum}`));
+        }
+        if (!matchedCh && chMatches.length === 1) {
+            matchedCh = chMatches[0];
+        }
+        if (!matchedCh) return null;
+
+        const chUrl = `https://mangapill.com${matchedCh[1]}`;
+        const chRes = await fetch(chUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!chRes.ok) return null;
+        const chHtml = await chRes.text();
+        const imgs = [...chHtml.matchAll(/data-src="([^"]+)"/g)].map(m => m[1]);
+        if (imgs.length) return { source: 'mangapill', pages: imgs, referer: 'https://mangapill.com/' };
+    } catch (_) {}
+    return null;
+}
+
+async function scrapeWeebCentralChapter(title, chapterNum) {
+    try {
+        const sUrl = `https://weebcentral.com/search/data?text=${encodeURIComponent(title)}`;
+        const sRes = await fetch(sUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(4500)
+        });
+        if (!sRes.ok) return null;
+        const sHtml = await sRes.text();
+        const seriesMatches = [...sHtml.matchAll(/href="([^"]*\/series\/([a-zA-Z0-9]+)\/[^"]*)"/g)];
+        if (!seriesMatches.length) return null;
+        const seriesId = seriesMatches[0][2];
+
+        const listUrl = `https://weebcentral.com/series/${seriesId}/full-chapter-list`;
+        const lRes = await fetch(listUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!lRes.ok) return null;
+        const lHtml = await lRes.text();
+
+        const chBlocks = [...lHtml.matchAll(/href="([^"]*\/chapters\/([a-zA-Z0-9]+))"[^>]*>[\s\S]*?Chapter\s+([0-9\.]+)/gi)];
+        if (!chBlocks.length) return null;
+
+        const targetNum = parseFloat(chapterNum);
+        let matched = null;
+        if (!isNaN(targetNum)) {
+            matched = chBlocks.find(c => parseFloat(c[3]) === targetNum);
+        }
+        if (!matched) {
+            matched = chBlocks.find(c => c[3] === String(chapterNum));
+        }
+        if (!matched) return null;
+
+        const chId = matched[2];
+        const imgUrl = `https://weebcentral.com/chapters/${chId}/images?is_prev=False&current_page=1&reading_style=long_strip`;
+        const imgRes = await fetch(imgUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+            signal: AbortSignal.timeout(5000)
+        });
+        if (!imgRes.ok) return null;
+        const imgHtml = await imgRes.text();
+        const imgs = [...imgHtml.matchAll(/src="([^"]+)"/g)].map(m => m[1]).filter(u => /^https?:\/\//i.test(u));
+        if (imgs.length) return { source: 'weebcentral', pages: imgs, referer: 'https://weebcentral.com/' };
+    } catch (_) {}
+    return null;
+}
+
+async function proxyMangaFallbackChapter(req, res, requestPath, query) {
+    if (requestPath !== '/api/manga-fallback-chapter') return false;
+
+    const title = (query.get('title') || '').trim();
+    let chapter = (query.get('chapter') || '').trim();
+
+    if (!chapter) {
+        const m = title.match(/ch(?:apter)?\.?\s*([0-9\.]+)/i);
+        chapter = m ? m[1] : '1';
+    }
+
+    if (!title) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Title required' }));
+        return true;
+    }
+
+    const cleanTitle = title.replace(/\s+(manga|colored|comics|official)$/i, '').trim();
+    const cacheKey = `${cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}_ch_${chapter}`;
+    const cached = fallbackMangaChapterCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({ success: true, source: cached.source, pages: cached.pages }));
+        return true;
+    }
+
+    let result = await scrapeMangapillChapter(cleanTitle, chapter);
+    if (!result) {
+        result = await scrapeWeebCentralChapter(cleanTitle, chapter);
+    }
+
+    if (result && result.pages && result.pages.length) {
+        const proxiedPages = result.pages.map(rawUrl => {
+            return `/api/manga-page?url=${encodeURIComponent(rawUrl)}&ref=${encodeURIComponent(result.referer)}`;
+        });
+
+        fallbackMangaChapterCache.set(cacheKey, {
+            source: result.source,
+            pages: proxiedPages,
+            timestamp: Date.now()
+        });
+
+        res.writeHead(200, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'public, max-age=86400',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(JSON.stringify({ success: true, source: result.source, pages: proxiedPages }));
+        return true;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ success: false, error: 'No fallback pages found for this chapter' }));
+    return true;
+}
+
+async function proxyMangaPage(req, res, requestPath, query) {
+    if (requestPath !== '/api/manga-page') return false;
+    const targetUrl = (query.get('url') || '').trim();
+    const referer = (query.get('ref') || '').trim();
+
+    if (!targetUrl || !/^https?:\/\//i.test(targetUrl)) {
+        res.writeHead(400, { 'Content-Type': 'text/plain' });
+        res.end('Valid image URL required');
+        return true;
+    }
+
+    try {
+        const u = new URL(targetUrl);
+        const refHeader = referer || `${u.protocol}//${u.hostname}/`;
+        const resp = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                'Referer': refHeader,
+                'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+            },
+            signal: AbortSignal.timeout(10000)
+        });
+
+        if (!resp.ok) {
+            res.writeHead(resp.status, { 'Content-Type': 'text/plain' });
+            res.end('Image proxy error: ' + resp.status);
+            return true;
+        }
+
+        const contentType = resp.headers.get('content-type') || 'image/jpeg';
+        res.writeHead(200, {
+            'Content-Type': contentType,
+            'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+            'Access-Control-Allow-Origin': '*'
+        });
+
+        const arrayBuffer = await resp.arrayBuffer();
+        res.end(Buffer.from(arrayBuffer));
+    } catch (e) {
+        res.writeHead(502, { 'Content-Type': 'text/plain' });
+        res.end('Failed to proxy manga page: ' + e.message);
+    }
+    return true;
+}
+
 const fallbackImageCache = new Map();
 
 function titleSimilarity(t1, t2) {
@@ -1271,6 +1475,8 @@ const server = http.createServer(async (req, res) => {
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyMangaDexCover(req, res, requestPath)) return;
+    if (await proxyMangaFallbackChapter(req, res, requestPath, query)) return;
+    if (await proxyMangaPage(req, res, requestPath, query)) return;
     if (await proxyImageFallback(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     if (await proxyMiruro(req, res, requestPath, query)) return;
