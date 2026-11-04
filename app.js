@@ -253,7 +253,7 @@ function hardenCloudIframe(iframe){
     } catch {}
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
+        const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
         if (isCloud && (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled())) {
             setTimeout(showPopupShield, 220);
         }
@@ -1594,14 +1594,37 @@ function initCardLogoObserver() {
 
 function handleCardImgError(img, fallbackPoster) {
     if (!img) return;
+
+    // Try secondary TMDB image (poster/backdrop) first if available
     if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
         img.dataset.triedPoster = 'true';
         img.src = fallbackPoster;
         return;
     }
+
+    // If TMDB failed or is blocked, fallback to Google/web search image proxy
+    if (!img.dataset.triedFallback) {
+        img.dataset.triedFallback = 'true';
+        const card = img.closest('.card, .anime-cw-card, .movie-cw-card, .collection-card');
+        const item = (card && card._itemRef) || (img._itemRef) || null;
+        const title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
+        const year = img.dataset.year || (item && item.year) || '';
+        const isBackdrop = img.classList.contains('card-backdrop-img') || img.classList.contains('hero-bg') || img.classList.contains('collection-backdrop');
+        const effType = isBackdrop ? 'backdrop' : 'poster';
+
+        if (title && title.trim().length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') {
+            const fallbackUrl = `/api/image-fallback?title=${encodeURIComponent(title.trim())}${year ? '&year=' + encodeURIComponent(year) : ''}&type=${effType}`;
+            if (img.src !== fallbackUrl && !img.src.endsWith(fallbackUrl)) {
+                img.src = fallbackUrl;
+                return;
+            }
+        }
+    }
+
+    // Fall back to clean card placeholder
     img.style.setProperty('display', 'none', 'important');
     img.classList.add('img-failed');
-    const media = img.closest('.card-media') || img.parentElement;
+    const media = img.closest('.card-media') || img.closest('.anime-cw-thumb-wrap') || img.parentElement;
     if (media) {
         const ph = media.querySelector('.card-placeholder');
         if (ph) {
@@ -1640,7 +1663,7 @@ function createCard(item, type, isLandscape = true) {
 
         let imgHTML = '';
         if (safeBackdrop) {
-            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
+            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
         }
         imgHTML += `<div class="card-placeholder${safeBackdrop ? ' is-hidden' : ''}" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
 
@@ -1679,7 +1702,7 @@ function createCard(item, type, isLandscape = true) {
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -4447,23 +4470,32 @@ function renderHeroItem(force = false) {
     document.getElementById('heroDesc').textContent = featured.description || `A ${g.length ? g.join(', ') : 'great'} ${featured.type || 'title'}. Rating: ${featured.rating || 'N/A'}/10`;
     const bgUrl = hiRes(featured.backdrop || featured.poster);
     if (bgUrl) {
-        document.getElementById('heroSection').style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
-        document.getElementById('heroSection').style.backgroundSize = 'cover';
-        document.getElementById('heroSection').style.backgroundPosition = 'center top';
+        const heroEl = document.getElementById('heroSection');
+        heroEl.style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
+        heroEl.style.backgroundSize = 'cover';
+        heroEl.style.backgroundPosition = 'center top';
+
+        const probeImg = new Image();
+        probeImg.src = bgUrl;
+        probeImg.onerror = () => {
+            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&type=backdrop`;
+            if (heroEl) heroEl.style.backgroundImage = `url("${fallbackHero}")`;
+        };
     } else {
         document.getElementById('heroSection').style.backgroundImage = '';
     }
     const heroPlayBtn = document.getElementById('heroPlayBtn');
     if (heroPlayBtn) {
-        const lastProg = isAnime(featured) ? getAnimeLastProgress(featured) : null;
-        if (lastProg && lastProg.episode && featured.type !== 'movie') {
+        const isAni = isAnime(featured);
+        const lastProg = isAni ? getAnimeLastProgress(featured) : (typeof getMovieLastProgress === 'function' ? getMovieLastProgress(featured) : null);
+        if (isAni && lastProg && lastProg.episode && featured.type !== 'movie') {
             const timeStr = lastProg.currentTime > 5 ? ` (${formatTimeDisplay(lastProg.currentTime)})` : '';
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume Ep ${lastProg.episode}${timeStr}`;
             heroPlayBtn.onclick = () => resumeAnime(featured, lastProg.season, lastProg.episode);
-        } else if (lastProg && lastProg.currentTime > 10 && featured.type === 'movie') {
+        } else if (lastProg && lastProg.currentTime > 10) {
             const timeStr = formatTimeDisplay(lastProg.currentTime);
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Resume (${timeStr})`;
-            heroPlayBtn.onclick = () => resumeAnime(featured, 1, 1);
+            heroPlayBtn.onclick = () => isAni ? resumeAnime(featured, 1, 1) : resumeMovie(lastProg);
         } else {
             heroPlayBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000"><path d="M320-200v-560l440 280-440 280Z"/></svg> Play`;
             heroPlayBtn.onclick = () => playItem(featured, featured.type || 'movie');
@@ -4868,9 +4900,9 @@ function scramjetIframe(tmdbId, type, season, episode) {
 function phantomIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://vidphantom.com/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+        url = `https://player.vidmario.net/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
     } else {
-        url = `https://vidphantom.com/movie/${encodeURIComponent(tmdbId)}`;
+        url = `https://player.vidmario.net/embed/movie/${encodeURIComponent(tmdbId)}`;
     }
     return makePlaybackIframe(url);
 }
@@ -6181,10 +6213,28 @@ function playItem(item, type) {
         } else if (saved && saved.episode && type !== 'movie' && item.type !== 'movie') {
             try { toast(`Resuming ${item.title} • Episode ${saved.episode}`, 'info'); } catch {}
         }
+    } else if (type === 'movie' || item.type === 'movie') {
+        const saved = typeof getMovieLastProgress === 'function' ? getMovieLastProgress(item) : null;
+        if (saved && saved.currentTime > 5) {
+            initialOffset = saved.currentTime;
+            playContext.resumeTime = initialOffset;
+            window._pendingResumeTime = initialOffset;
+            const timeStr = formatTimeDisplay(initialOffset);
+            try { toast(`Resuming ${item.title} at ${timeStr}`, 'info'); } catch {}
+            setTimeout(() => showPlayerResumePill(initialOffset), 400);
+        }
     }
     startPlaybackTimeTracking(item, initialOffset);
     try { recordWatchProgress(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } catch {}
-    try { if (isAnime(item)) { recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } } catch {}
+    try {
+        if (isAnime(item)) {
+            recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset });
+        } else if (type === 'movie' || item.type === 'movie') {
+            if (typeof recordMovieContinueWatching === 'function') {
+                recordMovieContinueWatching(item, { type: 'movie', currentTime: initialOffset });
+            }
+        }
+    } catch {}
     try { if (isAnime(item)) { enterAnimeTheater(item); } else { exitAnimeTheater(); } } catch {}
     try { wireAnimeTheaterOnce(); } catch {}
     
@@ -8189,6 +8239,7 @@ function clearWatchHistory() {
     playUiSound();
     localStorage.removeItem('sf_watch_history');
     clearAnimeContinueWatching();
+    if (typeof clearMovieContinueWatching === 'function') clearMovieContinueWatching();
     updateWatchHistoryUI();
     toast('Watch history and Continue Watching cleared!', 'success');
 }
