@@ -10817,9 +10817,36 @@ async function openChapter(chId) {
     const pagesEl = mrEl('mangaReadPages');
     pagesEl.innerHTML = '<div class="live-loading">Loading manga pages…</div>';
 
+    const mangaTitle = mangaReader.info?.attributes?.title?.en
+        || (mangaReader.info?.attributes?.title ? Object.values(mangaReader.info.attributes.title)[0] : '')
+        || mangaReader.info?.title
+        || '';
+    const chNum = ch?.chapter || (ch?.name ? (ch.name.match(/ch(?:apter)?\.?\s*([0-9\.]+)/i)?.[1] || '') : '');
+
     if (ch && ch.externalUrl) {
+        pagesEl.innerHTML = '<div class="live-loading">Extracting chapter image pages…</div>';
+        try {
+            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&chapter=${encodeURIComponent(chNum)}&externalUrl=${encodeURIComponent(ch.externalUrl || '')}`);
+            if (fbRes.ok) {
+                const fbData = await fbRes.json();
+                if (fbData && fbData.pages && fbData.pages.length) {
+                    mangaReader.images = fbData.pages.map(p => ({ image: p, title: ch?.name || '' }));
+                    mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
+                    renderChapterPages();
+                    updateReaderNav();
+                    renderChapterDrawer();
+                    const body = mrEl('mangaReadBody');
+                    if (body) body.scrollTop = 0;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('Fallback chapter fetch error:', e);
+        }
+
         pagesEl.innerHTML = `<div class="live-error" style="text-align:center; padding: 36px 16px;">
-            <p style="margin-bottom:14px; font-weight:600; font-size:15px;">This chapter is hosted externally by the publisher.</p>
+            <p style="margin-bottom:14px; font-weight:600; font-size:15px; color:#ff2e63;">This chapter is hosted externally by the publisher.</p>
+            <p style="margin-bottom:18px; font-size:13px; color:#a0a0aa; max-width:480px; margin-left:auto; margin-right:auto;">Direct image pages could not be extracted for this specific chapter. You can read it directly on the publisher site below:</p>
             <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none; font-weight:600;">Open on Official Publisher ↗</a>
         </div>`;
         mangaReader.images = [];
@@ -10854,6 +10881,26 @@ async function openChapter(chId) {
         console.error('Error fetching chapter pages:', err);
     }
 
+    // Secondary fallback attempt if MangaDex At-Home server returned no images
+    if (mangaTitle) {
+        try {
+            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&chapter=${encodeURIComponent(chNum)}`);
+            if (fbRes.ok) {
+                const fbData = await fbRes.json();
+                if (fbData && fbData.pages && fbData.pages.length) {
+                    mangaReader.images = fbData.pages.map(p => ({ image: p, title: ch?.name || '' }));
+                    mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
+                    renderChapterPages();
+                    updateReaderNav();
+                    renderChapterDrawer();
+                    const body = mrEl('mangaReadBody');
+                    if (body) body.scrollTop = 0;
+                    return;
+                }
+            }
+        } catch (_) {}
+    }
+
     pagesEl.innerHTML = '<div class="live-error">No pages were returned for this chapter.</div>';
     mangaReader.images = [];
     mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
@@ -10885,7 +10932,14 @@ function renderChapterPages() {
             img.style.display = 'block';
             img.style.maxWidth = '100%';
             img.style.margin = '0 auto';
-            img.onerror = () => { img.style.display = 'none'; };
+            img.onerror = () => {
+                if (!img.dataset.proxied && page.image && !page.image.startsWith('/api/manga-page')) {
+                    img.dataset.proxied = 'true';
+                    img.src = `/api/manga-page?url=${encodeURIComponent(page.image)}`;
+                    return;
+                }
+                img.style.display = 'none';
+            };
             pagesEl.appendChild(img);
         });
     } else {
@@ -10898,7 +10952,14 @@ function renderChapterPages() {
         img.loading = 'eager';
         img.title = 'Click to go to next page';
         img.addEventListener('click', () => changeReaderPage(1));
-        img.onerror = () => { img.style.display = 'none'; };
+        img.onerror = () => {
+            if (!img.dataset.proxied && page.image && !page.image.startsWith('/api/manga-page')) {
+                img.dataset.proxied = 'true';
+                img.src = `/api/manga-page?url=${encodeURIComponent(page.image)}`;
+                return;
+            }
+            img.style.display = 'none';
+        };
         pagesEl.appendChild(img);
         updatePageNav();
     }
