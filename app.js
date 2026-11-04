@@ -8869,7 +8869,7 @@ function renderAnimeContinueWatchingRow() {
         return `
             <div class="anime-cw-card" data-id="${escapeHtml(item.id)}" data-anime-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge">EPISODE ${episode}</span>
                     ${timeBadge}
@@ -9032,7 +9032,7 @@ function renderMovieContinueWatchingRow() {
         return `
             <div class="anime-cw-card movie-cw-card" data-id="${escapeHtml(item.id)}" data-movie-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge movie-cw-badge">MOVIE</span>
                     ${timeBadge}
