@@ -86,6 +86,139 @@ async function proxyMangaDexCover(req, res, requestPath) {
     return true;
 }
 
+const fallbackImageCache = new Map();
+
+async function proxyImageFallback(req, res, requestPath, query) {
+    if (requestPath !== '/api/image-fallback') return false;
+
+    const title = (query.get('title') || '').trim();
+    const year = (query.get('year') || '').trim();
+    const type = (query.get('type') || 'poster').toLowerCase();
+    const isBackdrop = type === 'backdrop';
+
+    if (!title) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Title required' }));
+        return true;
+    }
+
+    const cacheKey = `${title.toLowerCase()}_${year}_${type}`;
+    const cached = fallbackImageCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) {
+        res.writeHead(200, {
+            'Content-Type': cached.contentType || 'image/jpeg',
+            'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+            'Access-Control-Allow-Origin': '*'
+        });
+        res.end(cached.buffer);
+        return true;
+    }
+
+    const candidates = [];
+    const searchTerms = [title, year, isBackdrop ? 'movie backdrop wallpaper' : 'movie poster'].filter(Boolean).join(' ');
+
+    // 1. DuckDuckGo Image Search
+    try {
+        const vqdRes = await fetch('https://duckduckgo.com/?q=' + encodeURIComponent(searchTerms) + '&iax=images&ia=images', {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36' },
+            signal: AbortSignal.timeout(4000)
+        });
+        const vqdHtml = await vqdRes.text();
+        const vqdMatch = vqdHtml.match(/vqd=([0-9-]+)/) || vqdHtml.match(/vqd=\"([0-9-]+)\"/);
+        if (vqdMatch) {
+            const imgRes = await fetch('https://duckduckgo.com/i.js?l=us-en&o=json&q=' + encodeURIComponent(searchTerms) + '&vqd=' + vqdMatch[1] + '&f=,,,', {
+                headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+                signal: AbortSignal.timeout(4000)
+            });
+            const data = await imgRes.json();
+            if (data && Array.isArray(data.results)) {
+                for (const r of data.results.slice(0, 5)) {
+                    if (r.image && /^https?:\/\//i.test(r.image)) candidates.push(r.image);
+                }
+            }
+        }
+    } catch (_) {}
+
+    // 2. Wikipedia Summary API
+    if (candidates.length < 2) {
+        try {
+            for (const suffix of ['_(film)', '', '_(movie)', '_(series)']) {
+                const wRes = await fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(title + suffix), {
+                    headers: { 'User-Agent': 'MILKBOX/1.0 (https://milkbox.app; contact@milkbox.app)' },
+                    signal: AbortSignal.timeout(3000)
+                });
+                if (wRes.ok) {
+                    const wData = await wRes.json();
+                    if (wData.originalimage && wData.originalimage.source) candidates.push(wData.originalimage.source);
+                    else if (wData.thumbnail && wData.thumbnail.source) candidates.push(wData.thumbnail.source);
+                    break;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Attempt fetching candidates
+    for (const imgUrl of candidates) {
+        try {
+            const imgFetch = await fetch(imgUrl, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8'
+                },
+                signal: AbortSignal.timeout(5000)
+            });
+            if (imgFetch.ok) {
+                const contentType = imgFetch.headers.get('content-type') || 'image/jpeg';
+                const arrayBuffer = await imgFetch.arrayBuffer();
+                const buffer = Buffer.from(arrayBuffer);
+                if (buffer.length > 500) {
+                    if (fallbackImageCache.size >= 500) {
+                        const firstKey = fallbackImageCache.keys().next().value;
+                        fallbackImageCache.delete(firstKey);
+                    }
+                    fallbackImageCache.set(cacheKey, { buffer, contentType, timestamp: Date.now() });
+
+                    res.writeHead(200, {
+                        'Content-Type': contentType,
+                        'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+                        'Access-Control-Allow-Origin': '*'
+                    });
+                    res.end(buffer);
+                    return true;
+                }
+            }
+        } catch (_) {}
+    }
+
+    // Fallback SVG with movie branding and title
+    const safeTitle = title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const svgWidth = isBackdrop ? 960 : 500;
+    const svgHeight = isBackdrop ? 540 : 750;
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}" viewBox="0 0 ${svgWidth} ${svgHeight}">
+            <defs>
+                <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#14141e"/>
+                    <stop offset="100%" stop-color="#0a0a0f"/>
+                </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#bg)"/>
+            <circle cx="${svgWidth / 2}" cy="${svgHeight / 2 - 30}" r="40" fill="rgba(56, 189, 248, 0.15)"/>
+            <path d="M${svgWidth / 2 - 12} ${svgHeight / 2 - 46}v32l26-16z" fill="#38bdf8"/>
+            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 45}" fill="#ffffff" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="${isBackdrop ? 26 : 22}" font-weight="700" text-anchor="middle">${safeTitle}</text>
+            <text x="${svgWidth / 2}" y="${svgHeight / 2 + 75}" fill="#64748b" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="600" text-anchor="middle">MILKBOX · ${year || 'MOVIE'}</text>
+        </svg>
+    `.trim();
+
+    res.writeHead(200, {
+        'Content-Type': 'image/svg+xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*'
+    });
+    res.end(svg);
+    return true;
+}
+
 async function resolvePlayback(req, res, requestPath, query) {
     if (requestPath !== '/api/playback/resolve') return false;
     const respond = (status, body) => {
@@ -1048,6 +1181,7 @@ const server = http.createServer(async (req, res) => {
     if (await proxyTmdb(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyMangaDexCover(req, res, requestPath)) return;
+    if (await proxyImageFallback(req, res, requestPath, query)) return;
     if (await proxyKissKh(req, res, requestPath, query)) return;
     if (await proxyMiruro(req, res, requestPath, query)) return;
     if (await downloadYouTube(req, res, requestPath, query)) return;
