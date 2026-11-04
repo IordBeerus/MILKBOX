@@ -11330,10 +11330,50 @@ body[data-theme="sakura"] .seasonal-decorations img {
     }
 }
 
-/* Anime Continue Watching & Resume */
-.anime-continue-watching-section {
+/* Anime & Movie Continue Watching & Resume */
+.anime-continue-watching-section,
+.movie-continue-watching-section {
     margin-bottom: 32px;
     position: relative;
+}
+.movie-cw-heading-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.16);
+    color: #38bdf8;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+.movie-cw-heading-icon svg {
+    width: 16px;
+    height: 16px;
+}
+.movie-cw-pill {
+    background: rgba(56, 189, 248, 0.15) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.35) !important;
+}
+.movie-cw-badge {
+    color: #38bdf8 !important;
+    border-color: rgba(56, 189, 248, 0.4) !important;
+}
+.movie-cw-card:hover {
+    border-color: rgba(56, 189, 248, 0.55) !important;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 18px rgba(56, 189, 248, 0.25) !important;
+}
+.movie-cw-card .anime-cw-time-pill svg {
+    color: #38bdf8;
+}
+.movie-cw-card .anime-cw-resume-btn:hover {
+    background: #38bdf8 !important;
+    color: #0d0d12 !important;
+}
+.movie-cw-card .anime-cw-progress-fill {
+    background: linear-gradient(90deg, #0284c7, #38bdf8) !important;
 }
 .anime-cw-heading-icon {
     display: inline-flex;
