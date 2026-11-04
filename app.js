@@ -1592,33 +1592,63 @@ function initCardLogoObserver() {
     }, { rootMargin: '120px 0px' });
 }
 
+function extractTmdbPath(url) {
+    if (!url || typeof url !== 'string') return '';
+    const match = url.match(/\/t\/p\/[^\/]+(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
+        || url.match(/image\.tmdb\.org(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
+        || url.match(/(\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|webp))/i);
+    return match ? match[1] : '';
+}
+window.extractTmdbPath = extractTmdbPath;
+
 function handleCardImgError(img, fallbackPoster) {
     if (!img) return;
 
-    // Try secondary TMDB image (poster/backdrop) first if available
-    if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
-        img.dataset.triedPoster = 'true';
-        img.src = fallbackPoster;
-        return;
+    // Track original src before any rewriting
+    if (!img.dataset.origSrc && img.src) {
+        img.dataset.origSrc = img.src;
     }
 
-    // If TMDB failed or is blocked, fallback to Google/web search image proxy
+    // If TMDB failed or is blocked on this device (e.g. school Chromebook),
+    // immediately query our server fallback route with full title/id/path context!
     if (!img.dataset.triedFallback) {
         img.dataset.triedFallback = 'true';
         const card = img.closest('.card, .anime-cw-card, .movie-cw-card, .collection-card');
         const item = (card && card._itemRef) || (img._itemRef) || null;
-        const title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
-        const year = img.dataset.year || (item && item.year) || '';
+        
+        let title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
+        title = title.replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '').trim();
+
+        const year = img.dataset.year || (item && item.year) || (card && card.dataset.year) || '';
+        const tmdbId = img.dataset.tmdbId || (item && (item.tmdbId || item.id)) || (card && card.dataset.tmdbId) || '';
+        
+        // Extract the exact TMDB path if it was originally an image.tmdb.org URL
+        const tmdbPath = extractTmdbPath(img.dataset.origSrc) || extractTmdbPath(img.src) || extractTmdbPath(fallbackPoster);
+        
         const isBackdrop = img.classList.contains('card-backdrop-img') || img.classList.contains('hero-bg') || img.classList.contains('collection-backdrop');
         const effType = isBackdrop ? 'backdrop' : 'poster';
 
-        if (title && title.trim().length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') {
-            const fallbackUrl = `/api/image-fallback?title=${encodeURIComponent(title.trim())}${year ? '&year=' + encodeURIComponent(year) : ''}&type=${effType}`;
+        if ((title && title.length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') || tmdbPath || tmdbId) {
+            const params = new URLSearchParams();
+            if (title) params.set('title', title);
+            if (year) params.set('year', year);
+            if (tmdbId) params.set('tmdbId', tmdbId);
+            if (tmdbPath) params.set('path', tmdbPath);
+            params.set('type', effType);
+
+            const fallbackUrl = `/api/image-fallback?${params.toString()}`;
             if (img.src !== fallbackUrl && !img.src.endsWith(fallbackUrl)) {
                 img.src = fallbackUrl;
                 return;
             }
         }
+    }
+
+    // Try secondary direct TMDB image if not tried yet and not same as current src
+    if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
+        img.dataset.triedPoster = 'true';
+        img.src = fallbackPoster;
+        return;
     }
 
     // Fall back to clean card placeholder
@@ -1639,6 +1669,9 @@ function createCard(item, type, isLandscape = true) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'card card-landscape' : 'card';
     card.dataset.id = item.id;
+    card.dataset.title = item.title || item.name || '';
+    card.dataset.year = item.year || '';
+    card.dataset.tmdbId = item.tmdbId || item.id || '';
     card._itemRef = item;
     const effType = (type === 'movie' || type === 'tv') ? type : (item.type || 'movie');
     const inList = myList.some(m => m.id === item.id);
@@ -1663,7 +1696,7 @@ function createCard(item, type, isLandscape = true) {
 
         let imgHTML = '';
         if (safeBackdrop) {
-            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
+            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${safeBackdrop}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
         }
         imgHTML += `<div class="card-placeholder${safeBackdrop ? ' is-hidden' : ''}" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
 
@@ -1702,7 +1735,7 @@ function createCard(item, type, isLandscape = true) {
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${safePoster}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -4478,7 +4511,8 @@ function renderHeroItem(force = false) {
         const probeImg = new Image();
         probeImg.src = bgUrl;
         probeImg.onerror = () => {
-            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&type=backdrop`;
+            const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
+            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&tmdbId=${encodeURIComponent(featured.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
             if (heroEl) heroEl.style.backgroundImage = `url("${fallbackHero}")`;
         };
     } else {
@@ -6747,6 +6781,13 @@ function showInfo(item, type) {
     if (bgUrl) {
         backdrop.style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
         backdrop.innerHTML = '';
+        const probe = new Image();
+        probe.src = bgUrl;
+        probe.onerror = () => {
+            const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
+            const fb = `/api/image-fallback?title=${encodeURIComponent(item.title || '')}&year=${encodeURIComponent(item.year || '')}&tmdbId=${encodeURIComponent(item.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
+            if (backdrop) backdrop.style.backgroundImage = `url("${fb}")`;
+        };
     } else {
         backdrop.style.backgroundImage = 'none';
         backdrop.textContent = defaultPosters[gArr[0]] || '🎬';
@@ -8828,7 +8869,7 @@ function renderAnimeContinueWatchingRow() {
         return `
             <div class="anime-cw-card" data-id="${escapeHtml(item.id)}" data-anime-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge">EPISODE ${episode}</span>
                     ${timeBadge}
@@ -8991,7 +9032,7 @@ function renderMovieContinueWatchingRow() {
         return `
             <div class="anime-cw-card movie-cw-card" data-id="${escapeHtml(item.id)}" data-movie-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge movie-cw-badge">MOVIE</span>
                     ${timeBadge}
