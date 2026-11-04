@@ -47,8 +47,7 @@ const defaultSettings = {
     highContrast: false,
     soundEffects: true,
     mangaLang: 'en',
-    mangaReadingDirection: 'vertical',
-    trackMovieContinueWatching: true
+    mangaReadingDirection: 'vertical'
 };
 let settings = Object.assign({}, defaultSettings, safeGetStoredJson('sf_settings', {}));
 if (settings.highContrast) document.body.classList.add('high-contrast-mode');
@@ -1593,63 +1592,33 @@ function initCardLogoObserver() {
     }, { rootMargin: '120px 0px' });
 }
 
-function extractTmdbPath(url) {
-    if (!url || typeof url !== 'string') return '';
-    const match = url.match(/\/t\/p\/[^\/]+(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
-        || url.match(/image\.tmdb\.org(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
-        || url.match(/(\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|webp))/i);
-    return match ? match[1] : '';
-}
-window.extractTmdbPath = extractTmdbPath;
-
 function handleCardImgError(img, fallbackPoster) {
     if (!img) return;
 
-    // Track original src before any rewriting
-    if (!img.dataset.origSrc && img.src) {
-        img.dataset.origSrc = img.src;
+    // Try secondary TMDB image (poster/backdrop) first if available
+    if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
+        img.dataset.triedPoster = 'true';
+        img.src = fallbackPoster;
+        return;
     }
 
-    // If TMDB failed or is blocked on this device (e.g. school Chromebook),
-    // immediately query our server fallback route with full title/id/path context!
+    // If TMDB failed or is blocked, fallback to Google/web search image proxy
     if (!img.dataset.triedFallback) {
         img.dataset.triedFallback = 'true';
         const card = img.closest('.card, .anime-cw-card, .movie-cw-card, .collection-card');
         const item = (card && card._itemRef) || (img._itemRef) || null;
-        
-        let title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
-        title = title.replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '').trim();
-
-        const year = img.dataset.year || (item && item.year) || (card && card.dataset.year) || '';
-        const tmdbId = img.dataset.tmdbId || (item && (item.tmdbId || item.id)) || (card && card.dataset.tmdbId) || '';
-        
-        // Extract the exact TMDB path if it was originally an image.tmdb.org URL
-        const tmdbPath = extractTmdbPath(img.dataset.origSrc) || extractTmdbPath(img.src) || extractTmdbPath(fallbackPoster);
-        
+        const title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
+        const year = img.dataset.year || (item && item.year) || '';
         const isBackdrop = img.classList.contains('card-backdrop-img') || img.classList.contains('hero-bg') || img.classList.contains('collection-backdrop');
         const effType = isBackdrop ? 'backdrop' : 'poster';
 
-        if ((title && title.length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') || tmdbPath || tmdbId) {
-            const params = new URLSearchParams();
-            if (title) params.set('title', title);
-            if (year) params.set('year', year);
-            if (tmdbId) params.set('tmdbId', tmdbId);
-            if (tmdbPath) params.set('path', tmdbPath);
-            params.set('type', effType);
-
-            const fallbackUrl = `/api/image-fallback?${params.toString()}`;
+        if (title && title.trim().length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') {
+            const fallbackUrl = `/api/image-fallback?title=${encodeURIComponent(title.trim())}${year ? '&year=' + encodeURIComponent(year) : ''}&type=${effType}`;
             if (img.src !== fallbackUrl && !img.src.endsWith(fallbackUrl)) {
                 img.src = fallbackUrl;
                 return;
             }
         }
-    }
-
-    // Try secondary direct TMDB image if not tried yet and not same as current src
-    if (fallbackPoster && fallbackPoster !== 'undefined' && fallbackPoster !== img.src && !img.dataset.triedPoster) {
-        img.dataset.triedPoster = 'true';
-        img.src = fallbackPoster;
-        return;
     }
 
     // Fall back to clean card placeholder
@@ -1670,9 +1639,6 @@ function createCard(item, type, isLandscape = true) {
     const card = document.createElement('div');
     card.className = isLandscape ? 'card card-landscape' : 'card';
     card.dataset.id = item.id;
-    card.dataset.title = item.title || item.name || '';
-    card.dataset.year = item.year || '';
-    card.dataset.tmdbId = item.tmdbId || item.id || '';
     card._itemRef = item;
     const effType = (type === 'movie' || type === 'tv') ? type : (item.type || 'movie');
     const inList = myList.some(m => m.id === item.id);
@@ -1697,7 +1663,7 @@ function createCard(item, type, isLandscape = true) {
 
         let imgHTML = '';
         if (safeBackdrop) {
-            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${safeBackdrop}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
+            imgHTML = `<img class="card-img card-backdrop-img" src="${safeBackdrop}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safePoster}')">`;
         }
         imgHTML += `<div class="card-placeholder${safeBackdrop ? ' is-hidden' : ''}" style="${safeBackdrop ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
 
@@ -1736,7 +1702,7 @@ function createCard(item, type, isLandscape = true) {
     } else {
         let imgHTML = '';
         if (item.poster) {
-            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${safePoster}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
+            imgHTML = `<img class="card-img" src="${safePoster}" alt="${safeTitle}" data-title="${safeTitle}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" fetchpriority="low" onerror="handleCardImgError(this, '${safeBackdrop}')">`;
         }
         imgHTML += `<div class="card-placeholder" style="${item.poster ? 'display:none' : ''}">${defaultPosters[genre] || '🎬'}</div>`;
         const rtMins = parseRuntimeMins(item.runtime || item.duration);
@@ -4512,8 +4478,7 @@ function renderHeroItem(force = false) {
         const probeImg = new Image();
         probeImg.src = bgUrl;
         probeImg.onerror = () => {
-            const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
-            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&tmdbId=${encodeURIComponent(featured.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
+            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&type=backdrop`;
             if (heroEl) heroEl.style.backgroundImage = `url("${fallbackHero}")`;
         };
     } else {
@@ -6263,12 +6228,10 @@ function playItem(item, type) {
     try { recordWatchProgress(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset }); } catch {}
     try {
         if (isAnime(item)) {
-            if (initialOffset >= 30) {
-                recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset, userInitiatedResume: true });
-            }
+            recordAnimeContinueWatching(item, { type, season: playContext.season, episode: playContext.episode, currentTime: initialOffset });
         } else if (type === 'movie' || item.type === 'movie') {
-            if (typeof recordMovieContinueWatching === 'function' && initialOffset >= 40) {
-                recordMovieContinueWatching(item, { type: 'movie', currentTime: initialOffset, userInitiatedResume: true });
+            if (typeof recordMovieContinueWatching === 'function') {
+                recordMovieContinueWatching(item, { type: 'movie', currentTime: initialOffset });
             }
         }
     } catch {}
@@ -6784,13 +6747,6 @@ function showInfo(item, type) {
     if (bgUrl) {
         backdrop.style.backgroundImage = `url("${escapeHtml(bgUrl)}")`;
         backdrop.innerHTML = '';
-        const probe = new Image();
-        probe.src = bgUrl;
-        probe.onerror = () => {
-            const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
-            const fb = `/api/image-fallback?title=${encodeURIComponent(item.title || '')}&year=${encodeURIComponent(item.year || '')}&tmdbId=${encodeURIComponent(item.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
-            if (backdrop) backdrop.style.backgroundImage = `url("${fb}")`;
-        };
     } else {
         backdrop.style.backgroundImage = 'none';
         backdrop.textContent = defaultPosters[gArr[0]] || '🎬';
@@ -8313,11 +8269,38 @@ function formatTimeDisplay(seconds) {
 function getAnimeContinueWatching() {
     try {
         const raw = localStorage.getItem(ANIME_CW_KEY);
-        if (raw !== null) {
-            const list = JSON.parse(raw);
-            return Array.isArray(list) ? list : [];
+        let list = raw ? JSON.parse(raw) : null;
+        if (!Array.isArray(list) || list.length === 0) {
+            const general = getWatchHistory();
+            const animeEntries = general.filter(entry => entry && (isAnime(entry) || entry.type === 'anime' || (entry.genre && String(entry.genre).toLowerCase().includes('anime'))));
+            if (animeEntries.length > 0) {
+                list = animeEntries.map(e => ({
+                    id: String(e.id || e.tmdbId || e.title),
+                    tmdbId: e.tmdbId || e.id,
+                    title: e.title || 'Untitled Anime',
+                    poster: e.poster || '',
+                    backdrop: e.backdrop || e.poster || '',
+                    season: e.season || 1,
+                    episode: e.episode || 1,
+                    currentTime: e.currentTime || 0,
+                    duration: e.duration || 0,
+                    episodesProgress: {
+                        [`${e.season || 1}_${e.episode || 1}`]: {
+                            currentTime: e.currentTime || 0,
+                            duration: e.duration || 0,
+                            updatedAt: e.updatedAt || Date.now()
+                        }
+                    },
+                    type: e.type || 'tv',
+                    server: e.server || 'auto',
+                    updatedAt: e.updatedAt || Date.now()
+                }));
+                localStorage.setItem(ANIME_CW_KEY, JSON.stringify(list));
+            } else {
+                list = [];
+            }
         }
-        return [];
+        return list;
     } catch {
         return [];
     }
@@ -8424,43 +8407,38 @@ function removeAnimeContinueWatching(id) {
 
 function clearAnimeContinueWatching() {
     playUiSound();
-    localStorage.setItem(ANIME_CW_KEY, JSON.stringify([]));
+    localStorage.removeItem(ANIME_CW_KEY);
     renderAnimeContinueWatchingRow();
 }
 
 const MOVIE_CW_KEY = 'milkbox_movie_continue_watching';
-const MOVIE_CW_DISMISSED_KEY = 'milkbox_movie_cw_dismissed';
-
-function getDismissedMovieCw() {
-    try {
-        const raw = localStorage.getItem(MOVIE_CW_DISMISSED_KEY);
-        return new Set(raw ? JSON.parse(raw) : []);
-    } catch {
-        return new Set();
-    }
-}
-
-function saveDismissedMovieCw(set) {
-    try {
-        localStorage.setItem(MOVIE_CW_DISMISSED_KEY, JSON.stringify(Array.from(set).slice(-150)));
-    } catch {}
-}
 
 function getMovieContinueWatching() {
     try {
-        if (settings && settings.trackMovieContinueWatching === false) return [];
         const raw = localStorage.getItem(MOVIE_CW_KEY);
-        if (raw !== null) {
-            const list = JSON.parse(raw);
-            if (!Array.isArray(list)) return [];
-            // Clean out any stale entries with zero/trivial playback time (<30s)
-            const valid = list.filter(item => item && (item.currentTime || 0) >= 30);
-            if (valid.length !== list.length) {
-                localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(valid));
+        let list = raw ? JSON.parse(raw) : null;
+        if (!Array.isArray(list) || list.length === 0) {
+            const general = getWatchHistory();
+            const movieEntries = general.filter(entry => entry && !isAnime(entry) && (entry.type === 'movie' || (!entry.type && !entry.episode)));
+            if (movieEntries.length > 0) {
+                list = movieEntries.map(e => ({
+                    id: String(e.id || e.tmdbId || e.title),
+                    tmdbId: e.tmdbId || e.id,
+                    title: e.title || 'Untitled Movie',
+                    poster: e.poster || '',
+                    backdrop: e.backdrop || e.poster || '',
+                    currentTime: e.currentTime || 0,
+                    duration: e.duration || 0,
+                    type: 'movie',
+                    server: e.server || playerServer || 'auto',
+                    updatedAt: e.updatedAt || Date.now()
+                }));
+                localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
+            } else {
+                list = [];
             }
-            return valid;
         }
-        return [];
+        return list;
     } catch {
         return [];
     }
@@ -8468,17 +8446,10 @@ function getMovieContinueWatching() {
 
 function recordMovieContinueWatching(item, extra = {}) {
     if (!item) return;
-    if (settings && settings.trackMovieContinueWatching === false) return;
-    if (typeof isAnime === 'function' && isAnime(item)) return;
-    if (extra.type && extra.type !== 'movie') return;
-
     try {
         const itemKey = String(item.id || item.tmdbId || item.title);
-        const titleLower = String(item.title || item.name || '').toLowerCase().trim();
-        if (!titleLower || titleLower === 'untitled movie' || titleLower === 'untitled') return;
-
         let list = getMovieContinueWatching();
-        const existing = list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || (String(x.title || '').toLowerCase().trim() === titleLower));
+        const existing = list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)));
 
         let curTime = 0;
         if (extra.currentTime != null && !isNaN(extra.currentTime)) curTime = Math.max(0, Math.floor(parseFloat(extra.currentTime)));
@@ -8487,36 +8458,6 @@ function recordMovieContinueWatching(item, extra = {}) {
         let durTime = 0;
         if (extra.duration != null && !isNaN(extra.duration)) durTime = Math.max(0, Math.floor(parseFloat(extra.duration)));
         else if (existing && existing.duration != null) durTime = existing.duration;
-
-        // Check if user explicitly dismissed/removed this movie from continue watching
-        const dismissed = getDismissedMovieCw();
-        if (dismissed.has(itemKey) || (item.tmdbId && dismissed.has(String(item.tmdbId))) || dismissed.has(titleLower)) {
-            if (extra.userInitiatedResume) {
-                dismissed.delete(itemKey);
-                if (item.tmdbId) dismissed.delete(String(item.tmdbId));
-                dismissed.delete(titleLower);
-                saveDismissedMovieCw(dismissed);
-            } else {
-                return;
-            }
-        }
-
-        // THRESHOLD CHECK:
-        // Do NOT add new movies unless actively watched for at least 40 seconds (or explicitly resumed)
-        // This prevents cards from jumping into Continue Watching just by opening or previewing
-        if (!existing && curTime < 40 && !extra.userInitiatedResume) {
-            return;
-        }
-
-        // COMPLETION CHECK:
-        // If movie is finished (>= 90% watched or within last 2 minutes when duration > 5 mins)
-        // Automatically remove it from continue watching rather than cluttering the row
-        if (durTime > 300 && (curTime >= durTime - 120 || (curTime / durTime) >= 0.90)) {
-            if (existing) {
-                removeMovieContinueWatching(itemKey, true);
-            }
-            return;
-        }
 
         const entry = {
             id: itemKey,
@@ -8534,9 +8475,9 @@ function recordMovieContinueWatching(item, extra = {}) {
             updatedAt: Date.now()
         };
 
-        list = list.filter(x => String(x.id) !== itemKey && (!item.tmdbId || String(x.tmdbId) !== String(item.tmdbId)) && String(x.title || '').toLowerCase().trim() !== titleLower);
+        list = list.filter(x => String(x.id) !== itemKey && String(x.title).toLowerCase() !== String(entry.title).toLowerCase());
         list.unshift(entry);
-        if (list.length > 25) list = list.slice(0, 25);
+        if (list.length > 40) list = list.slice(0, 40);
 
         localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
         if (!document.body.classList.contains('player-active')) {
@@ -8551,52 +8492,30 @@ function getMovieLastProgress(item) {
     if (!item) return null;
     try {
         const itemKey = String(item.id || item.tmdbId || item.title);
-        const titleLower = String(item.title || item.name || '').toLowerCase().trim();
+        const titleLower = String(item.title || item.name || '').toLowerCase();
         const list = getMovieContinueWatching();
-        return list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || (titleLower && String(x.title || '').toLowerCase().trim() === titleLower)) || null;
+        return list.find(x => String(x.id) === itemKey || (x.tmdbId && String(x.tmdbId) === String(item.tmdbId)) || (titleLower && String(x.title || '').toLowerCase() === titleLower)) || null;
     } catch {
         return null;
     }
 }
 
-function removeMovieContinueWatching(id, silent = false) {
-    if (!silent) playUiSound();
+function removeMovieContinueWatching(id) {
+    playUiSound();
     try {
         const idStr = String(id);
         let list = getMovieContinueWatching();
-        const target = list.find(x => String(x.id) === idStr || String(x.tmdbId) === idStr);
-
-        const dismissed = getDismissedMovieCw();
-        dismissed.add(idStr);
-        if (target) {
-            if (target.id) dismissed.add(String(target.id));
-            if (target.tmdbId) dismissed.add(String(target.tmdbId));
-            if (target.title) dismissed.add(String(target.title).toLowerCase().trim());
-        }
-        saveDismissedMovieCw(dismissed);
-
-        list = list.filter(x => String(x.id) !== idStr && String(x.tmdbId) !== idStr && (!target || String(x.title || '').toLowerCase().trim() !== String(target.title || '').toLowerCase().trim()));
+        list = list.filter(x => String(x.id) !== idStr && String(x.tmdbId) !== idStr);
         localStorage.setItem(MOVIE_CW_KEY, JSON.stringify(list));
         renderMovieContinueWatchingRow();
-        if (!silent) toast('Removed from Continue Watching', 'info');
+        toast('Removed from Continue Watching', 'info');
     } catch {}
 }
 
 function clearMovieContinueWatching() {
     playUiSound();
-    try {
-        const currentList = getMovieContinueWatching();
-        const dismissed = getDismissedMovieCw();
-        currentList.forEach(item => {
-            if (item.id) dismissed.add(String(item.id));
-            if (item.tmdbId) dismissed.add(String(item.tmdbId));
-            if (item.title) dismissed.add(String(item.title).toLowerCase().trim());
-        });
-        saveDismissedMovieCw(dismissed);
-        localStorage.setItem(MOVIE_CW_KEY, JSON.stringify([]));
-        renderMovieContinueWatchingRow();
-        toast('Movies Continue Watching cleared!', 'success');
-    } catch {}
+    localStorage.removeItem(MOVIE_CW_KEY);
+    renderMovieContinueWatchingRow();
 }
 
 function formatCwTimeAgo(ts) {
@@ -8699,23 +8618,19 @@ function commitTimestampProgress(item, currentTime, duration, force = false) {
             _lastProgressStorageSave = now;
             _lastSavedCurTime = cur;
             if (isAnime(item)) {
-                if (cur >= 30) {
-                    recordAnimeContinueWatching(item, {
-                        season,
-                        episode,
-                        type: isMovie ? 'movie' : 'tv',
-                        currentTime: cur,
-                        duration: dur
-                    });
-                }
+                recordAnimeContinueWatching(item, {
+                    season,
+                    episode,
+                    type: isMovie ? 'movie' : 'tv',
+                    currentTime: cur,
+                    duration: dur
+                });
             } else if (isMovie || item.type === 'movie') {
-                if (cur >= 40) {
-                    recordMovieContinueWatching(item, {
-                        type: 'movie',
-                        currentTime: cur,
-                        duration: dur
-                    });
-                }
+                recordMovieContinueWatching(item, {
+                    type: 'movie',
+                    currentTime: cur,
+                    duration: dur
+                });
             }
             recordWatchProgress(item, {
                 season,
@@ -8913,7 +8828,7 @@ function renderAnimeContinueWatchingRow() {
         return `
             <div class="anime-cw-card" data-id="${escapeHtml(item.id)}" data-anime-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge">EPISODE ${episode}</span>
                     ${timeBadge}
@@ -9076,7 +8991,7 @@ function renderMovieContinueWatchingRow() {
         return `
             <div class="anime-cw-card movie-cw-card" data-id="${escapeHtml(item.id)}" data-movie-cw="${itemJson}">
                 <div class="anime-cw-thumb-wrap">
-                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" data-tmdb-id="${escapeHtml(item.tmdbId || item.id || '')}" data-orig-src="${escapeHtml(poster)}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
+                    <img class="anime-cw-thumb" src="${escapeHtml(poster)}" alt="${title}" data-title="${title}" data-year="${escapeHtml(item.year || '')}" loading="lazy" decoding="async" onerror="handleCardImgError(this, '${escapeHtml(item.poster || '')}')">
                     <div class="anime-cw-scrim"></div>
                     <span class="anime-cw-badge movie-cw-badge">MOVIE</span>
                     ${timeBadge}
@@ -9459,9 +9374,6 @@ function syncSettingsInputs() {
     if (mangaDirSelect) mangaDirSelect.value = settings.mangaReadingDirection || 'vertical';
 
     
-    const movieCwToggle = document.getElementById('settingsTrackMovieCw');
-    if (movieCwToggle) movieCwToggle.checked = settings.trackMovieContinueWatching !== false;
-
     updateWatchHistoryUI();
     const myListEl = document.getElementById('myListCountVal');
     if (myListEl) myListEl.textContent = `${myList.length} title${myList.length === 1 ? '' : 's'}`;
@@ -9571,13 +9483,6 @@ document.getElementById('checkHealthBtn')?.addEventListener('click', runSystemDi
 document.getElementById('testServerLatencyBtn')?.addEventListener('click', testStreamingServerLatencies);
 
 
-document.getElementById('settingsTrackMovieCw')?.addEventListener('change', (e) => {
-    settings.trackMovieContinueWatching = e.target.checked;
-    saveData();
-    renderMovieContinueWatchingRow();
-    toast(`Movie Continue Watching ${settings.trackMovieContinueWatching ? 'enabled' : 'disabled'}`, 'info');
-});
-document.getElementById('settingsClearMovieCwBtn')?.addEventListener('click', clearMovieContinueWatching);
 document.getElementById('clearHistoryBtn')?.addEventListener('click', clearWatchHistory);
 document.getElementById('clearMyListBtn')?.addEventListener('click', clearUserMyList);
 document.getElementById('exportBackupBtn')?.addEventListener('click', exportDataBackup);
