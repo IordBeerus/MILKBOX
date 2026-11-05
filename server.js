@@ -20,7 +20,13 @@ function loadEnvFile() {
 }
 
 loadEnvFile();
-const port = Number(process.env.PORT) || 3000;
+const defaultAppPort = Number(process.env.DEFAULT_APP_PORT) || 3000;
+let port = Number(process.env.PORT) || defaultAppPort;
+// Cloud Run sets PORT=8080 by default, which is reserved for the Nginx reverse proxy.
+// The internal Node dev server must always listen on port 3000.
+if (port === 8080 || port === Number(process.env.NGINX_PORT || 8080)) {
+    port = defaultAppPort;
+}
 const root = __dirname;
 const mimeTypes = {
     '.css': 'text/css; charset=utf-8',
@@ -1685,25 +1691,47 @@ const server = http.createServer(async (req, res) => {
 
 watchPartyServer = initWatchPartyServer(server);
 
+server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+        console.warn(`[MILKBOX] Port ${port} is already in use. Retrying on default port 3000...`);
+        if (port !== 3000) {
+            port = 3000;
+            server.listen(3000, '0.0.0.0');
+            return;
+        }
+    }
+    console.error('[MILKBOX] Server error:', err);
+});
+
 server.listen(port, '0.0.0.0', () => {
     console.log(`MILKBOX running at http://localhost:${port}`);
-    // Startup auto-sync after server initializes
+    // Startup auto-sync after server initializes (non-blocking in child process)
     setTimeout(() => {
         try {
-            console.log('[Auto-Sync] Initiating startup sync to GitHub...');
-            syncToGitHub('Startup auto-sync: MILKBOX');
+            console.log('[Auto-Sync] Initiating non-blocking startup sync to GitHub...');
+            const { spawn } = require('child_process');
+            const child = spawn(process.execPath, [path.join(__dirname, 'sync-github.js'), 'Startup auto-sync: MILKBOX'], {
+                detached: true,
+                stdio: 'ignore'
+            });
+            child.unref();
         } catch (e) {
             console.warn('[Auto-Sync] Startup sync notice:', e.message);
         }
-    }, 4000);
+    }, 10000);
 
-    // Continuous auto-sync every 5 minutes
+    // Continuous auto-sync every 5 minutes (non-blocking in child process)
     setInterval(() => {
         try {
-            console.log('[Auto-Sync] Initiating periodic background sync to GitHub...');
-            syncToGitHub('Periodic auto-sync: MILKBOX');
+            const { spawn } = require('child_process');
+            const child = spawn(process.execPath, [path.join(__dirname, 'sync-github.js'), 'Periodic auto-sync: MILKBOX'], {
+                detached: true,
+                stdio: 'ignore'
+            });
+            child.unref();
         } catch (e) {
             console.warn('[Auto-Sync] Periodic sync notice:', e.message);
         }
     }, 5 * 60 * 1000);
 });
+
