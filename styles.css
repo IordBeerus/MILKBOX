@@ -2545,6 +2545,23 @@ body.mylist-active #homeGenres {
 /* Live tabs (Trending / Streaming / In Theaters / Most Popular) */
 #trendingSection, #streamingSection, #freeSection, #theatersSection, #popularSection, #mangaSection { display: none; }
 
+/* Keep manga strictly hidden on all tabs except Manga tab */
+body:not(.manga-active) #mangaSection,
+body.home-active #mangaSection,
+body.movies-active #mangaSection,
+body.tvshows-active #mangaSection,
+body.anime-active #mangaSection,
+body.mylist-active #mangaSection,
+body.trending-active #mangaSection,
+body.streaming-active #mangaSection,
+body.free-active #mangaSection,
+body.providers-active #mangaSection,
+body.theaters-active #mangaSection,
+body.popular-active #mangaSection,
+body.music-active #mangaSection {
+    display: none !important;
+}
+
 body.trending-active #tvShowsSection,
 body.trending-active #moviesSection,
 body.streaming-active #moviesSection,
@@ -3412,6 +3429,37 @@ body.light-mode .collection-meta { color: #e0e0e6; }
 .pager-nav {
     background: rgba(255, 255, 255, 0.07);
     border: 1px solid rgba(255, 255, 255, 0.13);
+}
+.pager-load-more {
+    margin-left: 12px;
+    font-weight: 700;
+    color: #ff4d6d;
+    border: 1px solid rgba(255, 77, 109, 0.45);
+    background: rgba(255, 77, 109, 0.12);
+    padding: 0 16px;
+    height: 38px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 10px rgba(255, 77, 109, 0.15);
+}
+.pager-load-more:hover:not(:disabled) {
+    background: rgba(255, 77, 109, 0.25);
+    border-color: rgba(255, 77, 109, 0.7);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(255, 77, 109, 0.35);
+    transform: translateY(-1px);
+}
+.pager-load-more:active:not(:disabled) {
+    transform: translateY(0);
+}
+.pager-load-more:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
 }
 body.light-mode .pagination {
     background: rgba(255, 255, 255, 0.72);
