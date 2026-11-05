@@ -220,6 +220,7 @@
         const accent = 'ff2e63';
 
         switch (server) {
+            case 'x8rrmovies':
             case 'milkbox': {
                 if (type === 'anime') {
                     return `https://www.vidy.st/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}?color=${accent}&autoplay=true`;
@@ -264,12 +265,12 @@
             case 'autoembed':
             default: {
                 if (type === 'anime') {
-                    return `https://autoembed.app/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}`;
+                    return `https://www.vidy.st/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}?color=${accent}&autoplay=true`;
                 }
                 if (type === 'tv') {
-                    return `https://autoembed.app/tv/tmdb/${encodeURIComponent(id)}-${encodeURIComponent(season || 1)}-${encodeURIComponent(episode || 1)}`;
+                    return `https://www.vidy.st/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`;
                 }
-                return `https://autoembed.app/movie/tmdb/${encodeURIComponent(id)}`;
+                return `https://www.vidy.st/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`;
             }
         }
     }
@@ -1006,12 +1007,28 @@
                     hlsInstance.on(window.Hls.Events.LEVEL_SWITCHED, () => {
                         renderQualityMenu();
                     });
+                    let hlsNetworkFails = 0;
                     hlsInstance.on(window.Hls.Events.ERROR, (event, errData) => {
                         if (errData && errData.fatal) {
-                            console.warn('[Milkbox Player] HLS fatal error:', errData.type);
+                            console.warn('[Milkbox Player] HLS fatal error:', errData.type, errData.details);
                             switch (errData.type) {
                                 case window.Hls.ErrorTypes.NETWORK_ERROR:
-                                    hlsInstance.startLoad();
+                                    hlsNetworkFails++;
+                                    if (hlsNetworkFails > 1) {
+                                        if (state.x8rrStreams && state.activeX8rrIndex + 1 < state.x8rrStreams.length) {
+                                            switchX8rrMirror(state.activeX8rrIndex + 1);
+                                        } else {
+                                            // Direct HLS failed on all mirrors, fall back to high-speed embed
+                                            if (hlsInstance) { try { hlsInstance.destroy(); } catch {} hlsInstance = null; }
+                                            elements.nativeVideo.style.display = 'none';
+                                            elements.nativeVideo.pause();
+                                            elements.iframe.style.display = 'block';
+                                            elements.iframe.src = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
+                                            hideLoader();
+                                        }
+                                    } else {
+                                        hlsInstance.startLoad();
+                                    }
                                     break;
                                 case window.Hls.ErrorTypes.MEDIA_ERROR:
                                     hlsInstance.recoverMediaError();
@@ -1020,7 +1037,12 @@
                                     if (state.x8rrStreams && state.activeX8rrIndex + 1 < state.x8rrStreams.length) {
                                         switchX8rrMirror(state.activeX8rrIndex + 1);
                                     } else {
-                                        showError('Playback encountered an error. Click below to try an alternate server.');
+                                        if (hlsInstance) { try { hlsInstance.destroy(); } catch {} hlsInstance = null; }
+                                        elements.nativeVideo.style.display = 'none';
+                                        elements.nativeVideo.pause();
+                                        elements.iframe.style.display = 'block';
+                                        elements.iframe.src = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
+                                        hideLoader();
                                     }
                                     break;
                             }

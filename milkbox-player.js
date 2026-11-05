@@ -1466,16 +1466,28 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     }
                 }
             });
+            let hlsNetFailCount = 0;
             hls.on(window.Hls.Events.ERROR, (_event, data) => {
                 if (data && data.fatal) {
                     switch (data.type) {
                         case window.Hls.ErrorTypes.NETWORK_ERROR:
+                            hlsNetFailCount++;
+                            if (hlsNetFailCount > 1 && extraOptions && typeof extraOptions.onError === 'function') {
+                                try { hls.destroy(); } catch {}
+                                extraOptions.onError();
+                                return;
+                            }
                             hls.startLoad();
                             break;
                         case window.Hls.ErrorTypes.MEDIA_ERROR:
                             hls.recoverMediaError();
                             break;
                         default:
+                            if (extraOptions && typeof extraOptions.onError === 'function') {
+                                try { hls.destroy(); } catch {}
+                                extraOptions.onError();
+                                return;
+                            }
                             showPlaybackError('HLS playback encountered an unrecoverable error.');
                             hls.destroy();
                             break;

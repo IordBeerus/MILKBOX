@@ -5088,8 +5088,8 @@ function x8rrmoviesIframe(tmdbId, type, season, episode) {
     const se = season || 1;
     const ep = episode || 1;
     const url = isTV
-        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}&server=x8rrmovies`
-        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies`;
+        ? `https://www.vidy.st/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=ff2e63&autoplay=true`
+        : `https://www.vidy.st/movie/${encodeURIComponent(tmdbId)}?color=ff2e63&autoplay=true`;
     return makePlaybackIframe(url, 'allow="autoplay; fullscreen; encrypted-media; picture-in-picture"');
 }
 
@@ -5105,7 +5105,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ffb6d8;gap:12px;text-align:center;padding:24px;">
             <div style="width:36px;height:36px;border:3px solid rgba(255,182,216,0.3);border-top-color:#ff2e63;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
             <div style="font-weight:700;font-size:16px;color:#fff;">x8rr Movies</div>
-            <div style="font-size:13px;color:#ffb6d8;">Scraping direct ad-free HLS stream (VidSrc WASM / CineSRC)…</div>
+            <div style="font-size:13px;color:#ffb6d8;">Connecting to stream…</div>
         </div>
     `;
 
@@ -5116,7 +5116,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         const res = await fetch(endpoint);
         if (playContext !== context) return;
         const data = await res.json();
-        if (data && data.streams && data.streams.length > 0) {
+        if (data && Array.isArray(data.streams) && data.streams.length > 0) {
             const stream = data.streams[0];
             const streamUrl = stream.proxiedUrl || `/api/x8rr/proxy?url=${encodeURIComponent(stream.url)}`;
             createCustomVideoPlayer(frame, streamUrl, item.title, subText, {
@@ -5128,6 +5128,11 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                 mediaType: isTV ? 'tv' : 'movie',
                 season: isTV ? season : 1,
                 episode: isTV ? episode : 1,
+                onError: () => {
+                    toast('x8rr Movies: Connecting to high-speed backup player…', 'info');
+                    frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
+                    armAutoFallback(frame, 'x8rrmovies');
+                },
                 onServerChange: (newStream, idx) => {
                     toast(`x8rr Movies: Switched to ${newStream.serverLabel || `Server ${idx + 1}`}`, 'success');
                 }
@@ -5136,12 +5141,12 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
             return;
         }
         
-        toast('x8rr Movies: Direct stream unavailable, loading proxy player…');
+        toast('x8rr Movies: Loading 1080p stream player…');
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
         armAutoFallback(frame, 'x8rrmovies');
     } catch (e) {
         if (playContext !== context) return;
-        toast(`x8rr Movies: ${e.message}, loading proxy player…`);
+        toast(`x8rr Movies: Loading 1080p stream player…`);
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
         armAutoFallback(frame, 'x8rrmovies');
     }

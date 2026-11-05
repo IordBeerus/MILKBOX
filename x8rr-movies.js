@@ -181,9 +181,11 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
             try {
                 const host = new URL(rawUrl).origin;
                 const token = await hostTokens.get(host);
-                const url = token
-                    ? rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'token=' + token
-                    : rawUrl;
+                if (!token || typeof token !== 'string' || token.toLowerCase().includes('invalid') || token.toLowerCase().includes('mismatched') || token.toLowerCase().includes('error') || token.trim().length < 12) {
+                    // Upstream token generation failed (e.g. Cloudflare Turnstile block), skip to avoid serving dead 403 streams
+                    continue;
+                }
+                const url = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token.trim());
                 const label = serverIdx === 1
                     ? 'Server 1 (Primary 1080p)'
                     : (serverIdx === 2 ? 'Server 2 (Backup 1080p)' : `Server ${serverIdx} (Fast 1080p)`);
