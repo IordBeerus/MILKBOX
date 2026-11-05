@@ -10509,7 +10509,12 @@ async function fetchMangaList(page = 1, type = '') {
         if (hint) hint.textContent = 'Popular Manga & Comic series';
     } finally {
         delete liveFed.manga;
-        renderMangaGrid(liveState.manga.page || 1);
+        if (currentSection === 'manga') {
+            renderMangaGrid(liveState.manga.page || 1);
+        } else {
+            const ms = document.getElementById('mangaSection');
+            if (ms) ms.style.display = 'none';
+        }
     }
 }
 
@@ -10616,6 +10621,11 @@ function createMangaCard(m) {
 }
 
 function renderMangaGrid(page) {
+    const ms = document.getElementById('mangaSection');
+    if (currentSection !== 'manga') {
+        if (ms) ms.style.display = 'none';
+        return;
+    }
     const grid = document.getElementById('mangaGrid');
     const pager = document.getElementById('mangaPager');
     if (!grid) return;
