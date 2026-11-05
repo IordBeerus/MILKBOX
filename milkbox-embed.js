@@ -20,6 +20,7 @@
         isPlaying: false,
         isMuted: false,
         volume: 1,
+        audioBoostMultiplier: parseFloat(localStorage.getItem('milkbox_audio_boost') || '2.5') || 2.5,
         duration: 0,
         currentTime: 0,
         idleTimer: null,
@@ -62,6 +63,8 @@
         nextEpBtn: document.getElementById('mbNextEpBtn'),
         volBtn: document.getElementById('mbVolBtn'),
         volSlider: document.getElementById('mbVolSlider'),
+        audioBoostBtn: document.getElementById('mbAudioBoostBtn'),
+        audioBoostLabel: document.getElementById('mbAudioBoostLabel'),
         timeCur: document.getElementById('mbTimeCur'),
         timeDur: document.getElementById('mbTimeDur'),
         epDrawerBtn: document.getElementById('mbEpDrawerBtn'),
@@ -1444,18 +1447,92 @@
         updateVolumeUi();
     });
 
+    function setupEmbedAudioBooster() {
+        if (!elements.nativeVideo) return null;
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return null;
+            if (elements.nativeVideo._milkboxAudioBooster) return elements.nativeVideo._milkboxAudioBooster;
+
+            const ctx = new AudioContextClass();
+            const source = ctx.createMediaElementSource(elements.nativeVideo);
+            const gain = ctx.createGain();
+            const compressor = ctx.createDynamicsCompressor();
+
+            compressor.threshold.setValueAtTime(-18, ctx.currentTime);
+            compressor.knee.setValueAtTime(30, ctx.currentTime);
+            compressor.ratio.setValueAtTime(12, ctx.currentTime);
+            compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+            compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
+            source.connect(gain);
+            gain.connect(compressor);
+            compressor.connect(ctx.destination);
+
+            const booster = { ctx, source, gain, compressor };
+            elements.nativeVideo._milkboxAudioBooster = booster;
+
+            const unlockAudio = () => {
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+            };
+            elements.nativeVideo.addEventListener('play', unlockAudio);
+            elements.nativeVideo.addEventListener('playing', unlockAudio);
+            elements.nativeVideo.addEventListener('volumechange', unlockAudio);
+            unlockAudio();
+            return booster;
+        } catch (e) {
+            console.warn('[milkbox-embed] Audio booster notice:', e.message);
+            return null;
+        }
+    }
+
+    if (elements.audioBoostBtn) {
+        elements.audioBoostBtn.addEventListener('click', () => {
+            const levels = [1.0, 1.75, 2.5, 3.0];
+            const currentIdx = levels.indexOf(state.audioBoostMultiplier);
+            const nextIdx = (currentIdx + 1) % levels.length;
+            state.audioBoostMultiplier = levels[nextIdx];
+            localStorage.setItem('milkbox_audio_boost', String(state.audioBoostMultiplier));
+            updateVolumeUi();
+            if (typeof showNotice === 'function') {
+                showNotice(`Audio Boost: ${Math.round(state.audioBoostMultiplier * 100)}% ${state.audioBoostMultiplier > 1 ? '⚡ (Louder volume)' : '(Normal)'}`);
+            }
+        });
+    }
+
     function updateVolumeUi() {
         elements.volBtn.querySelector('.mb-vol-high').style.display = state.isMuted ? 'none' : 'block';
         elements.volBtn.querySelector('.mb-vol-muted').style.display = state.isMuted ? 'block' : 'none';
         elements.volSlider.value = state.isMuted ? 0 : state.volume;
+
+        if (elements.audioBoostLabel) {
+            elements.audioBoostLabel.textContent = `${Math.round(state.audioBoostMultiplier * 100)}%`;
+        }
+        if (elements.audioBoostBtn) {
+            elements.audioBoostBtn.style.background = state.audioBoostMultiplier > 1 ? 'rgba(255, 46, 99, 0.22)' : 'rgba(255, 255, 255, 0.08)';
+            elements.audioBoostBtn.title = `Audio Boost: ${Math.round(state.audioBoostMultiplier * 100)}% (Click to toggle 100%, 175%, 250%, 300%)`;
+        }
+
         if (elements.nativeVideo && elements.nativeVideo.style.display !== 'none') {
-            elements.nativeVideo.volume = state.isMuted ? 0 : state.volume;
+            const booster = setupEmbedAudioBooster();
+            const baseVol = state.isMuted ? 0 : state.volume;
+            if (booster && booster.gain) {
+                booster.gain.gain.setValueAtTime(baseVol * state.audioBoostMultiplier, booster.ctx.currentTime);
+            }
+            elements.nativeVideo.volume = baseVol;
             elements.nativeVideo.muted = state.isMuted;
             return;
         }
         try {
             elements.iframe.contentWindow.postMessage({ type: 'volume', volume: state.isMuted ? 0 : state.volume }, '*');
         } catch {}
+    }
+
+    if (elements.nativeVideo) {
+        elements.nativeVideo.addEventListener('canplay', updateVolumeUi);
+        elements.nativeVideo.addEventListener('play', updateVolumeUi);
     }
 
     

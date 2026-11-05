@@ -305,6 +305,10 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                             <span class="material-symbols-outlined" aria-hidden="true">volume_up</span>
                         </button>
                         <input class="milkbox-player-volume" type="range" min="0" max="1" value="1" step="0.05" aria-label="Volume">
+                        <button class="milkbox-player-button milkbox-player-boost-button" type="button" aria-label="Audio Boost" title="Audio Boost: Make Quiet Streams Louder (x8rr)" style="font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; background:rgba(255,46,99,0.22); color:#ff6b8b; border:1px solid rgba(255,46,99,0.45); margin-left:6px; display:inline-flex; align-items:center; gap:2px; height:24px; cursor:pointer;">
+                            <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">bolt</span>
+                            <span class="milkbox-player-boost-text" style="font-size:11px; font-weight:700; color:#ff6b8b;">250%</span>
+                        </button>
                     </div>
 
                     <div class="milkbox-player-time" aria-live="off">
@@ -1194,11 +1198,90 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             currentTime.textContent = _milkboxFormatTime(video.currentTime);
         }
     });
+    const boostButton = controls.querySelector('.milkbox-player-boost-button');
+    const boostText = controls.querySelector('.milkbox-player-boost-text');
+    let currentBoostMultiplier = parseFloat(localStorage.getItem('milkbox_audio_boost') || '2.5');
+    if (isNaN(currentBoostMultiplier) || currentBoostMultiplier < 1) currentBoostMultiplier = 2.5;
+
+    const setupAudioBooster = () => {
+        try {
+            const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextClass) return null;
+            if (video._milkboxAudioBooster) return video._milkboxAudioBooster;
+
+            const ctx = new AudioContextClass();
+            const source = ctx.createMediaElementSource(video);
+            const gain = ctx.createGain();
+            const compressor = ctx.createDynamicsCompressor();
+
+            compressor.threshold.setValueAtTime(-18, ctx.currentTime);
+            compressor.knee.setValueAtTime(30, ctx.currentTime);
+            compressor.ratio.setValueAtTime(12, ctx.currentTime);
+            compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+            compressor.release.setValueAtTime(0.25, ctx.currentTime);
+
+            source.connect(gain);
+            gain.connect(compressor);
+            compressor.connect(ctx.destination);
+
+            const booster = { ctx, source, gain, compressor };
+            video._milkboxAudioBooster = booster;
+
+            const unlockAudio = () => {
+                if (ctx.state === 'suspended') {
+                    ctx.resume().catch(() => {});
+                }
+            };
+            video.addEventListener('play', unlockAudio);
+            video.addEventListener('playing', unlockAudio);
+            video.addEventListener('volumechange', unlockAudio);
+            unlockAudio();
+            return booster;
+        } catch (e) {
+            console.warn('[milkbox-player] Web Audio setup notice:', e.message);
+            return null;
+        }
+    };
+
+    const updateAudioGain = () => {
+        const booster = setupAudioBooster();
+        const baseVol = video.muted ? 0 : video.volume;
+        if (booster && booster.gain) {
+            booster.gain.gain.setValueAtTime(baseVol * currentBoostMultiplier, booster.ctx.currentTime);
+        }
+        if (boostText) {
+            boostText.textContent = `${Math.round(currentBoostMultiplier * 100)}%`;
+            if (boostButton) {
+                boostButton.style.background = currentBoostMultiplier > 1 ? 'rgba(255, 46, 99, 0.22)' : 'rgba(255, 255, 255, 0.08)';
+                boostButton.title = `Audio Boost: ${Math.round(currentBoostMultiplier * 100)}% (Click to switch 100%, 175%, 250%, 300%)`;
+            }
+        }
+    };
+
     volume.addEventListener('input', () => {
         video.volume = Number(volume.value);
         video.muted = video.volume === 0;
+        updateAudioGain();
     });
-    volumeButton.addEventListener('click', () => { video.muted = !video.muted; });
+    volumeButton.addEventListener('click', () => {
+        video.muted = !video.muted;
+        updateAudioGain();
+    });
+    if (boostButton) {
+        boostButton.addEventListener('click', () => {
+            const levels = [1.0, 1.75, 2.5, 3.0];
+            const currentIdx = levels.indexOf(currentBoostMultiplier);
+            const nextIdx = (currentIdx + 1) % levels.length;
+            currentBoostMultiplier = levels[nextIdx];
+            localStorage.setItem('milkbox_audio_boost', String(currentBoostMultiplier));
+            updateAudioGain();
+            const pct = Math.round(currentBoostMultiplier * 100);
+            if (typeof window.toast === 'function') {
+                window.toast(`Audio Boost: ${pct}% ${pct > 100 ? '⚡ (Louder sound & dialog)' : '(Normal volume)'}`, 'info');
+            }
+        });
+    }
+
     const updateVolumeState = () => {
         const icon = volumeButton.querySelector('span');
         icon.textContent = video.muted || video.volume === 0
@@ -1206,8 +1289,11 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             : video.volume < 0.5 ? 'volume_down' : 'volume_up';
         volumeButton.setAttribute('aria-label', video.muted ? 'Unmute' : 'Mute');
         if (!video.muted) volume.value = String(video.volume);
+        updateAudioGain();
     };
     video.addEventListener('volumechange', updateVolumeState);
+    video.addEventListener('canplay', updateAudioGain);
+    video.addEventListener('play', updateAudioGain);
     speed.addEventListener('change', () => { video.playbackRate = Number(speed.value); });
     fullscreenButton.addEventListener('click', async () => {
         try {
