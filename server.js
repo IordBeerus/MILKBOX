@@ -88,6 +88,41 @@ async function proxyMangaDexCover(req, res, requestPath) {
 
 const fallbackMangaChapterCache = new Map();
 
+function getMangaCandidateTitles(primaryTitle, altTitles = []) {
+    const pool = [primaryTitle, ...(Array.isArray(altTitles) ? altTitles : [altTitles])].filter(Boolean);
+    const result = [];
+    const seen = new Set();
+    const add = (t) => {
+        const clean = (t || '').trim();
+        if (!clean || clean.length < 2) return;
+        const key = clean.toLowerCase();
+        if (!seen.has(key)) {
+            seen.add(key);
+            result.push(clean);
+        }
+    };
+
+    for (const raw of pool) {
+        if (typeof raw !== 'string') continue;
+        add(raw);
+        // Remove parenthesized or bracketed suffixes (e.g. "(Official Colored)", "[Digital]", "(Official)")
+        const noParens = raw.replace(/\s*[\(\[][^\)\]]*[\)\]]/g, '').trim();
+        if (noParens) add(noParens);
+        // Remove trailing tags like manga, colored, comics, digital
+        const noSuffix = noParens.replace(/\s+(manga|colored|comics|official|digital|edition)$/i, '').trim();
+        if (noSuffix) add(noSuffix);
+        // Prefix before subtitle separators
+        const beforeSep = noSuffix.split(/[:\-–]/)[0].trim();
+        if (beforeSep && beforeSep.length >= 3) add(beforeSep);
+        // Normalize punctuation
+        const noPunct = noSuffix.replace(/[:\-–]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (noPunct) add(noPunct);
+        if (raw.includes('×')) add(raw.replace(/×/g, 'x'));
+        if (raw.toLowerCase().includes(' x ')) add(raw.replace(/\s+[xX]\s+/g, ' '));
+    }
+    return result;
+}
+
 async function scrapeMangapillChapter(title, chapterNum) {
     try {
         const sUrl = `https://mangapill.com/search?q=${encodeURIComponent(title)}`;
@@ -117,7 +152,12 @@ async function scrapeMangapillChapter(title, chapterNum) {
             matchedCh = chMatches.find(c => parseFloat(c[2]) === targetNum);
         }
         if (!matchedCh) {
-            matchedCh = chMatches.find(c => c[2] === String(chapterNum) || c[1].includes(`chapter-${chapterNum}`));
+            matchedCh = chMatches.find(c => {
+                return c[2] === String(chapterNum) ||
+                    c[1].includes(`chapter-${chapterNum}`) ||
+                    c[1].includes(`chapter-0${chapterNum}`) ||
+                    c[1].includes(`chapter-00${chapterNum}`);
+            });
         }
         if (!matchedCh && chMatches.length === 1) {
             matchedCh = chMatches[0];
@@ -158,17 +198,36 @@ async function scrapeWeebCentralChapter(title, chapterNum) {
         if (!lRes.ok) return null;
         const lHtml = await lRes.text();
 
-        const chBlocks = [...lHtml.matchAll(/href="([^"]*\/chapters\/([a-zA-Z0-9]+))"[^>]*>[\s\S]*?Chapter\s+([0-9\.]+)/gi)];
-        if (!chBlocks.length) return null;
-
+        // Match chapters with inner text to handle "Days 281", "Chapter 1", "Episode 1", "Act 1", etc.
+        const chBlocks = [...lHtml.matchAll(/href="([^"]*\/chapters\/([a-zA-Z0-9]+))"[^>]*>[\s\S]*?<span class="grow[^"]*">[\s\S]*?<span[^>]*>([^<]+)<\/span>/gi)];
         const targetNum = parseFloat(chapterNum);
         let matched = null;
-        if (!isNaN(targetNum)) {
-            matched = chBlocks.find(c => parseFloat(c[3]) === targetNum);
+
+        if (chBlocks.length) {
+            matched = chBlocks.find(c => {
+                const raw = (c[3] || '').trim();
+                const num = parseFloat(raw.match(/([0-9]+(?:\.[0-9]+)?)/)?.[1] || '');
+                return !isNaN(num) && !isNaN(targetNum) && num === targetNum;
+            });
+            if (!matched && !isNaN(targetNum)) {
+                matched = chBlocks.find(c => {
+                    const raw = (c[3] || '').trim().toLowerCase();
+                    return raw.includes(` ${chapterNum}`) || raw.endsWith(`${chapterNum}`);
+                });
+            }
         }
+
+        // Secondary regex fallback for standard chapter formats
         if (!matched) {
-            matched = chBlocks.find(c => c[3] === String(chapterNum));
+            const altBlocks = [...lHtml.matchAll(/href="([^"]*\/chapters\/([a-zA-Z0-9]+))"[^>]*>[\s\S]*?(?:chapter|episode|act|days|ch\.?|#)?\s*([0-9\.]+)/gi)];
+            if (!isNaN(targetNum)) {
+                matched = altBlocks.find(c => parseFloat(c[3]) === targetNum);
+            }
+            if (!matched) {
+                matched = altBlocks.find(c => c[3] === String(chapterNum));
+            }
         }
+
         if (!matched) return null;
 
         const chId = matched[2];
@@ -190,20 +249,31 @@ async function proxyMangaFallbackChapter(req, res, requestPath, query) {
 
     const title = (query.get('title') || '').trim();
     let chapter = (query.get('chapter') || '').trim();
+    let altTitles = [];
+    try {
+        const rawAlts = query.get('altTitles') || '';
+        if (rawAlts.startsWith('[') || rawAlts.startsWith('{')) {
+            const parsed = JSON.parse(rawAlts);
+            altTitles = Array.isArray(parsed) ? parsed : Object.values(parsed);
+        } else if (rawAlts) {
+            altTitles = rawAlts.split(',').map(s => s.trim()).filter(Boolean);
+        }
+    } catch (_) {}
 
     if (!chapter) {
         const m = title.match(/ch(?:apter)?\.?\s*([0-9\.]+)/i);
         chapter = m ? m[1] : '1';
     }
 
-    if (!title) {
+    if (!title && !altTitles.length) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'Title required' }));
         return true;
     }
 
-    const cleanTitle = title.replace(/\s+(manga|colored|comics|official)$/i, '').trim();
-    const cacheKey = `${cleanTitle.toLowerCase().replace(/[^a-z0-9]/g, '_')}_ch_${chapter}`;
+    const candidateTitles = getMangaCandidateTitles(title, altTitles);
+    const primaryKey = (candidateTitles[0] || title).toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const cacheKey = `${primaryKey}_ch_${chapter}`;
     const cached = fallbackMangaChapterCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
         res.writeHead(200, {
@@ -215,9 +285,12 @@ async function proxyMangaFallbackChapter(req, res, requestPath, query) {
         return true;
     }
 
-    let result = await scrapeMangapillChapter(cleanTitle, chapter);
-    if (!result) {
-        result = await scrapeWeebCentralChapter(cleanTitle, chapter);
+    let result = null;
+    for (const cand of candidateTitles) {
+        result = await scrapeWeebCentralChapter(cand, chapter);
+        if (result && result.pages && result.pages.length) break;
+        result = await scrapeMangapillChapter(cand, chapter);
+        if (result && result.pages && result.pages.length) break;
     }
 
     if (result && result.pages && result.pages.length) {
