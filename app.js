@@ -10509,12 +10509,7 @@ async function fetchMangaList(page = 1, type = '') {
         if (hint) hint.textContent = 'Popular Manga & Comic series';
     } finally {
         delete liveFed.manga;
-        if (currentSection === 'manga') {
-            renderMangaGrid(liveState.manga.page || 1);
-        } else {
-            const ms = document.getElementById('mangaSection');
-            if (ms) ms.style.display = 'none';
-        }
+        renderMangaGrid(liveState.manga.page || 1);
     }
 }
 
@@ -10621,11 +10616,6 @@ function createMangaCard(m) {
 }
 
 function renderMangaGrid(page) {
-    const ms = document.getElementById('mangaSection');
-    if (currentSection !== 'manga') {
-        if (ms) ms.style.display = 'none';
-        return;
-    }
     const grid = document.getElementById('mangaGrid');
     const pager = document.getElementById('mangaPager');
     if (!grid) return;
@@ -10830,33 +10820,13 @@ async function openChapter(chId) {
     const mangaTitle = mangaReader.info?.attributes?.title?.en
         || (mangaReader.info?.attributes?.title ? Object.values(mangaReader.info.attributes.title)[0] : '')
         || mangaReader.info?.title
-        || mangaReader.item?.title
         || '';
-
-    const altTitles = [];
-    if (mangaReader.item?.title) altTitles.push(mangaReader.item.title);
-    if (mangaReader.info?.attributes?.altTitles && Array.isArray(mangaReader.info.attributes.altTitles)) {
-        for (const altObj of mangaReader.info.attributes.altTitles) {
-            const val = Object.values(altObj)[0];
-            if (val && typeof val === 'string' && !altTitles.includes(val)) {
-                altTitles.push(val);
-            }
-        }
-    }
-    if (mangaReader.info?.attributes?.title) {
-        for (const val of Object.values(mangaReader.info.attributes.title)) {
-            if (val && typeof val === 'string' && !altTitles.includes(val)) {
-                altTitles.push(val);
-            }
-        }
-    }
-
-    const chNum = ch?.chapter || (ch?.name ? (ch.name.match(/(?:ch(?:apter)?\.?|days|ep\.?|#)\s*([0-9\.]+)/i)?.[1] || '') : '');
+    const chNum = ch?.chapter || (ch?.name ? (ch.name.match(/ch(?:apter)?\.?\s*([0-9\.]+)/i)?.[1] || '') : '');
 
     if (ch && ch.externalUrl) {
         pagesEl.innerHTML = '<div class="live-loading">Extracting chapter image pages…</div>';
         try {
-            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&altTitles=${encodeURIComponent(JSON.stringify(altTitles))}&chapter=${encodeURIComponent(chNum)}&externalUrl=${encodeURIComponent(ch.externalUrl || '')}`);
+            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&chapter=${encodeURIComponent(chNum)}&externalUrl=${encodeURIComponent(ch.externalUrl || '')}`);
             if (fbRes.ok) {
                 const fbData = await fbRes.json();
                 if (fbData && fbData.pages && fbData.pages.length) {
@@ -10877,10 +10847,7 @@ async function openChapter(chId) {
         pagesEl.innerHTML = `<div class="live-error" style="text-align:center; padding: 36px 16px;">
             <p style="margin-bottom:14px; font-weight:600; font-size:15px; color:#ff2e63;">This chapter is hosted externally by the publisher.</p>
             <p style="margin-bottom:18px; font-size:13px; color:#a0a0aa; max-width:480px; margin-left:auto; margin-right:auto;">Direct image pages could not be extracted for this specific chapter. You can read it directly on the publisher site below:</p>
-            <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-                <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none; font-weight:600;">Open on Official Publisher ↗</a>
-                <button type="button" class="btn btn-secondary" onclick="openChapter('${escapeHtml(chId)}')" style="display:inline-block; padding:10px 18px; font-size:14px; border-radius:8px; cursor:pointer;">Retry Extraction ↻</button>
-            </div>
+            <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none; font-weight:600;">Open on Official Publisher ↗</a>
         </div>`;
         mangaReader.images = [];
         mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
@@ -11391,7 +11358,6 @@ function applySectionChange(section, link, pushHistory = true) {
         document.body.classList.add(section + '-active');
     }
     const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
-    show('mangaSection', section === 'manga');
     show('homeRecommendationsSection', section === 'home');
     show('exploreGenresSection', section === 'home');
     show('providerSection', section==='home' || section==='streaming');
@@ -11421,7 +11387,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('myListSection', false);
         show('homeGenres', true);
         show('popularSection', false);
-        show('mangaSection', false);
         document.getElementById('moviesSection').classList.add('catalog-grid');
         document.getElementById('tvShowsSection').classList.add('catalog-grid');
         renderAnime();
@@ -11434,7 +11399,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('myListSection', true);
         show('homeGenres', false);
         show('popularSection', false);
-        show('mangaSection', false);
         const hg = document.getElementById('homeGenres');
         if (hg) hg.style.display = 'none';
         renderMyList();
@@ -11448,7 +11412,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('streamingSection', false);
         show('theatersSection', false);
         show('popularSection', false);
-        show('mangaSection', false);
         renderLiveTab('trending');
         showLiveHero('trending', true);
         renderCollections();
@@ -11461,7 +11424,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('streamingSection', true);
         show('theatersSection', false);
         show('popularSection', false);
-        show('mangaSection', false);
         renderLiveTab('streaming');
         showLiveHero('streaming', true);
     } else if (section === 'free') {
@@ -11531,13 +11493,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('theatersSection', false);
         show('popularSection', false);
         show('musicSection', false);
-        show('collectionsSection', false);
-        show('providerSection', false);
-        show('providersSection', false);
-        show('homeRecommendationsSection', false);
-        show('exploreGenresSection', false);
-        show('animeContinueWatchingSection', false);
-        show('movieContinueWatchingSection', false);
         const ms = document.getElementById('mangaSection');
         if (ms) ms.style.display = 'flex';
         renderLiveTab('manga');
@@ -11562,7 +11517,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('myListSection', false);
         show('homeGenres', true);
         show('popularSection', false);
-        show('mangaSection', false);
         document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
         document.getElementById('tvShowsSection').classList.add('catalog-grid');
         document.getElementById('moviesSection').classList.remove('catalog-grid');
@@ -11575,7 +11529,6 @@ function applySectionChange(section, link, pushHistory = true) {
         show('myListSection', false);
         show('homeGenres', true);
         show('popularSection', false);
-        show('mangaSection', false);
         document.querySelector('#moviesSection .section-title').textContent = 'Movies';
         document.getElementById('moviesSection').classList.add('catalog-grid');
         document.getElementById('tvShowsSection').classList.remove('catalog-grid');
@@ -11593,7 +11546,6 @@ function applySectionChange(section, link, pushHistory = true) {
             show('streamingSection', false);
             show('theatersSection', false);
             show('popularSection', true);
-            show('mangaSection', false);
             renderLiveTab('trending');
             renderLiveTab('popular');
             try { renderCollections(); } catch {}
@@ -11606,7 +11558,6 @@ function applySectionChange(section, link, pushHistory = true) {
             show('streamingSection', false);
             show('theatersSection', false);
             show('popularSection', false);
-            show('mangaSection', false);
             document.getElementById('heroSection').style.display = 'none';
         }
         updateHero(true);
@@ -11640,7 +11591,6 @@ function applyHomeFilter() {
     try {
         const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
         const isMovies = homeFilter === 'movies';
-        show('mangaSection', false);
         show('moviesSection', isMovies);
         show('tvShowsSection', !isMovies);
         show('homeGenres', true);

@@ -2545,23 +2545,6 @@ body.mylist-active #homeGenres {
 /* Live tabs (Trending / Streaming / In Theaters / Most Popular) */
 #trendingSection, #streamingSection, #freeSection, #theatersSection, #popularSection, #mangaSection { display: none; }
 
-/* Keep manga strictly hidden on all tabs except Manga tab */
-body:not(.manga-active) #mangaSection,
-body.home-active #mangaSection,
-body.movies-active #mangaSection,
-body.tvshows-active #mangaSection,
-body.anime-active #mangaSection,
-body.mylist-active #mangaSection,
-body.trending-active #mangaSection,
-body.streaming-active #mangaSection,
-body.free-active #mangaSection,
-body.providers-active #mangaSection,
-body.theaters-active #mangaSection,
-body.popular-active #mangaSection,
-body.music-active #mangaSection {
-    display: none !important;
-}
-
 body.trending-active #tvShowsSection,
 body.trending-active #moviesSection,
 body.streaming-active #moviesSection,
