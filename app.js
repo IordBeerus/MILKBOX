@@ -3222,158 +3222,15 @@ let _genreIdleTimer = null;
 function renderGenreRows() {
     const container = document.getElementById('homeGenres');
     if (!container) return;
-    // Genres removed from static page layout per user request; loaded on-demand via Browse Row
-    if (currentSection !== 'anime') {
-        container.style.display = 'none';
-        container.innerHTML = '';
-        return;
-    }
-    container.style.display = '';
-
-    let pool, suffix, skip = null;
-    if (currentSection === 'movies' || (currentSection === 'home' && homeFilter === 'movies')) {
-        pool = movies.filter(completeItem);
-        suffix = ' Movies';
-    } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
-        pool = tvShows.filter(completeItem);
-        suffix = ' Shows';
-    } else if (currentSection === 'anime') {
-        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
-        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
-        const seen = new Set(local.map(x => x.tmdbId || x.id));
-        const merged = [...local];
-        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
-        pool = merged;
-        suffix = '';
-        skip = 'anime';
-    } else {
-        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
-        suffix = '';
-    }
-
-    
-    const genreIndex = new Map();
-    for (let i = 0; i < pool.length; i++) {
-        const gs = genArr(pool[i].genre);
-        const seenInItem = new Set();
-        for (let g = 0; g < gs.length; g++) {
-            const raw = String(gs[g] || '').trim();
-            if (!raw) continue;
-            const k = normalizeGenreKey(raw);
-            if (!k || seenInItem.has(k)) continue;
-            seenInItem.add(k);
-            if (!genreIndex.has(k)) genreIndex.set(k, []);
-            genreIndex.get(k).push(pool[i]);
-        }
-    }
-
-    const labelMap = {};
-    GENRE_ROWS.forEach(({ key, label }) => { labelMap[key] = label; });
-    const known = [];
-    const other = [];
-    GENRE_ROWS.forEach(({ key }) => {
-        if (key !== skip && genreIndex.has(key) && genreIndex.get(key).length) known.push(key);
-    });
-    [...genreIndex.keys()].forEach((k) => {
-        if (k === skip || known.includes(k)) return;
-        if (genreIndex.get(k).length) other.push(k);
-    });
-    other.sort((a, b) => genreIndex.get(b).length - genreIndex.get(a).length);
-
-    const isAnimeTab = currentSection === 'anime';
-    const allKeys = [...known, ...other];
-
-    function pagerHtml(key, page, total) {
-        return `<button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page-1}" ${page===1?'disabled':''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total}</span><button class="pager-btn pager-nav" data-animegenre="${key}" data-page="${page+1}" ${page===total?'disabled':''}>Next &#10095;</button>`;
-    }
-
-    let html = '';
-    allKeys.forEach((key) => {
-        const items = genreIndex.get(key) || [];
-        const label = labelMap[key] || (key.charAt(0).toUpperCase() + key.slice(1));
-        if (isAnimeTab) {
-            const total = Math.ceil(items.length / ANIME_GENRE_PER_PAGE) || 1;
-            const page = Math.min(Math.max(1, animeGenrePage[key] || 1), total);
-            animeGenrePage[key] = page;
-            html += `<section class="content-section is-visible" id="genreSection-${key}" data-genre-key="${key}"><h3 class="section-title">${label}${suffix}</h3><div class="content-grid" id="animeGenreGrid-${key}"></div><div class="pagination" id="animeGenrePager-${key}" style="${total<=1?'display:none':''}">${pagerHtml(key, page, total)}</div></section>`;
-        } else {
-            html += `<section class="content-section is-visible" id="genreSection-${key}" data-genre-key="${key}"><h3 class="section-title">${label}${suffix}</h3><div class="slider-container"><button class="slider-btn slider-left" data-slider="genreSlider-${key}" aria-label="Scroll ${label} left">❮</button><div class="slider" id="genreSlider-${key}"></div><button class="slider-btn slider-right" data-slider="genreSlider-${key}" aria-label="Scroll ${label} right">❯</button></div><div class="pagination" id="genrePager-${key}"></div></section>`;
-        }
-    });
-    container.innerHTML = html;
-
-    const renderedRows = new Set();
-    const renderRowCards = (key) => {
-        if (!key || renderedRows.has(key)) return;
-        renderedRows.add(key);
-        const items = genreIndex.get(key) || [];
-        if (!items.length) return;
-        if (isAnimeTab) {
-            const grid = document.getElementById(`animeGenreGrid-${key}`);
-            if (!grid) return;
-            const total = Math.ceil(items.length / ANIME_GENRE_PER_PAGE) || 1;
-            const page = Math.min(Math.max(1, animeGenrePage[key] || 1), total);
-            const start = (page - 1) * ANIME_GENRE_PER_PAGE;
-            const slice = items.slice(start, start + ANIME_GENRE_PER_PAGE);
-            grid.innerHTML = '';
-            const frag = document.createDocumentFragment();
-            slice.forEach(it => {
-                const type = it.type === 'tv' ? 'tv' : 'movie';
-                frag.appendChild(createCard(it, type, true));
-            });
-            grid.appendChild(frag);
-        } else {
-            renderSlider('genreSlider-' + key, items, 'mixed', 'genrePager-' + key, 'genre-' + key);
-        }
-    };
-
-    window._ensureGenreRendered = (k) => {
-        const norm = normalizeGenreKey(k);
-        if (genreIndex.has(norm)) renderRowCards(norm);
-        else if (genreIndex.has(k)) renderRowCards(k);
-    };
-
-    
-    allKeys.slice(0, 4).forEach(renderRowCards);
-
-   
     if (_genreHydrationObserver) {
         try { _genreHydrationObserver.disconnect(); } catch (_) {}
     }
-    if (typeof IntersectionObserver !== 'undefined') {
-        _genreHydrationObserver = new IntersectionObserver((entries, obs) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const k = entry.target.dataset.genreKey;
-                    if (k) renderRowCards(k);
-                    obs.unobserve(entry.target);
-                }
-            });
-        }, { rootMargin: '450px 0px' });
-        allKeys.forEach(key => {
-            if (!renderedRows.has(key)) {
-                const sec = document.getElementById(`genreSection-${key}`);
-                if (sec) _genreHydrationObserver.observe(sec);
-            }
-        });
-    }
-
-    
     if (_genreIdleTimer) clearTimeout(_genreIdleTimer);
-    let idleIndex = 4;
-    function hydrateNextIdle() {
-        if (idleIndex >= allKeys.length) return;
-        const batch = allKeys.slice(idleIndex, idleIndex + 2);
-        idleIndex += 2;
-        batch.forEach(k => renderRowCards(k));
-        if (idleIndex < allKeys.length) {
-            _genreIdleTimer = setTimeout(hydrateNextIdle, 60);
-        }
-    }
-    if (allKeys.length > 4) {
-        _genreIdleTimer = setTimeout(hydrateNextIdle, 100);
-    }
+    // Static genre sections removed per user request; loaded on-demand via Browse Row into #loadedGenreSection
+    container.style.display = 'none';
+    container.innerHTML = '';
 }
+window._ensureGenreRendered = () => {};
 
 function renderHomeDiscovery() {
     if (currentSection !== 'home' && currentSection !== 'movies' && currentSection !== 'tvshows' && currentSection !== 'anime') return;
@@ -8167,7 +8024,7 @@ function hideSearchResults() {
     const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
   
     if (currentSection === 'anime') {
-        show('moviesSection', true); show('tvShowsSection', true); show('myListSection', false); show('homeGenres', true); show('popularSection', false);
+        show('moviesSection', true); show('tvShowsSection', true); show('myListSection', false); show('homeGenres', false); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
         show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', true);
     } else if (currentSection === 'mylist') {
@@ -11713,7 +11570,7 @@ function applySectionChange(section, link, pushHistory = true) {
         show('moviesSection', true);
         show('tvShowsSection', true);
         show('myListSection', false);
-        show('homeGenres', true);
+        show('homeGenres', false);
         show('popularSection', false);
         show('mangaSection', false);
         show('exploreGenresSection', true);
@@ -11856,7 +11713,7 @@ function applySectionChange(section, link, pushHistory = true) {
         show('moviesSection', false);
         show('tvShowsSection', true);
         show('myListSection', false);
-        show('homeGenres', true);
+        show('homeGenres', false);
         show('popularSection', false);
         show('mangaSection', false);
         show('exploreGenresSection', true);
@@ -11871,7 +11728,7 @@ function applySectionChange(section, link, pushHistory = true) {
         show('moviesSection', true);
         show('tvShowsSection', false);
         show('myListSection', false);
-        show('homeGenres', true);
+        show('homeGenres', false);
         show('popularSection', false);
         show('mangaSection', false);
         show('exploreGenresSection', true);
@@ -11946,7 +11803,7 @@ function applyHomeFilter() {
         show('mangaSection', false);
         show('moviesSection', isMovies);
         show('tvShowsSection', !isMovies);
-        show('homeGenres', true);
+        show('homeGenres', false);
         
         const ms = document.getElementById('moviesSection');
         const tv = document.getElementById('tvShowsSection');
