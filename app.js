@@ -4076,7 +4076,21 @@ document.getElementById('genreSpotlightTabs')?.addEventListener('click', (e) => 
     _currentSpotlightFilter = tab.dataset.filter || 'all';
 
     const norm = typeof normalizeGenreKey === 'function' ? normalizeGenreKey(_currentSpotlightGenre) : _currentSpotlightGenre.toLowerCase();
-    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    let pool = [];
+    if (currentSection === 'movies' || (currentSection === 'home' && homeFilter === 'movies')) {
+        pool = movies.filter(completeItem);
+    } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
+        pool = tvShows.filter(completeItem);
+    } else if (currentSection === 'anime' || (currentSection === 'home' && homeFilter === 'anime')) {
+        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+        const seen = new Set(local.map(x => x.tmdbId || x.id));
+        const merged = [...local];
+        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+        pool = merged;
+    } else {
+        pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    }
     const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
     renderGenreSpotlightGrid(genreItems, _currentSpotlightFilter);
 });
@@ -4158,6 +4172,8 @@ function refreshCurrent() {
     if (currentSection === 'anime') {
         renderAnime();
         showAnimeHero(false);
+        renderGenreRows();
+        renderHomeDiscovery();
         loadAnimeLive();
     } else if (currentSection === 'mylist') {
         renderMyList();
@@ -4168,10 +4184,12 @@ function refreshCurrent() {
         renderCatalogGrid('tvshows');
         showTvHero(false);
         renderGenreRows();
+        renderHomeDiscovery();
     } else if (currentSection === 'movies') {
         renderCatalogGrid('movies');
         showMovieHero(false);
         renderGenreRows();
+        renderHomeDiscovery();
     } else if (currentSection === 'trending') {
         renderLiveTab('trending');
         showLiveHero('trending', false);
@@ -8151,49 +8169,48 @@ function hideSearchResults() {
     if (currentSection === 'anime') {
         show('moviesSection', true); show('tvShowsSection', true); show('myListSection', false); show('homeGenres', true); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', true);
     } else if (currentSection === 'mylist') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', true); show('homeGenres', false); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'movies') {
         show('moviesSection', true); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', true);
     } else if (currentSection === 'tvshows') {
         show('moviesSection', false); show('tvShowsSection', true); show('myListSection', false); show('homeGenres', false); show('popularSection', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', true);
     } else if (currentSection === 'trending') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', true); show('streamingSection', false); show('theatersSection', false); show('popularSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', true);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', true); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'streaming') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false); show('musicSection', false);
         show('trendingSection', false); show('streamingSection', true); show('theatersSection', false); show('popularSection', false); show('mangaSection', false);
-        show('heroSection', true); show('providerSection', true); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', true); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'free') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false); show('musicSection', false);
         show('trendingSection', false); show('streamingSection', false); show('freeSection', true); show('theatersSection', false); show('popularSection', false); show('mangaSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'theaters') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', true); show('popularSection', false); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'popular') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('popularSection', true); show('mangaSection', false); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'manga') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('popularSection', false); show('mangaSection', true); show('musicSection', false);
-        show('heroSection', true); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', true); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else if (currentSection === 'music') {
         show('moviesSection', false); show('tvShowsSection', false); show('myListSection', false); show('homeGenres', false);
         show('trendingSection', false); show('streamingSection', false); show('theatersSection', false); show('popularSection', false); show('mangaSection', false); show('musicSection', true);
-        show('heroSection', false); show('providerSection', false); show('collectionsSection', false);
+        show('heroSection', false); show('providerSection', false); show('collectionsSection', false); show('exploreGenresSection', false); show('loadedGenreSection', false);
     } else {
-        
         show('moviesSection', true); show('tvShowsSection', true); show('myListSection', true); show('homeGenres', false); show('exploreGenresSection', true);
         show('trendingSection', true); show('streamingSection', false); show('theatersSection', false); show('popularSection', true); show('mangaSection', false); show('musicSection', false);
         show('heroSection', true); show('providerSection', true); show('collectionsSection', true);
@@ -11668,7 +11685,9 @@ function applySectionChange(section, link, pushHistory = true) {
     const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
     show('mangaSection', section === 'manga');
     show('homeRecommendationsSection', section === 'home');
-    show('exploreGenresSection', section === 'home');
+    const isGenreTab = section === 'home' || section === 'movies' || section === 'tvshows' || section === 'anime';
+    show('exploreGenresSection', isGenreTab);
+    if (!isGenreTab) show('loadedGenreSection', false);
     show('providerSection', section==='home' || section==='streaming');
     show('providersSection', section==='providers');
     show('collectionsSection', section==='home');
@@ -11697,11 +11716,13 @@ function applySectionChange(section, link, pushHistory = true) {
         show('homeGenres', true);
         show('popularSection', false);
         show('mangaSection', false);
+        show('exploreGenresSection', true);
         document.getElementById('moviesSection').classList.add('catalog-grid');
         document.getElementById('tvShowsSection').classList.add('catalog-grid');
         renderAnime();
         showAnimeHero(true);
         renderGenreRows();
+        renderHomeDiscovery();
         loadAnimeLive();
     } else if (section === 'mylist') {
         show('moviesSection', false);
@@ -11838,12 +11859,14 @@ function applySectionChange(section, link, pushHistory = true) {
         show('homeGenres', true);
         show('popularSection', false);
         show('mangaSection', false);
+        show('exploreGenresSection', true);
         document.querySelector('#tvShowsSection .section-title').textContent = 'TV Shows';
         document.getElementById('tvShowsSection').classList.add('catalog-grid');
         document.getElementById('moviesSection').classList.remove('catalog-grid');
         renderCatalogGrid('tvshows');
         showTvHero(true);
         renderGenreRows();
+        renderHomeDiscovery();
     } else if (section === 'movies') {
         show('moviesSection', true);
         show('tvShowsSection', false);
@@ -11851,12 +11874,14 @@ function applySectionChange(section, link, pushHistory = true) {
         show('homeGenres', true);
         show('popularSection', false);
         show('mangaSection', false);
+        show('exploreGenresSection', true);
         document.querySelector('#moviesSection .section-title').textContent = 'Movies';
         document.getElementById('moviesSection').classList.add('catalog-grid');
         document.getElementById('tvShowsSection').classList.remove('catalog-grid');
         renderCatalogGrid('movies');
         showMovieHero(true);
         renderGenreRows();
+        renderHomeDiscovery();
         try { loadMoviesLive(); } catch (_) {}
     } else {
         document.querySelector('#moviesSection .section-title').textContent = 'Movies';
@@ -11870,9 +11895,11 @@ function applySectionChange(section, link, pushHistory = true) {
             show('theatersSection', false);
             show('popularSection', true);
             show('mangaSection', false);
+            show('exploreGenresSection', true);
             renderLiveTab('trending');
             renderLiveTab('popular');
             try { renderCollections(); } catch {}
+            renderHomeDiscovery();
         } else {
             show('moviesSection', section === 'movies');
             show('tvShowsSection', section === 'tvshows');
