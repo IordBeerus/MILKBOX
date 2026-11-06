@@ -122,6 +122,13 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 url: `https://www.vidy.st/anime/${encodeURIComponent(id)}/${encodeURIComponent(ep)}?color=${accent}&autoplay=true`
             },
             {
+                id: 'vidnest',
+                name: 'VidNest Anime',
+                quality: '1080p HD',
+                icon: '🪺',
+                url: `https://vidnest.fun/anime/${encodeURIComponent(id)}/${encodeURIComponent(ep)}/sub`
+            },
+            {
                 id: 'autoembed',
                 name: 'AutoEmbed Anime',
                 quality: '1080p HD',
@@ -166,11 +173,11 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 fallbackUrl: `https://www.cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
             },
             {
-                id: 'milkbox',
-                name: 'Milkbox Pink (Core)',
-                quality: '1080p Ultra',
+                id: 'vidstuck',
+                name: 'VidStuck (vidstuck.cc)',
+                quality: '1080p HD',
                 icon: '⚡',
-                url: `https://www.vidy.st/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`
+                url: `https://vidstuck.cc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`
             },
             {
                 id: 'vidlink',
@@ -178,6 +185,41 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 quality: '1080p HD',
                 icon: '💎',
                 url: `https://vidlink.pro/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?primaryColor=${accent}&secondaryColor=ff6b9d&iconColor=${accent}&icons=default&player=default&title=true&poster=true&autoplay=true&nextbutton=true`
+            },
+            {
+                id: 'vidnest',
+                name: 'VidNest (vidnest.fun)',
+                quality: '1080p HD',
+                icon: '🪺',
+                url: `https://vidnest.fun/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'vixsrc',
+                name: 'VixSrc (vixsrc.to)',
+                quality: '1080p HD',
+                icon: '🦊',
+                url: `https://vixsrc.to/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'vidfast',
+                name: 'VidFast (vidfast.vc)',
+                quality: '1080p HD',
+                icon: '⚡',
+                url: `https://vidfast.vc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
+            },
+            {
+                id: 'vidzee',
+                name: 'VidZee (player.vidzee.wtf)',
+                quality: '1080p HD',
+                icon: '🪐',
+                url: `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'milkbox',
+                name: 'Milkbox Pink (Core)',
+                quality: '1080p Ultra',
+                icon: '⚡',
+                url: `https://www.vidy.st/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`
             },
             {
                 id: 'cinesrc',
@@ -217,7 +259,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
         ];
     }
 
-    
+    // Default: Movie
     return [
         {
             id: 'x8rrmovies',
@@ -238,11 +280,11 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             fallbackUrl: `https://www.cinesrc.st/embed/movie/${encodeURIComponent(id)}`
         },
         {
-            id: 'milkbox',
-            name: 'Milkbox Pink (Core)',
-            quality: '1080p Ultra',
+            id: 'vidstuck',
+            name: 'VidStuck (vidstuck.cc)',
+            quality: '1080p HD',
             icon: '⚡',
-            url: `https://www.vidy.st/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`
+            url: `https://vidstuck.cc/embed/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`
         },
         {
             id: 'vidlink',
@@ -250,6 +292,41 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             quality: '1080p HD',
             icon: '💎',
             url: `https://vidlink.pro/movie/${encodeURIComponent(id)}?primaryColor=${accent}&secondaryColor=ff6b9d&iconColor=${accent}&icons=default&player=default&title=true&poster=true&autoplay=true`
+        },
+        {
+            id: 'vidnest',
+            name: 'VidNest (vidnest.fun)',
+            quality: '1080p HD',
+            icon: '🪺',
+            url: `https://vidnest.fun/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'vixsrc',
+            name: 'VixSrc (vixsrc.to)',
+            quality: '1080p HD',
+            icon: '🦊',
+            url: `https://vixsrc.to/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'vidfast',
+            name: 'VidFast (vidfast.vc)',
+            quality: '1080p HD',
+            icon: '⚡',
+            url: `https://vidfast.vc/embed/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`
+        },
+        {
+            id: 'vidzee',
+            name: 'VidZee (player.vidzee.wtf)',
+            quality: '1080p HD',
+            icon: '🪐',
+            url: `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'milkbox',
+            name: 'Milkbox Pink (Core)',
+            quality: '1080p Ultra',
+            icon: '⚡',
+            url: `https://www.vidy.st/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`
         },
         {
             id: 'cinesrc',

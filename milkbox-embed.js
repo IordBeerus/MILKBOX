@@ -128,7 +128,12 @@
     const SERVERS = [
         { id: 'x8rrmovies', name: 'x8rr Movies (Ad-Free HLS)', icon: '🍿' },
         { id: 'milkbox', name: 'Milkbox Pink (Core)', icon: '⚡' },
+        { id: 'vidstuck', name: 'VidStuck (vidstuck.cc)', icon: '⚡' },
         { id: 'vidlink', name: 'VidLink Ultra', icon: '💎' },
+        { id: 'vidnest', name: 'VidNest (vidnest.fun)', icon: '🪺' },
+        { id: 'vixsrc', name: 'VixSrc (vixsrc.to)', icon: '🦊' },
+        { id: 'vidfast', name: 'VidFast (vidfast.vc)', icon: '⚡' },
+        { id: 'vidzee', name: 'VidZee (player.vidzee.wtf)', icon: '🪐' },
         { id: 'cinesrc', name: 'CineSRC 4K', icon: '🎬' },
         { id: 'vidsrcsbs', name: 'VidSrc SBS', icon: '🚀' },
         { id: 'vidcore', name: 'VidCore HD', icon: '🛡️' },
@@ -231,6 +236,13 @@
                 return `https://www.vidy.st/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`;
             }
 
+            case 'vidstuck': {
+                if (type === 'tv') {
+                    return `https://vidstuck.cc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`;
+                }
+                return `https://vidstuck.cc/embed/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`;
+            }
+
             case 'vidlink': {
                 if (type === 'tv') {
                     return `https://vidlink.pro/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?primaryColor=${accent}&secondaryColor=ff6b9d&iconColor=${accent}&icons=default&player=default&title=true&poster=true&autoplay=true&nextbutton=true`;
@@ -239,6 +251,38 @@
                     return `https://www.vidy.st/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}?color=${accent}&autoplay=true`;
                 }
                 return `https://vidlink.pro/movie/${encodeURIComponent(id)}?primaryColor=${accent}&secondaryColor=ff6b9d&iconColor=${accent}&icons=default&player=default&title=true&poster=true&autoplay=true`;
+            }
+
+            case 'vidnest': {
+                if (type === 'anime') {
+                    return `https://vidnest.fun/anime/${encodeURIComponent(id)}/${encodeURIComponent(episode || 1)}/sub`;
+                }
+                if (type === 'tv') {
+                    return `https://vidnest.fun/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidnest.fun/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vixsrc': {
+                if (type === 'tv') {
+                    return `https://vixsrc.to/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vixsrc.to/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vidfast':
+            case 'vidfastvc': {
+                if (type === 'tv') {
+                    return `https://vidfast.vc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=${accent}`;
+                }
+                return `https://vidfast.vc/embed/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`;
+            }
+
+            case 'vidzee': {
+                if (type === 'tv') {
+                    return `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(id)}`;
             }
 
             case 'cinesrc': {
