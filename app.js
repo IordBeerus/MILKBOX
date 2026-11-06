@@ -344,8 +344,11 @@ function saveData() {
 
 
 function libraryBytes() {
-    try { return JSON.stringify(movies).length + JSON.stringify(tvShows).length + JSON.stringify(myList).length + JSON.stringify(settings).length; }
-    catch (e) { return 0; }
+    try {
+        const mCache = movies.slice(0, 300);
+        const tCache = tvShows.slice(0, 300);
+        return JSON.stringify(mCache).length + JSON.stringify(tCache).length + JSON.stringify(myList).length + JSON.stringify(settings).length;
+    } catch (e) { return 0; }
 }
 
 
@@ -1944,10 +1947,7 @@ function renderCatalogGrid(section, source) {
     slice.forEach(item => slider.appendChild(createCard(item, cfg.type, isLandscape)));
     if (pager) {
         pager.style.display = total > 1 ? '' : 'none';
-        const loadMoreHtml = (cfg.pkey === 'movies')
-            ? `<button type="button" class="pager-btn pager-load-more" id="loadMoreMoviesBtn" style="margin-left:12px; font-weight:700; color:#ff6b8b; border:1px solid rgba(255,46,99,0.45); background:rgba(255,46,99,0.14); padding:6px 14px; border-radius:6px; cursor:pointer;" title="Discover &amp; load more movie titles from TMDB">+ Load More Movies</button>`
-            : '';
-        pager.innerHTML = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total} (${items.length} titles)</span><button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>${loadMoreHtml}`;
+        pager.innerHTML = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total} (${items.length.toLocaleString()} titles)</span><button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
     } else if (pager) {
         pager.style.display = 'none';
     }
@@ -1955,23 +1955,6 @@ function renderCatalogGrid(section, source) {
 
 
 document.addEventListener('click', async (e) => {
-    const loadBtn = e.target.closest('#loadMoreMoviesBtn');
-    if (loadBtn) {
-        e.preventDefault();
-        loadBtn.disabled = true;
-        const origText = loadBtn.textContent;
-        loadBtn.textContent = 'Loading titles…';
-        try {
-            await loadMoviesLive(true);
-            if (typeof toast === 'function') toast('Loaded more movie titles from TMDB!', 'success');
-        } catch (err) {
-            if (typeof toast === 'function') toast('Could not load more movies: ' + (err.message || 'Error'), 'error');
-        } finally {
-            loadBtn.disabled = false;
-            loadBtn.textContent = origText;
-        }
-        return;
-    }
     const btn = e.target.closest('.pager-btn[data-catpage]');
     if (!btn) return;
     const key = btn.dataset.catpage;
@@ -1979,6 +1962,11 @@ document.addEventListener('click', async (e) => {
     if (isNaN(page)) return;
     catalogPage[key] = page;
     renderCatalogGrid(key, currentSection === 'home' ? 'home' : '');
+    const sliderEl = document.getElementById(key === 'movies' ? 'moviesSlider' : (key === 'tvshows' ? 'tvShowsSlider' : 'moviesSlider'));
+    if (sliderEl) sliderEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (typeof autoExpandCatalog === 'function') {
+        autoExpandCatalog(key, page);
+    }
 });
 
 
@@ -7593,7 +7581,7 @@ async function enrichTmdbDetails(items, btn, quiet) {
 
 
 async function enrichMissingLogos() {
-    const needLogo = [...movies, ...tvShows].filter(m => m && m.tmdbId && !m.logo);
+    const needLogo = [...movies.slice(0, 40), ...tvShows.slice(0, 40)].filter(m => m && m.tmdbId && !m.logo);
     if (!needLogo.length) return;
     await enrichTmdbDetails(needLogo, null, true);
 }
@@ -11222,23 +11210,24 @@ async function loadAnimeLive() {
 }
 
 const moviesLiveState = { fed: false, loading: false, page: 1 };
+const tvLiveState = { fed: false, loading: false, page: 1 };
 
 async function loadMoviesLive(forceMore = false) {
     if (moviesLiveState.loading) return;
-    if (!forceMore && moviesLiveState.fed && movies.length >= 350) return;
+    if (!forceMore && moviesLiveState.fed && movies.length >= 25000) return;
     moviesLiveState.loading = true;
     try {
         await tmdbEnsureConfig();
         const startPage = forceMore ? (moviesLiveState.page || 1) : 1;
-        const pageCount = 4;
+        const pageCount = 6;
         const paths = [];
         for (let p = startPage; p < startPage + pageCount; p++) {
             paths.push(`/movie/popular?page=${p}`);
-            paths.push(`/discover/movie?sort_by=popularity.desc&vote_count.gte=50&page=${p}`);
+            paths.push(`/discover/movie?sort_by=popularity.desc&vote_count.gte=30&page=${p}`);
             paths.push(`/movie/top_rated?page=${p}`);
             paths.push(`/movie/now_playing?page=${p}`);
         }
-        const jsons = await fetchBatched(paths, 4);
+        const jsons = await fetchBatched(paths, 6);
         const fetched = [];
         (jsons || []).forEach(d => {
             if (d && Array.isArray(d.results)) {
@@ -11275,6 +11264,79 @@ async function loadMoviesLive(forceMore = false) {
     }
 }
 window.loadMoviesLive = loadMoviesLive;
+
+async function loadTvShowsLive(forceMore = false) {
+    if (tvLiveState.loading) return;
+    if (!forceMore && tvLiveState.fed && tvShows.length >= 20000) return;
+    tvLiveState.loading = true;
+    try {
+        await tmdbEnsureConfig();
+        const startPage = forceMore ? (tvLiveState.page || 1) : 1;
+        const pageCount = 6;
+        const paths = [];
+        for (let p = startPage; p < startPage + pageCount; p++) {
+            paths.push(`/tv/popular?page=${p}`);
+            paths.push(`/discover/tv?sort_by=popularity.desc&vote_count.gte=20&page=${p}`);
+            paths.push(`/tv/top_rated?page=${p}`);
+            paths.push(`/tv/on_the_air?page=${p}`);
+        }
+        const jsons = await fetchBatched(paths, 6);
+        const fetched = [];
+        (jsons || []).forEach(d => {
+            if (d && Array.isArray(d.results)) {
+                d.results.forEach(r => {
+                    if (r && r.id && !r.adult && (r.name || r.title)) {
+                        fetched.push(liveItemToItem(r, 'tv'));
+                    }
+                });
+            }
+        });
+        if (fetched.length) {
+            const seen = new Set(tvShows.map(t => String(t.tmdbId || t.id)));
+            let addedCount = 0;
+            fetched.forEach(item => {
+                const key = String(item.tmdbId || item.id);
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    tvShows.push(item);
+                    addedCount++;
+                }
+            });
+            tvLiveState.page = startPage + pageCount;
+            tvLiveState.fed = true;
+            if (addedCount > 0) {
+                if (currentSection === 'tvshows' || currentSection === 'home') {
+                    renderCatalogGrid('tvshows', currentSection === 'home' ? 'home' : '');
+                }
+            }
+        }
+    } catch (e) {
+        console.warn('[MILKBOX] Live TV fetch warning:', e?.message || e);
+    } finally {
+        tvLiveState.loading = false;
+    }
+}
+window.loadTvShowsLive = loadTvShowsLive;
+
+async function autoExpandCatalog(key, page) {
+    if (key === 'movies') {
+        const total = Math.ceil(movies.length / 36);
+        if (page >= total - 3) {
+            loadMoviesLive(true);
+        }
+    } else if (key === 'tvshows') {
+        const total = Math.ceil(tvShows.length / 36);
+        if (page >= total - 3) {
+            loadTvShowsLive(true);
+        }
+    } else if (key === 'animeMovie' || key === 'animeTv') {
+        const total = Math.ceil((key === 'animeMovie' ? movies.filter(isAnime).length : tvShows.filter(isAnime).length) / 36);
+        if (page >= total - 3) {
+            loadAnimeLive();
+        }
+    }
+}
+window.autoExpandCatalog = autoExpandCatalog;
 
 function renderAnime() {
     renderCatalogGrid('animeMovie');

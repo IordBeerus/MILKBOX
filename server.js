@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
 const { Writable } = require('stream');
 const { Innertube, Platform } = require('youtubei.js');
 const { handleStreamResolve, handleStreamProxy } = require('./stream-provider');
@@ -1684,6 +1685,25 @@ const server = http.createServer(async (req, res) => {
         const type = mimeTypes[ext] || 'application/octet-stream';
         const isStaticAsset = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'].includes(ext);
         const cacheControl = isStaticAsset ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache';
+        const acceptEncoding = (req.headers && req.headers['accept-encoding']) || '';
+
+        if (content.length > 2048 && ['.json', '.js', '.css', '.html', '.svg'].includes(ext) && acceptEncoding.includes('gzip')) {
+            zlib.gzip(content, (gzErr, gzData) => {
+                if (gzErr) {
+                    res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
+                    res.end(content);
+                } else {
+                    res.writeHead(200, {
+                        'Content-Type': type,
+                        'Content-Encoding': 'gzip',
+                        'Cache-Control': cacheControl
+                    });
+                    res.end(gzData);
+                }
+            });
+            return;
+        }
+
         res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
         res.end(content);
     });
