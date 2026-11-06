@@ -1987,6 +1987,7 @@ const GENRE_ROWS = [
     { key: 'romance', label: 'Romance' },
     { key: 'scifi', label: 'Sci-Fi' },
     { key: 'sport', label: 'Sports' },
+    { key: 'supernatural', label: 'Supernatural' },
     { key: 'thriller', label: 'Thriller' },
     { key: 'war', label: 'War' },
     { key: 'western', label: 'Western' },
@@ -3375,7 +3376,7 @@ function renderGenreRows() {
 }
 
 function renderHomeDiscovery() {
-    if (currentSection !== 'home') return;
+    if (currentSection !== 'home' && currentSection !== 'movies' && currentSection !== 'tvshows' && currentSection !== 'anime') return;
 
     const recommendationsSection = document.getElementById('homeRecommendationsSection');
     const recommendationsHint = document.getElementById('homeRecommendationsHint');
@@ -3383,62 +3384,120 @@ function renderHomeDiscovery() {
     const recommendationPager = document.getElementById('homeRecommendationsPager');
     const genreSection = document.getElementById('exploreGenresSection');
     const genreLinks = document.getElementById('homeGenreLinks');
-    if (!recommendationsSection || !recommendationsSlider || !genreSection || !genreLinks) return;
+    if (!genreSection || !genreLinks) return;
 
-    const type = homeFilter === 'tvshows' ? 'tv' : 'movie';
-    const localItems = (type === 'tv' ? tvShows : movies)
-        .filter(item => completeItem(item) && !isAnime(item));
-    const listKeys = new Set(myList.map(item => `${item.type === 'tv' ? 'tv' : 'movie'}:${item.tmdbId || item.id || item.title}`));
-    const localCandidates = localItems.filter(item =>
-        !listKeys.has(`${type}:${item.tmdbId || item.id || item.title}`)
-    );
-    const candidates = localCandidates.length
-        ? localCandidates
-        : (liveState.trending.items || []).filter(item =>
-            item.type === type && !isAnime(item) &&
+    if (currentSection === 'home' && recommendationsSection && recommendationsSlider) {
+        const type = homeFilter === 'tvshows' ? 'tv' : 'movie';
+        const localItems = (type === 'tv' ? tvShows : movies)
+            .filter(item => completeItem(item) && !isAnime(item));
+        const listKeys = new Set(myList.map(item => `${item.type === 'tv' ? 'tv' : 'movie'}:${item.tmdbId || item.id || item.title}`));
+        const localCandidates = localItems.filter(item =>
             !listKeys.has(`${type}:${item.tmdbId || item.id || item.title}`)
         );
-    const watchedGenres = new Map();
-    myList.forEach(item => {
-        if (isAnime(item)) return;
-        genArr(item.genre).forEach(genre => {
-            const key = String(genre).trim().toLowerCase();
-            if (key) watchedGenres.set(key, (watchedGenres.get(key) || 0) + 1);
+        const candidates = localCandidates.length
+            ? localCandidates
+            : (liveState.trending.items || []).filter(item =>
+                item.type === type && !isAnime(item) &&
+                !listKeys.has(`${type}:${item.tmdbId || item.id || item.title}`)
+            );
+        const watchedGenres = new Map();
+        myList.forEach(item => {
+            if (isAnime(item)) return;
+            genArr(item.genre).forEach(genre => {
+                const key = String(genre).trim().toLowerCase();
+                if (key) watchedGenres.set(key, (watchedGenres.get(key) || 0) + 1);
+            });
         });
-    });
-    const matches = candidates.filter(item =>
-        genArr(item.genre).some(genre => watchedGenres.has(String(genre).trim().toLowerCase()))
-    );
-    const ranked = (matches.length ? matches : candidates)
-        .map((item, index) => {
-            const genreScore = genArr(item.genre).reduce((score, genre) =>
-                score + (watchedGenres.get(String(genre).trim().toLowerCase()) || 0), 0);
-            const rating = Number.parseFloat(item.rating) || 0;
-            return { item, index, score: genreScore * 10 + rating };
-        })
-        .sort((a, b) => b.score - a.score || a.index - b.index)
-        .map(entry => entry.item);
+        const matches = candidates.filter(item =>
+            genArr(item.genre).some(genre => watchedGenres.has(String(genre).trim().toLowerCase()))
+        );
+        const ranked = (matches.length ? matches : candidates)
+            .map((item, index) => {
+                const genreScore = genArr(item.genre).reduce((score, genre) =>
+                    score + (watchedGenres.get(String(genre).trim().toLowerCase()) || 0), 0);
+                const rating = Number.parseFloat(item.rating) || 0;
+                return { item, index, score: genreScore * 10 + rating };
+            })
+            .sort((a, b) => b.score - a.score || a.index - b.index)
+            .map(entry => entry.item);
 
-    recommendationsSection.style.display = ranked.length ? '' : 'none';
-    if (ranked.length) {
-        if (recommendationsHint) {
-            recommendationsHint.textContent = matches.length
-                ? 'Picked to match the genres in your My List.'
-                : localCandidates.length
-                    ? 'Top-rated picks from your library.'
-                    : 'Trending picks to get you started.';
+        recommendationsSection.style.display = ranked.length ? '' : 'none';
+        if (ranked.length) {
+            if (recommendationsHint) {
+                recommendationsHint.textContent = matches.length
+                    ? 'Picked to match the genres in your My List.'
+                    : localCandidates.length
+                        ? 'Top-rated picks from your library.'
+                        : 'Trending picks to get you started.';
+            }
+            renderSlider('homeRecommendationsSlider', ranked, type, 'homeRecommendationsPager', 'homeRecommendations');
+        } else {
+            recommendationsSlider.replaceChildren();
+            if (recommendationPager) recommendationPager.style.display = 'none';
         }
-        renderSlider('homeRecommendationsSlider', ranked, type, 'homeRecommendationsPager', 'homeRecommendations');
-    } else {
-        recommendationsSlider.replaceChildren();
-        if (recommendationPager) recommendationPager.style.display = 'none';
+    } else if (recommendationsSection) {
+        recommendationsSection.style.display = 'none';
     }
 
-    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    let pool = [];
+    let sectionTitle = 'Explore by Genre';
+    let sectionDesc = 'Dive into curated universes, themes & cinematic collections';
+
+    if (currentSection === 'movies') {
+        pool = movies.filter(item => completeItem(item) && !isAnime(item));
+        sectionTitle = 'Explore Movie Genres';
+        sectionDesc = 'Dive into curated movie universes, blockbuster themes & cinema collections';
+    } else if (currentSection === 'tvshows') {
+        pool = tvShows.filter(item => completeItem(item) && !isAnime(item));
+        sectionTitle = 'Explore TV Genres';
+        sectionDesc = 'Dive into binge-worthy drama series, comedy hits & television collections';
+    } else if (currentSection === 'anime') {
+        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+        const seen = new Set(local.map(x => x.tmdbId || x.id));
+        const merged = [...local];
+        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+        pool = merged;
+        sectionTitle = 'Explore Anime Genres';
+        sectionDesc = 'Dive into action-packed shonen, fantasy realms, romance & anime themes';
+    } else {
+        if (homeFilter === 'movies') {
+            pool = movies.filter(item => completeItem(item) && !isAnime(item));
+            sectionTitle = 'Explore Movie Genres';
+            sectionDesc = 'Dive into curated movie universes, blockbuster themes & cinema collections';
+        } else if (homeFilter === 'tvshows') {
+            pool = tvShows.filter(item => completeItem(item) && !isAnime(item));
+            sectionTitle = 'Explore TV Genres';
+            sectionDesc = 'Dive into binge-worthy drama series, comedy hits & television collections';
+        } else if (homeFilter === 'anime') {
+            const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+            const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+            const seen = new Set(local.map(x => x.tmdbId || x.id));
+            const merged = [...local];
+            live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+            pool = merged;
+            sectionTitle = 'Explore Anime Genres';
+            sectionDesc = 'Dive into action-packed shonen, fantasy realms, romance & anime themes';
+        } else {
+            pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+            sectionTitle = 'Explore by Genre';
+            sectionDesc = 'Dive into curated universes, themes & cinematic collections';
+        }
+    }
+
+    const titleEl = genreSection.querySelector('.section-title span') || genreSection.querySelector('.section-title');
+    if (titleEl) titleEl.textContent = sectionTitle;
+    const descEl = genreSection.querySelector('.genre-header-desc');
+    if (descEl) descEl.textContent = sectionDesc;
+
+    const isAnimeContext = currentSection === 'anime' || (currentSection === 'home' && homeFilter === 'anime');
     const counts = new Map();
     pool.forEach(item => genArr(item.genre).forEach(genre => {
         const key = String(genre).trim();
-        if (key) counts.set(key, (counts.get(key) || 0) + 1);
+        if (key) {
+            if (isAnimeContext && key.toLowerCase() === 'anime') return;
+            counts.set(key, (counts.get(key) || 0) + 1);
+        }
     }));
     const labels = new Map(GENRE_ROWS.map(({ key, label }) => [key, label]));
     const genreKey = key => String(key).trim().toLowerCase();
@@ -3452,7 +3511,6 @@ function renderHomeDiscovery() {
     ];
     genreSection.style.display = keys.length ? '' : 'none';
 
-    
     const genrePoolMap = new Map();
     pool.forEach(item => {
         genArr(item.genre).forEach(g => {
@@ -3477,7 +3535,6 @@ function renderHomeDiscovery() {
             popular: count >= 40
         };
 
-        
         const gItems = genrePoolMap.get(norm) || [];
         const top3 = gItems.slice(0, 3);
         const posterImgs = top3.map(it => {
@@ -3512,6 +3569,19 @@ function renderHomeDiscovery() {
             </div>
         </div>`;
     }).join('');
+
+    const activeCatPill = document.querySelector('.genre-cat-pill.active');
+    const cat = activeCatPill ? (activeCatPill.dataset.cat || 'all') : 'all';
+    if (cat !== 'all') {
+        const cards = genreLinks.querySelectorAll('.genre-card[data-genre-cat]');
+        cards.forEach(card => {
+            if (cat === 'popular') {
+                card.style.display = card.dataset.genrePopular === '1' ? '' : 'none';
+            } else {
+                card.style.display = card.dataset.genreCat === cat ? '' : 'none';
+            }
+        });
+    }
 }
 
 const GENRE_METADATA = {
@@ -3685,6 +3755,33 @@ const GENRE_METADATA = {
         glow: 'rgba(180, 83, 9, 0.45)',
         gradient: 'linear-gradient(135deg, #78350f 0%, #d97706 100%)',
         popular: false
+    },
+    supernatural: {
+        icon: '👁️',
+        tagline: 'Mystical spirits, occult curses & otherworldly powers',
+        cat: 'thrills',
+        accent: '#8b5cf6',
+        glow: 'rgba(139, 92, 246, 0.45)',
+        gradient: 'linear-gradient(135deg, #581c87 0%, #8b5cf6 100%)',
+        popular: true
+    },
+    anime: {
+        icon: '🌸',
+        tagline: 'Iconic anime series, movies & cinematic universes',
+        cat: 'action',
+        accent: '#ec4899',
+        glow: 'rgba(236, 72, 153, 0.45)',
+        gradient: 'linear-gradient(135deg, #db2777 0%, #f472b6 100%)',
+        popular: true
+    },
+    psychological: {
+        icon: '🧠',
+        tagline: 'Mind-bending mysteries, paranoia & psychological depths',
+        cat: 'thrills',
+        accent: '#06b6d4',
+        glow: 'rgba(6, 182, 212, 0.45)',
+        gradient: 'linear-gradient(135deg, #155e75 0%, #06b6d4 100%)',
+        popular: false
     }
 };
 
@@ -3707,6 +3804,14 @@ function loadGenreRow(genreKey) {
     } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
         pool = tvShows.filter(completeItem);
         suffix = ' Shows';
+    } else if (currentSection === 'anime' || (currentSection === 'home' && homeFilter === 'anime')) {
+        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+        const seen = new Set(local.map(x => x.tmdbId || x.id));
+        const merged = [...local];
+        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+        pool = merged;
+        suffix = ' Anime';
     } else {
         pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
     }
@@ -3766,7 +3871,26 @@ function openGenreSpotlight(genreKey) {
     _currentSpotlightGenre = genreKey;
     _currentSpotlightFilter = 'all';
 
-    const pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+    let pool = [];
+    let suffix = '';
+    if (currentSection === 'movies' || (currentSection === 'home' && homeFilter === 'movies')) {
+        pool = movies.filter(completeItem);
+        suffix = ' Movies';
+    } else if (currentSection === 'tvshows' || (currentSection === 'home' && homeFilter === 'tvshows')) {
+        pool = tvShows.filter(completeItem);
+        suffix = ' Shows';
+    } else if (currentSection === 'anime' || (currentSection === 'home' && homeFilter === 'anime')) {
+        const local = [...movies, ...tvShows].filter(m => completeItem(m) && isAnime(m));
+        const live = (animeLive.fed ? [...animeLive.movies, ...animeLive.tv] : [...FALLBACK_ANIME_MOVIES, ...FALLBACK_ANIME_TV]).filter(baseComplete);
+        const seen = new Set(local.map(x => x.tmdbId || x.id));
+        const merged = [...local];
+        live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
+        pool = merged;
+        suffix = ' Anime';
+    } else {
+        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
+    }
+
     const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
 
     const meta = GENRE_METADATA[norm] || {
@@ -3777,7 +3901,7 @@ function openGenreSpotlight(genreKey) {
         gradient: 'linear-gradient(135deg, #e50914, #ffb6d8)'
     };
     const labels = new Map(GENRE_ROWS.map(({ key, label }) => [key, label]));
-    const label = labels.get(norm) || genreKey.charAt(0).toUpperCase() + genreKey.slice(1);
+    const label = (labels.get(norm) || genreKey.charAt(0).toUpperCase() + genreKey.slice(1)) + suffix;
 
     const modal = document.getElementById('genreSpotlightModal');
     if (!modal) return;
