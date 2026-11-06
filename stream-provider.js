@@ -152,7 +152,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 name: 'x8rr Movies (Direct Stream / Ad-Free HLS)',
                 quality: '1080p Ultra (x8rr)',
                 icon: '🍿',
-                url: `https://www.vidy.st/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`,
+                url: `/milkbox-embed.html?type=tv&id=${encodeURIComponent(id)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`,
                 streamApi: `/api/x8rr/stream/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
             },
             {
@@ -224,7 +224,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             name: 'x8rr Movies (Direct Stream / Ad-Free HLS)',
             quality: '1080p Ultra (x8rr)',
             icon: '🍿',
-            url: `https://www.vidy.st/movie/${encodeURIComponent(id)}?color=${accent}&autoplay=true`,
+            url: `/milkbox-embed.html?type=movie&id=${encodeURIComponent(id)}&server=x8rrmovies&autoplay=true`,
             streamApi: `/api/x8rr/stream/movie/${encodeURIComponent(id)}`
         },
         {

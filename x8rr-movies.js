@@ -92,7 +92,7 @@ async function decryptStreamUrls(encB64, vs) {
 async function vidsrcFetch(url, referer) {
     return fetch(url, {
         headers: { 'User-Agent': UA, Referer: referer },
-        signal: AbortSignal.timeout(12000)
+        signal: AbortSignal.timeout(5000)
     });
 }
 
@@ -152,10 +152,11 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
             try {
                 const host = new URL(u).origin;
                 if (!hostTokens.has(host)) {
+                    const tokenGenUrl = host + '/generate.php?api_token=' + encodeURIComponent(config.apiToken);
                     hostTokens.set(
                         host,
-                        fetch(host + '/generate.php', {
-                            headers: { 'User-Agent': UA, Accept: 'application/json' },
+                        fetch(tokenGenUrl, {
+                            headers: { 'User-Agent': UA, 'Referer': origin + '/', Accept: 'application/json, text/plain, */*' },
                             signal: AbortSignal.timeout(6000)
                         })
                             .then((r) => r.text())
@@ -182,20 +183,19 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
                 const host = new URL(rawUrl).origin;
                 const token = await hostTokens.get(host);
                 if (!token || typeof token !== 'string' || token.toLowerCase().includes('invalid') || token.toLowerCase().includes('mismatched') || token.toLowerCase().includes('error') || token.trim().length < 12) {
-                    // Upstream token generation failed (e.g. Cloudflare Turnstile block), skip to avoid serving dead 403 streams
                     continue;
                 }
                 const url = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token.trim());
                 const label = serverIdx === 1
-                    ? 'Server 1 (Primary 1080p)'
-                    : (serverIdx === 2 ? 'Server 2 (Backup 1080p)' : `Server ${serverIdx} (Fast 1080p)`);
+                    ? 'Server 1 (Primary 1080p Ultra)'
+                    : (serverIdx === 2 ? 'Server 2 (Backup 1080p Ultra)' : `Server ${serverIdx} (Fast 1080p)`);
                 results.push({
                     id: `x8rr-vidsrc-${serverIdx}`,
                     url,
                     proxiedUrl: `/api/x8rr/proxy?url=${encodeURIComponent(url)}`,
                     type: rawUrl.includes('.m3u8') ? 'hls' : 'file',
                     quality: '1080p Ultra',
-                    provider: 'vidsrc',
+                    provider: 'x8rr',
                     providerName: `x8rr ${label}`,
                     serverLabel: label
                 });
@@ -209,6 +209,54 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
     }
 }
 
+const VIDORA_PLAYER_KEY = 'f3b72e73c80c9a996574379798703796a1936efa3516a7105cb0e43048b46b5a';
+const VIDORA_SERVERS = [
+    { key: 'vjej', label: 'Vega', quality: '1080p Ultra' },
+    { key: 'nzv4', label: 'Zephyr', quality: 'Multi-Bitrate 1080p' },
+    { key: 'w7dn', label: 'Nebula', quality: '1080p HD' }
+];
+
+async function vidoraExtract(type, tmdbId, season = 1, episode = 1) {
+    const isTV = type === 'tv';
+    const subPath = isTV
+        ? `tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season)}/${encodeURIComponent(episode)}`
+        : `movie/${encodeURIComponent(tmdbId)}`;
+
+    const fetches = VIDORA_SERVERS.map(async (s) => {
+        try {
+            const endpoint = `https://vidsrc.pm/api/vidora/v1/${subPath}?source=${s.key}`;
+            const res = await fetch(endpoint, {
+                headers: {
+                    'User-Agent': UA,
+                    'x-player-key': VIDORA_PLAYER_KEY,
+                    'Referer': `https://vidsrc.pm/embed/${subPath}`
+                },
+                signal: AbortSignal.timeout(4500)
+            });
+            if (!res.ok) return null;
+            const data = await res.json().catch(() => null);
+            if (!data || !data.result || !Array.isArray(data.sources) || data.sources.length === 0) return null;
+            const streamObj = data.sources[0];
+            if (!streamObj || !streamObj.url) return null;
+
+            return {
+                id: `x8rr-vidora-${s.key}`,
+                url: streamObj.url,
+                proxiedUrl: `/api/x8rr/proxy?url=${encodeURIComponent(streamObj.url)}`,
+                type: 'hls',
+                quality: s.quality,
+                provider: 'x8rr',
+                providerName: `x8rr Server (${s.label} ${s.quality})`,
+                serverLabel: `Server (${s.label} ${s.quality})`
+            };
+        } catch {
+            return null;
+        }
+    });
+
+    const settled = await Promise.all(fetches);
+    return settled.filter(Boolean);
+}
 
 async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
     const isTV = type === 'tv';
@@ -218,7 +266,6 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         return cached.streams;
     }
 
-    
     if (process.env.X8RR_MOVIES_URL) {
         try {
             const base = process.env.X8RR_MOVIES_URL.replace(/\/+$/, '');
@@ -238,7 +285,8 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
                         type: s.type || (s.url && s.url.includes('.m3u8') ? 'hls' : 'file'),
                         quality: s.quality || '1080p',
                         provider: s.provider || 'x8rr',
-                        providerName: s.providerName || `x8rr Source ${idx + 1}`
+                        providerName: s.providerName || `x8rr Source ${idx + 1}`,
+                        serverLabel: s.serverLabel || `Server ${idx + 1}`
                     }));
                     streamCache.set(cacheKey, { streams: formatted, time: Date.now() });
                     return formatted;
@@ -249,16 +297,49 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         }
     }
 
-   
-    const streams = await vidsrcExtract(type, tmdbId, season, episode);
-    if (streams.length > 0) {
-        streamCache.set(cacheKey, { streams, time: Date.now() });
+    const [vidsrcStreams, vidoraStreams] = await Promise.all([
+        vidsrcExtract(type, tmdbId, season, episode).catch(() => []),
+        vidoraExtract(type, tmdbId, season, episode).catch(() => [])
+    ]);
+
+    const combined = [];
+    const seenUrls = new Set();
+    const all = [...vidsrcStreams, ...vidoraStreams];
+
+    let idx = 1;
+    for (const s of all) {
+        if (!s || !s.url || seenUrls.has(s.url)) continue;
+        seenUrls.add(s.url);
+        const label = idx === 1
+            ? 'Server 1 (Primary 1080p Ultra)'
+            : (idx === 2 ? 'Server 2 (Backup 1080p Ultra)' : (idx === 3 ? 'Server 3 (Fast 1080p)' : `Server ${idx} (Adaptive 1080p)`));
+        combined.push({
+            ...s,
+            id: `x8rr-srv-${idx}`,
+            serverLabel: label,
+            providerName: `x8rr ${label}`
+        });
+        idx++;
     }
-    return streams;
+
+    if (combined.length > 0) {
+        streamCache.set(cacheKey, { streams: combined, time: Date.now() });
+    }
+    return combined;
 }
 
-
 async function handleX8rrProxy(req, res, targetUrl) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', '*');
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Length, Content-Range, Accept-Ranges');
+
+    if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return true;
+    }
+
     if (!targetUrl) {
         res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'url required' }));
@@ -273,15 +354,45 @@ async function handleX8rrProxy(req, res, targetUrl) {
             return true;
         }
 
+        const headers = {
+            'User-Agent': UA,
+            'Accept': '*/*'
+        };
+
+        const targetLower = targetUrl.toLowerCase();
+        if (targetLower.includes('nectarandnectary.space') || targetLower.includes('stellarconductornexus.com') || targetLower.includes('vidsrc.sh')) {
+            headers['Referer'] = 'https://stellarconductornexus.com/';
+            headers['Origin'] = 'https://stellarconductornexus.com';
+        } else if (targetLower.includes('hscow.com') || targetLower.includes('majorplay.net') || targetLower.includes('vidsrc.pm') || targetLower.includes('hd4u.sbs') || targetLower.includes('finalsignal.top')) {
+            headers['Referer'] = 'https://vidsrc.pm/';
+            headers['Origin'] = 'https://vidsrc.pm';
+        } else {
+            headers['Referer'] = parsed.origin + '/';
+            headers['Origin'] = parsed.origin;
+        }
+
+        const dataParam = parsed.searchParams.get('data');
+        if (dataParam) {
+            try {
+                const decoded = Buffer.from(dataParam, 'base64').toString('utf-8');
+                const refMatch = decoded.match(/Referer=([^|&]+)/i);
+                const origMatch = decoded.match(/Origin=([^|&]+)/i);
+                if (refMatch) headers['Referer'] = refMatch[1].trim();
+                if (origMatch) headers['Origin'] = origMatch[1].trim();
+            } catch {}
+        }
+
+        if (req.headers && req.headers.range) {
+            headers['Range'] = req.headers.range;
+        }
+
         const r = await fetch(targetUrl, {
-            headers: {
-                'User-Agent': UA,
-                Referer: parsed.origin + '/'
-            },
+            method: req.method === 'HEAD' ? 'HEAD' : 'GET',
+            headers,
             signal: AbortSignal.timeout(20000)
         });
 
-        if (!r.ok) {
+        if (!r.ok && r.status !== 206) {
             res.writeHead(r.status, {
                 'Access-Control-Allow-Origin': '*',
                 'Content-Type': 'text/plain'
@@ -291,9 +402,6 @@ async function handleX8rrProxy(req, res, targetUrl) {
         }
 
         const ct = (r.headers.get('content-type') || '').toLowerCase();
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', '*');
 
         if (ct.includes('mpegurl') || targetUrl.includes('.m3u8')) {
             let text = await r.text();
@@ -301,7 +409,21 @@ async function handleX8rrProxy(req, res, targetUrl) {
             const origin = parsed.origin;
             const basePath = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
 
-            
+            text = text.replace(/URI="([^"]+)"/g, (match, uri) => {
+                let abs;
+                if (uri.startsWith('http://') || uri.startsWith('https://')) {
+                    abs = uri;
+                } else if (uri.startsWith('/')) {
+                    abs = origin + uri;
+                } else {
+                    abs = basePath + uri;
+                }
+                if (hostToken && !abs.includes('token=')) {
+                    abs += (abs.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(hostToken);
+                }
+                return `URI="/api/x8rr/proxy?url=${encodeURIComponent(abs)}"`;
+            });
+
             text = text.replace(/^(?!#)(\S+)$/gm, (line) => {
                 const trimmed = line.trim();
                 if (!trimmed) return line;
@@ -321,17 +443,32 @@ async function handleX8rrProxy(req, res, targetUrl) {
 
             res.writeHead(200, {
                 'Content-Type': 'application/vnd.apple.mpegurl',
-                'Cache-Control': 'no-cache'
+                'Cache-Control': 'no-cache',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Headers': '*'
             });
             res.end(text);
         } else {
-            
-            res.writeHead(200, {
+            const status = r.status === 206 ? 206 : 200;
+            const resHeaders = {
                 'Content-Type': ct || 'video/MP2T',
-                'Cache-Control': 'public, max-age=86400'
-            });
-            const buf = Buffer.from(await r.arrayBuffer());
-            res.end(buf);
+                'Cache-Control': 'public, max-age=86400',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Access-Control-Allow-Headers': '*',
+                'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges'
+            };
+            if (r.headers.get('content-range')) resHeaders['Content-Range'] = r.headers.get('content-range');
+            if (r.headers.get('content-length')) resHeaders['Content-Length'] = r.headers.get('content-length');
+            if (r.headers.get('accept-ranges')) resHeaders['Accept-Ranges'] = r.headers.get('accept-ranges');
+            res.writeHead(status, resHeaders);
+            if (req.method === 'HEAD') {
+                res.end();
+            } else {
+                const buf = Buffer.from(await r.arrayBuffer());
+                res.end(buf);
+            }
         }
         return true;
     } catch (e) {

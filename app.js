@@ -5088,8 +5088,8 @@ function x8rrmoviesIframe(tmdbId, type, season, episode) {
     const se = season || 1;
     const ep = episode || 1;
     const url = isTV
-        ? `https://www.vidy.st/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=ff2e63&autoplay=true`
-        : `https://www.vidy.st/movie/${encodeURIComponent(tmdbId)}?color=ff2e63&autoplay=true`;
+        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
+        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
     return makePlaybackIframe(url, 'allow="autoplay; fullscreen; encrypted-media; picture-in-picture"');
 }
 
@@ -5097,6 +5097,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
     const frame = document.getElementById('playerFrame');
     const context = playContext;
     if (!frame || !item) return;
+    clearAutoFallback();
     const tmdbId = item.tmdbId || item.id;
     const isTV = type === 'tv';
     const subText = isTV ? `Season ${season} • Episode ${episode}` : (item.year ? `${item.year}` : '');
@@ -5117,38 +5118,45 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         if (playContext !== context) return;
         const data = await res.json();
         if (data && Array.isArray(data.streams) && data.streams.length > 0) {
-            const stream = data.streams[0];
+            let activeIdx = 0;
+            const stream = data.streams[activeIdx];
             const streamUrl = stream.proxiedUrl || `/api/x8rr/proxy?url=${encodeURIComponent(stream.url)}`;
             createCustomVideoPlayer(frame, streamUrl, item.title, subText, {
                 servers: data.streams,
                 activeServerId: stream.id,
-                activeServerIndex: 0,
+                activeServerIndex: activeIdx,
                 subtitles: data.subtitles || [],
                 tmdbId: tmdbId,
                 mediaType: isTV ? 'tv' : 'movie',
                 season: isTV ? season : 1,
                 episode: isTV ? episode : 1,
                 onError: () => {
-                    toast('x8rr Movies: Connecting to high-speed backup player…', 'info');
-                    frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
-                    armAutoFallback(frame, 'x8rrmovies');
+                    if (activeIdx + 1 < data.streams.length) {
+                        activeIdx++;
+                        const next = data.streams[activeIdx];
+                        toast(`x8rr Movies: Connecting to ${next.serverLabel || `Server ${activeIdx + 1}`}…`, 'info');
+                        const sel = frame.querySelector('.milkbox-player-server-select');
+                        if (sel) {
+                            sel.value = String(activeIdx);
+                            sel.dispatchEvent(new Event('change'));
+                        }
+                    } else {
+                        toast('x8rr Movies: Primary stream hiccup. Use the Server dropdown to switch mirrors.', 'warn');
+                    }
                 },
                 onServerChange: (newStream, idx) => {
+                    activeIdx = idx;
                     toast(`x8rr Movies: Switched to ${newStream.serverLabel || `Server ${idx + 1}`}`, 'success');
                 }
             });
             toast(`x8rr Movies: Playing ad-free 1080p stream (${stream.serverLabel || stream.providerName})`, 'success');
             return;
         }
-        
-        toast('x8rr Movies: Loading 1080p stream player…');
+
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
-        armAutoFallback(frame, 'x8rrmovies');
     } catch (e) {
         if (playContext !== context) return;
-        toast(`x8rr Movies: Loading 1080p stream player…`);
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
-        armAutoFallback(frame, 'x8rrmovies');
     }
 }
 
