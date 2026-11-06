@@ -44,58 +44,117 @@ const LANGUAGE_LABELS = {
     fil: 'Filipino', tl: 'Filipino'
 };
 
-async function getWasmModule(vs) {
-    if (!vs) return null;
-    if (vs.wasm_url) {
-        const key = `u:${vs.w ?? vs.wasm_url}`;
-        if (!wasmCache.has(key)) {
-            wasmCache.set(
-                key,
-                fetch(vs.wasm_url, { headers: { 'User-Agent': UA } })
-                    .then((r) => r.arrayBuffer())
-                    .then((b) => WebAssembly.compile(b))
-            );
+let lastKnownWasmModule = null;
+
+function unwrapStreamUrl(rawUrl) {
+    if (!rawUrl || typeof rawUrl !== 'string') return rawUrl;
+    try {
+        const u = new URL(rawUrl);
+        if (u.hostname.includes('workers.dev') && u.searchParams.has('url')) {
+            const realUrl = u.searchParams.get('url');
+            const data = u.searchParams.get('data');
+            if (realUrl) {
+                if (data && !realUrl.includes('data=')) {
+                    return realUrl + (realUrl.includes('?') ? '&' : '?') + 'data=' + encodeURIComponent(data);
+                }
+                return realUrl;
+            }
         }
-        return wasmCache.get(key);
-    }
-    if (vs.wasm) {
-        const key = `b:${vs.w ?? Math.random()}`;
-        if (!wasmCache.has(key)) {
-            const bin = Buffer.from(vs.wasm, 'base64');
-            wasmCache.set(key, WebAssembly.compile(bin));
+    } catch {}
+    return rawUrl;
+}
+
+async function fetchWasmBinaryWithRetry(url) {
+    for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+            const res = await fetch(url, {
+                headers: {
+                    'User-Agent': UA,
+                    'Referer': 'https://data.vidsrc.sh/',
+                    'Origin': 'https://data.vidsrc.sh',
+                    'Accept': 'application/wasm, */*'
+                },
+                signal: AbortSignal.timeout(5000)
+            });
+            if (res.ok) {
+                const ab = await res.arrayBuffer();
+                if (ab && ab.byteLength > 60) {
+                    return ab;
+                }
+            }
+        } catch {
+            if (attempt === 1) {
+                await new Promise((r) => setTimeout(r, 200));
+            }
         }
-        return wasmCache.get(key);
     }
     return null;
 }
 
+async function getWasmModule(vs) {
+    if (!vs) return lastKnownWasmModule;
+    if (vs.wasm_url) {
+        const key = `u:${vs.w ?? vs.wasm_url}`;
+        if (wasmCache.has(key)) {
+            return wasmCache.get(key);
+        }
+        try {
+            const buf = await fetchWasmBinaryWithRetry(vs.wasm_url);
+            if (buf) {
+                const mod = await WebAssembly.compile(buf);
+                wasmCache.set(key, mod);
+                lastKnownWasmModule = mod;
+                return mod;
+            }
+        } catch {
+            wasmCache.delete(key);
+        }
+    }
+    if (vs.wasm) {
+        const key = `b:${vs.w ?? Math.random()}`;
+        if (wasmCache.has(key)) return wasmCache.get(key);
+        try {
+            const bin = Buffer.from(vs.wasm, 'base64');
+            const mod = await WebAssembly.compile(bin);
+            wasmCache.set(key, mod);
+            lastKnownWasmModule = mod;
+            return mod;
+        } catch {
+            wasmCache.delete(key);
+        }
+    }
+    return lastKnownWasmModule;
+}
+
 async function decryptStreamUrls(encB64, vs) {
+    if (!encB64 || typeof encB64 !== 'string') return null;
     try {
         const mod = await getWasmModule(vs);
         if (!mod) return null;
         const inst = await WebAssembly.instantiate(mod, {});
         const { alloc, decrypt, memory } = inst.exports;
+        if (!alloc || !decrypt || !memory) return null;
         const enc = Buffer.from(encB64, 'base64');
+        if (enc.length === 0) return null;
         const ptr = alloc(enc.length);
         new Uint8Array(memory.buffer, ptr, enc.length).set(enc);
         const outLen = decrypt(ptr, enc.length);
+        if (!outLen || outLen <= 0) return null;
         const text = new TextDecoder().decode(
             new Uint8Array(memory.buffer, ptr + 12, outLen)
         );
-        return text.split('\n').filter(Boolean);
-    } catch (err) {
-        console.warn('[x8rr/movies] WASM decryption failed:', err.message);
+        return text.split('\n').map((s) => s.trim()).filter(Boolean);
+    } catch {
         return null;
     }
 }
 
-async function vidsrcFetch(url, referer) {
+async function vidsrcFetch(url, referer, timeout = 6000) {
     return fetch(url, {
-        headers: { 'User-Agent': UA, Referer: referer },
-        signal: AbortSignal.timeout(5000)
+        headers: { 'User-Agent': UA, Referer: referer, Accept: 'text/html,application/json,*/*' },
+        signal: AbortSignal.timeout(timeout)
     });
 }
-
 
 async function vidsrcExtract(type, tmdbId, season, episode) {
     try {
@@ -103,13 +162,14 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
         const srcPath = isTV ? `${tmdbId}/${season || 1}/${episode || 1}` : String(tmdbId);
         const apiResp = await vidsrcFetch(
             `https://vidsrc.sh/vs_src.php?type=${isTV ? 'tv' : 'movie'}&id=${srcPath}`,
-            'https://vidsrc.sh/'
+            'https://vidsrc.sh/',
+            5000
         );
         if (!apiResp.ok) return [];
         const { src } = await apiResp.json();
         if (!src) return [];
 
-        const landResp = await vidsrcFetch(src, 'https://vidsrc.sh/');
+        const landResp = await vidsrcFetch(src, 'https://vidsrc.sh/', 5000);
         if (!landResp.ok) return [];
         const landHtml = await landResp.text();
         const cfgMatch = landHtml.match(/window\.CFG\s*=\s*(\{[^}]+\})/);
@@ -117,7 +177,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
         const cfg = JSON.parse(cfgMatch[1]);
         const origin = new URL(src).origin;
 
-        const playerResp = await vidsrcFetch(origin + cfg.playerUrl, origin + '/');
+        const playerResp = await vidsrcFetch(origin + cfg.playerUrl, origin + '/', 5000);
         if (!playerResp.ok) return [];
         const playerHtml = await playerResp.text();
         const configMatch = playerHtml.match(/window\.CONFIG\s*=\s*(\{.*?\});/s);
@@ -132,7 +192,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
             streamApiUrl = `https://data.vidsrc.sh/api.php?type=movie&tmdb=${tmdbId}&stream_urls&api_token=${encodeURIComponent(config.apiToken)}`;
         }
 
-        const streamResp = await vidsrcFetch(streamApiUrl, origin + '/');
+        const streamResp = await vidsrcFetch(streamApiUrl, origin + '/', 5000);
         if (!streamResp.ok) return [];
         const json = await streamResp.json();
         if (String(json.status_code) !== '200' || !json.data) return [];
@@ -157,7 +217,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
                         host,
                         fetch(tokenGenUrl, {
                             headers: { 'User-Agent': UA, 'Referer': origin + '/', Accept: 'application/json, text/plain, */*' },
-                            signal: AbortSignal.timeout(6000)
+                            signal: AbortSignal.timeout(5000)
                         })
                             .then((r) => r.text())
                             .then((t) => {
@@ -185,7 +245,8 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
                 if (!token || typeof token !== 'string' || token.toLowerCase().includes('invalid') || token.toLowerCase().includes('mismatched') || token.toLowerCase().includes('error') || token.trim().length < 12) {
                     continue;
                 }
-                const url = rawUrl + (rawUrl.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token.trim());
+                const unwrapped = unwrapStreamUrl(rawUrl);
+                const url = unwrapped + (unwrapped.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(token.trim());
                 const label = serverIdx === 1
                     ? 'Server 1 (Primary 1080p Ultra)'
                     : (serverIdx === 2 ? 'Server 2 (Backup 1080p Ultra)' : `Server ${serverIdx} (Fast 1080p)`);
@@ -193,7 +254,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
                     id: `x8rr-vidsrc-${serverIdx}`,
                     url,
                     proxiedUrl: `/api/x8rr/proxy?url=${encodeURIComponent(url)}`,
-                    type: rawUrl.includes('.m3u8') ? 'hls' : 'file',
+                    type: unwrapped.includes('.m3u8') ? 'hls' : 'file',
                     quality: '1080p Ultra',
                     provider: 'x8rr',
                     providerName: `x8rr ${label}`,
@@ -203,8 +264,7 @@ async function vidsrcExtract(type, tmdbId, season, episode) {
             } catch {}
         }
         return results;
-    } catch (e) {
-        console.warn('[x8rr/movies] vidsrcExtract notice:', e.message);
+    } catch {
         return [];
     }
 }
@@ -213,7 +273,10 @@ const VIDORA_PLAYER_KEY = 'f3b72e73c80c9a996574379798703796a1936efa3516a7105cb0e
 const VIDORA_SERVERS = [
     { key: 'vjej', label: 'Vega', quality: '1080p Ultra' },
     { key: 'nzv4', label: 'Zephyr', quality: 'Multi-Bitrate 1080p' },
-    { key: 'w7dn', label: 'Nebula', quality: '1080p HD' }
+    { key: 'b4tz', label: 'Beta', quality: '1080p Ultra' },
+    { key: 'k2mq', label: 'Alpha', quality: '1080p Ultra' },
+    { key: 'w7dn', label: 'Nebula', quality: '1080p HD' },
+    { key: 'fq1k', label: 'Cobalt', quality: '1080p HD' }
 ];
 
 async function vidoraExtract(type, tmdbId, season = 1, episode = 1) {
@@ -231,7 +294,7 @@ async function vidoraExtract(type, tmdbId, season = 1, episode = 1) {
                     'x-player-key': VIDORA_PLAYER_KEY,
                     'Referer': `https://vidsrc.pm/embed/${subPath}`
                 },
-                signal: AbortSignal.timeout(4500)
+                signal: AbortSignal.timeout(4000)
             });
             if (!res.ok) return null;
             const data = await res.json().catch(() => null);
@@ -239,10 +302,11 @@ async function vidoraExtract(type, tmdbId, season = 1, episode = 1) {
             const streamObj = data.sources[0];
             if (!streamObj || !streamObj.url) return null;
 
+            const finalUrl = unwrapStreamUrl(streamObj.url);
             return {
                 id: `x8rr-vidora-${s.key}`,
-                url: streamObj.url,
-                proxiedUrl: `/api/x8rr/proxy?url=${encodeURIComponent(streamObj.url)}`,
+                url: finalUrl,
+                proxiedUrl: `/api/x8rr/proxy?url=${encodeURIComponent(finalUrl)}`,
                 type: 'hls',
                 quality: s.quality,
                 provider: 'x8rr',
@@ -297,14 +361,14 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         }
     }
 
-    const [vidsrcStreams, vidoraStreams] = await Promise.all([
-        vidsrcExtract(type, tmdbId, season, episode).catch(() => []),
-        vidoraExtract(type, tmdbId, season, episode).catch(() => [])
+    const [vidoraStreams, vidsrcStreams] = await Promise.all([
+        vidoraExtract(type, tmdbId, season, episode).catch(() => []),
+        vidsrcExtract(type, tmdbId, season, episode).catch(() => [])
     ]);
 
     const combined = [];
     const seenUrls = new Set();
-    const all = [...vidsrcStreams, ...vidoraStreams];
+    const all = [...vidoraStreams, ...vidsrcStreams];
 
     let idx = 1;
     for (const s of all) {
@@ -363,9 +427,12 @@ async function handleX8rrProxy(req, res, targetUrl) {
         if (targetLower.includes('nectarandnectary.space') || targetLower.includes('stellarconductornexus.com') || targetLower.includes('vidsrc.sh')) {
             headers['Referer'] = 'https://stellarconductornexus.com/';
             headers['Origin'] = 'https://stellarconductornexus.com';
-        } else if (targetLower.includes('hscow.com') || targetLower.includes('majorplay.net') || targetLower.includes('vidsrc.pm') || targetLower.includes('hd4u.sbs') || targetLower.includes('finalsignal.top')) {
+        } else if (targetLower.includes('hscow.com') || targetLower.includes('fcxmb.com') || targetLower.includes('majorplay.net') || targetLower.includes('vidsrc.pm') || targetLower.includes('hd4u.sbs') || targetLower.includes('finalsignal.top')) {
             headers['Referer'] = 'https://vidsrc.pm/';
             headers['Origin'] = 'https://vidsrc.pm';
+        } else if (targetLower.includes('remoteconsultinggroup.site') || targetLower.includes('nextgencloudfabric.com')) {
+            headers['Referer'] = 'https://nextgencloudfabric.com/';
+            headers['Origin'] = 'https://nextgencloudfabric.com';
         } else {
             headers['Referer'] = parsed.origin + '/';
             headers['Origin'] = parsed.origin;
@@ -421,6 +488,9 @@ async function handleX8rrProxy(req, res, targetUrl) {
                 if (hostToken && !abs.includes('token=')) {
                     abs += (abs.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(hostToken);
                 }
+                if (dataParam && !abs.includes('data=')) {
+                    abs += (abs.includes('?') ? '&' : '?') + 'data=' + encodeURIComponent(dataParam);
+                }
                 return `URI="/api/x8rr/proxy?url=${encodeURIComponent(abs)}"`;
             });
 
@@ -437,6 +507,9 @@ async function handleX8rrProxy(req, res, targetUrl) {
                 }
                 if (hostToken && !abs.includes('token=')) {
                     abs += (abs.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(hostToken);
+                }
+                if (dataParam && !abs.includes('data=')) {
+                    abs += (abs.includes('?') ? '&' : '?') + 'data=' + encodeURIComponent(dataParam);
                 }
                 return `/api/x8rr/proxy?url=${encodeURIComponent(abs)}`;
             });
