@@ -518,11 +518,11 @@
             <p class="live-hint">Popular Manga &amp; Comic series</p>
             <div class="manga-controls">
                 <div class="manga-search-row" id="mangaSearchRow">
-                    <div class="manga-search-box">
-                        <input type="text" id="mangaSearchInput" placeholder="Search manga (e.g. Solo Leveling, Berserk, One Piece)...">
-                        <button class="manga-search-btn" id="mangaSearchBtn" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg></button>
-                    </div>
-                    <button class="manga-search-clear" id="mangaSearchClear" style="display:none">Clear</button>
+                    <form class="manga-search-box" id="mangaSearchForm" onsubmit="event.preventDefault(); triggerMangaSearch();">
+                        <input type="search" id="mangaSearchInput" placeholder="Search manga (e.g. Solo Leveling, Berserk, One Piece)..." autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="search">
+                        <button class="manga-search-btn" id="mangaSearchBtn" type="submit" aria-label="Search"><svg xmlns="http://www.w3.org/2000/svg" height="18px" viewBox="0 -960 960 960" width="18px" fill="currentColor"><path d="M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Z"/></svg></button>
+                    </form>
+                    <button class="manga-search-clear" id="mangaSearchClear" type="button" style="display:none">Clear</button>
                 </div>
                 <div class="manga-filter-row" id="mangaFilterRow">
                 <select id="mangaSourceFilter" class="manga-filter" aria-label="Manga source">

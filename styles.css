@@ -2777,6 +2777,7 @@ body.manga-active #mangaSection .section-title {
     min-width: 240px;
 }
 .manga-search-box {
+    margin: 0;
     flex: 1;
     display: flex;
     align-items: center;
