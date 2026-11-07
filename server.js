@@ -1391,96 +1391,265 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 throw new Error('Invalid URL protocol');
             }
 
-            const upstream = await fetch(parsed.href, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Referer': parsed.origin + '/'
-                },
-                signal: AbortSignal.timeout(12000),
-                redirect: 'follow'
-            });
+            // Extract media metadata from targetUrl if present
+            let mediaType = 'movie';
+            let mediaId = '';
+            let season = 1;
+            let episode = 1;
 
-            if (!upstream.ok) {
-                res.writeHead(upstream.status, { 'Content-Type': 'text/html; charset=utf-8' });
-                res.end(`
-                    <!DOCTYPE html>
-                    <html>
-                    <head><meta charset="utf-8"><title>Scramjet Proxy Notice</title></head>
-                    <body style="background:#09090e;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
-                        <div style="padding:24px;max-width:440px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,46,99,0.3);border-radius:12px;">
-                            <div style="font-size:32px;margin-bottom:10px;">⚡</div>
-                            <h3 style="margin:0 0 8px 0;color:#ff2e63;">Scramjet Proxy: Upstream (${upstream.status})</h3>
-                            <p style="margin:0;font-size:13px;color:#a0a0b0;">Source temporarily unreachable. Switching automatically to next proxy source...</p>
-                        </div>
-                    </body>
-                    </html>
-                `);
-                return true;
+            const pathname = parsed.pathname;
+            const tvMatch = pathname.match(/(?:embed\/)?tv\/([a-zA-Z0-9_-]+)(?:\/(\d+))?(?:\/(\d+))?/i);
+            const movieMatch = pathname.match(/(?:embed\/)?movie\/([a-zA-Z0-9_-]+)/i);
+
+            if (tvMatch) {
+                mediaType = 'tv';
+                mediaId = tvMatch[1];
+                if (tvMatch[2]) season = parseInt(tvMatch[2], 10) || 1;
+                if (tvMatch[3]) episode = parseInt(tvMatch[3], 10) || 1;
+            } else if (movieMatch) {
+                mediaType = 'movie';
+                mediaId = movieMatch[1];
             }
 
-            const contentType = upstream.headers.get('content-type') || 'text/html';
+            if (parsed.searchParams.has('s')) season = parseInt(parsed.searchParams.get('s'), 10) || season;
+            if (parsed.searchParams.has('season')) season = parseInt(parsed.searchParams.get('season'), 10) || season;
+            if (parsed.searchParams.has('e')) episode = parseInt(parsed.searchParams.get('e'), 10) || episode;
+            if (parsed.searchParams.has('episode')) episode = parseInt(parsed.searchParams.get('episode'), 10) || episode;
+            if (parsed.searchParams.has('id') && !mediaId) mediaId = parsed.searchParams.get('id');
 
-            if (contentType.includes('text/html')) {
-                let html = await upstream.text();
-                const baseTag = `<base href="${parsed.origin}/">\n<meta name="referrer" content="no-referrer">\n`;
-                const shieldScript = `
-<script>
-(function() {
-    try {
-        // Scramjet Anti-Popunder & Sandbox Protection Shield
-        window.open = function() { console.log('[Scramjet Proxy] Blocked popup window'); return null; };
-        window.alert = function() {};
-        window.confirm = function() { return true; };
-        window.prompt = function() { return null; };
-        window.onbeforeunload = null;
-        window.addEventListener('beforeunload', function(e) { e.stopImmediatePropagation(); }, true);
-    } catch (e) {}
-})();
-</script>
-`;
-                if (/<head[^>]*>/i.test(html)) {
-                    html = html.replace(/<head([^>]*)>/i, `<head$1>\n${baseTag}${shieldScript}`);
-                } else {
-                    html = `<!DOCTYPE html><html><head>${baseTag}${shieldScript}</head><body>${html}</body></html>`;
+            const idForMirrors = mediaId || '550';
+            const mirrors = {
+                vidsrc: mediaType === 'tv'
+                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                cinesrc: mediaType === 'tv'
+                    ? `https://www.cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
+                    : `https://www.cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                vidlink: mediaType === 'tv'
+                    ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?primaryColor=ff2e63&autoplay=true`
+                    : `https://vidlink.pro/movie/${encodeURIComponent(idForMirrors)}?primaryColor=ff2e63&autoplay=true`,
+                hls: mediaType === 'tv'
+                    ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${season}&episode=${episode}&server=x8rrmovies&autoplay=true`
+                    : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(idForMirrors)}&server=x8rrmovies&autoplay=true`
+            };
+
+            const escapedTargetUrl = targetUrl
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+
+            const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="referrer" content="no-referrer">
+    <title>Scramjet Shielded Proxy Player</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            width: 100%;
+            height: 100%;
+            background: #000;
+            overflow: hidden;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #fff;
+        }
+        .scramjet-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #000;
+        }
+        .scramjet-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+            background: #000;
+            z-index: 1;
+        }
+        .scramjet-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #09090e;
+            z-index: 20;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+            pointer-events: auto;
+        }
+        .scramjet-overlay.loaded {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+        .scramjet-spinner {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: 3px solid rgba(255, 46, 99, 0.2);
+            border-top-color: #ff2e63;
+            animation: scramjet-spin 0.75s linear infinite;
+        }
+        @keyframes scramjet-spin {
+            to { transform: rotate(360deg); }
+        }
+        .scramjet-status-title {
+            margin-top: 16px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #ff5e82;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+        }
+        .scramjet-status-sub {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #8c8c9e;
+        }
+        .scramjet-quick-bar {
+            position: absolute;
+            bottom: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(14, 14, 20, 0.92);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            padding: 4px 10px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            pointer-events: auto;
+        }
+        .scramjet-container:hover .scramjet-quick-bar {
+            opacity: 1;
+        }
+        .scramjet-quick-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #dcdce6;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .scramjet-quick-btn:hover {
+            background: #ff2e63;
+            border-color: #ff2e63;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="scramjet-container" id="scramjetContainer">
+        <div class="scramjet-overlay" id="scramjetOverlay">
+            <div class="scramjet-spinner"></div>
+            <div class="scramjet-status-title">⚡ Scramjet Shielded Proxy</div>
+            <div class="scramjet-status-sub" id="scramjetStatusText">Establishing secure tunnel with popunder shield…</div>
+        </div>
+
+        <iframe id="scramjetTargetIframe"
+                class="scramjet-frame"
+                src="${escapedTargetUrl}"
+                allowfullscreen
+                allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+                referrerpolicy="no-referrer"></iframe>
+
+        <div class="scramjet-quick-bar" id="scramjetQuickBar">
+            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Proxy:</span>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidsrc')">1. VidSrc</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('cinesrc')">2. CineSRC</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidlink')">3. VidLink</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('hls')">🍿 HLS</button>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            try {
+                // Anti-Popunder & Sandbox Protection Shield
+                window.open = function() { console.log('[Scramjet Proxy] Blocked popup window'); return null; };
+                window.alert = function() {};
+                window.confirm = function() { return true; };
+                window.prompt = function() { return null; };
+                window.onbeforeunload = null;
+                window.addEventListener('beforeunload', function(e) { e.stopImmediatePropagation(); }, true);
+            } catch(e) {}
+
+            var ifr = document.getElementById('scramjetTargetIframe');
+            var overlay = document.getElementById('scramjetOverlay');
+            var statusText = document.getElementById('scramjetStatusText');
+
+            function hideOverlay() {
+                if (overlay && !overlay.classList.contains('loaded')) {
+                    overlay.classList.add('loaded');
+                    setTimeout(function() {
+                        if (overlay) overlay.style.display = 'none';
+                    }, 350);
                 }
-
-                res.writeHead(200, {
-                    'Content-Type': 'text/html; charset=utf-8',
-                    'Access-Control-Allow-Origin': '*',
-                    'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-                    'Permissions-Policy': 'autoplay=*, fullscreen=*, picture-in-picture=*',
-                    'Cache-Control': 'public, max-age=120'
-                });
-                res.end(html);
-                return true;
-            } else {
-                const buf = await upstream.arrayBuffer();
-                res.writeHead(upstream.status, {
-                    'Content-Type': contentType,
-                    'Access-Control-Allow-Origin': '*',
-                    'Cache-Control': 'public, max-age=600'
-                });
-                res.end(Buffer.from(buf));
-                return true;
             }
+
+            if (ifr) {
+                ifr.addEventListener('load', function() {
+                    setTimeout(hideOverlay, 300);
+                });
+                setTimeout(hideOverlay, 1500);
+            }
+
+            var mirrors = ${JSON.stringify(mirrors)};
+
+            window.loadMirror = function(key) {
+                var url = mirrors[key];
+                if (!url) return;
+                if (overlay) {
+                    overlay.style.display = 'flex';
+                    overlay.classList.remove('loaded');
+                    if (statusText) statusText.textContent = 'Switching to ' + key.toUpperCase() + ' mirror…';
+                }
+                if (ifr) {
+                    ifr.src = url;
+                }
+                try {
+                    window.parent.postMessage({ type: 'scramjet:switchSource', source: key }, '*');
+                } catch(e) {}
+                setTimeout(hideOverlay, 1500);
+            };
+        })();
+    </script>
+</body>
+</html>`;
+
+            res.writeHead(200, {
+                'Content-Type': 'text/html; charset=utf-8',
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+                'Permissions-Policy': 'autoplay=*, fullscreen=*, picture-in-picture=*',
+                'Cache-Control': 'public, max-age=120'
+            });
+            res.end(html);
+            return true;
         } catch (err) {
-            console.warn('[Scramjet Proxy] Fetch notice:', err.message);
+            console.warn('[Scramjet Proxy] Error:', err.message);
             res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(`
-                <!DOCTYPE html>
-                <html>
-                <head><meta charset="utf-8"><title>Scramjet Proxy Notice</title></head>
-                <body style="background:#09090e;color:#fff;font-family:system-ui,-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;">
-                    <div style="padding:24px;max-width:440px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,46,99,0.3);border-radius:12px;">
-                        <div style="font-size:32px;margin-bottom:10px;">⚡</div>
-                        <h3 style="margin:0 0 8px 0;color:#ff2e63;">Scramjet Proxy Connection Notice</h3>
-                        <p style="margin:0;font-size:13px;color:#a0a0b0;">${err.message || 'Upstream timeout'}. Switching automatically...</p>
-                    </div>
-                </body>
-                </html>
-            `);
+            res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Scramjet Proxy Notice</title></head><body style="background:#09090e;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;"><div style="padding:24px;max-width:440px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,46,99,0.3);border-radius:12px;"><h3 style="margin:0 0 8px 0;color:#ff2e63;">Scramjet Proxy Connection Notice</h3><p style="margin:0;font-size:13px;color:#a0a0b0;">${err.message || 'Error initializing proxy'}</p></div></body></html>`);
             return true;
         }
     }

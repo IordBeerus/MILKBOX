@@ -4780,11 +4780,19 @@ window._scramjetProxyMode = 'direct';
 window._scramjetContext = null;
 
 try {
-    
-    if (localStorage.getItem('milkbox_scramjet_mode') === 'proxy') {
-        localStorage.setItem('milkbox_scramjet_mode', 'direct');
+    const savedScramjetMode = localStorage.getItem('milkbox_scramjet_mode');
+    if (savedScramjetMode === 'proxy' || savedScramjetMode === 'direct') {
+        window._scramjetProxyMode = savedScramjetMode;
     }
 } catch {}
+
+window.addEventListener('message', function(ev) {
+    if (ev && ev.data && ev.data.type === 'scramjet:switchSource' && typeof window.switchScramjetSource === 'function') {
+        if (ev.data.source !== window._scramjetActiveSource) {
+            window.switchScramjetSource(ev.data.source);
+        }
+    }
+});
 
 function getScramjetSourceUrl(sourceKey, mode = window._scramjetProxyMode) {
     const ctx = window._scramjetContext;
