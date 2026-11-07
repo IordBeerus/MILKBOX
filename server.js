@@ -6,6 +6,7 @@ const { Writable } = require('stream');
 const { Innertube, Platform } = require('youtubei.js');
 const { handleStreamResolve, handleStreamProxy } = require('./stream-provider');
 const { handleX8rrProxy, handleX8rrStreamApi, handleX8rrSubtitlesApi, handleX8rrVttProxy } = require('./x8rr-movies');
+const { handleX8rrManga } = require('./x8rr-manga');
 const { initWatchPartyServer } = require('./watch-party-server');
 
 Platform.shim.eval = async (data) => new Function(data.output)();
@@ -1722,6 +1723,7 @@ const server = http.createServer(async (req, res) => {
     if (await handleScramjetProxy(req, res, requestPath, query)) return;
     if (await resolvePlayback(req, res, requestPath, query)) return;
     if (await proxyTmdb(req, res, requestPath, query)) return;
+    if (await handleX8rrManga(req, res, requestPath, query)) return;
     if (await proxyMangaDex(req, res, requestPath, query)) return;
     if (await proxyMangaDexCover(req, res, requestPath)) return;
     if (await proxyMangaFallbackChapter(req, res, requestPath, query)) return;
