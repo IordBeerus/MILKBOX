@@ -10836,8 +10836,17 @@ mrEl('mangaLanguageSelect')?.addEventListener('change', (event) => {
     if (mangaReader.item) showMangaReader(mangaReader.item);
 });
 
+mrEl('mangaReadSourceToggle')?.addEventListener('click', () => {
+    const nextSource = mangaReader.source === 'mangadex' ? 'mangapill' : 'mangadex';
+    if (mangaReader.item) {
+        showMangaReader({ ...mangaReader.item, source: nextSource });
+    }
+});
+
 function showMangaReader(m) {
     if (!m) return;
+    const reqSource = m.source || (m.id && String(m.id).includes('/') ? 'mangapill' : (liveState.manga.source || 'mangadex'));
+    mangaReader.source = reqSource;
     mangaReader.mangaId = m.id || '';
     mangaReader.item = m;
     mangaReader.info = null;
@@ -10852,23 +10861,78 @@ function showMangaReader(m) {
     mrEl('mangaReadPages').innerHTML = '<div class="live-loading">Loading manga details &amp; chapters…</div>';
     mrEl('mangaReadPrev').disabled = true;
     mrEl('mangaReadNext').disabled = true;
+
+    const sourceBadge = mrEl('mangaReadSourceBadge');
+    if (sourceBadge) {
+        sourceBadge.textContent = reqSource === 'mangapill' ? 'MangaPill' : 'MangaDex';
+    }
+
     const languageSelect = mrEl('mangaLanguageSelect');
     if (languageSelect) languageSelect.value = mangaReader.language;
     mrEl('mangaModal').classList.add('active');
 
     (async () => {
         try {
+            if (reqSource === 'mangapill') {
+                let pillId = m.id;
+                if (!pillId || !String(pillId).includes('/') || /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(String(pillId))) {
+                    const searchRes = await fetch(`/pill/search?q=${encodeURIComponent(m.title || '')}`);
+                    if (searchRes.ok) {
+                        const sData = await searchRes.json();
+                        if (sData?.items?.length) {
+                            pillId = sData.items[0].id;
+                        }
+                    }
+                }
+                if (!pillId) throw new Error('Manga not found on MangaPill');
+                mangaReader.mangaId = pillId;
+
+                const dRes = await fetch(`/pill/detail/${encodeURIComponent(pillId)}`);
+                if (!dRes.ok) throw new Error('Failed to load MangaPill details');
+                const detail = await dRes.json();
+                mangaReader.info = detail;
+                renderReaderDetail(detail, m);
+
+                let chs = (detail.chapters || []).map(c => ({
+                    id: c.id,
+                    chapter: c.chapter || '',
+                    name: c.title || `Chapter ${c.chapter || ''}`,
+                    externalUrl: null
+                }));
+
+                if (chs.length > 1) {
+                    const firstNum = parseFloat(chs[0].chapter);
+                    const lastNum = parseFloat(chs[chs.length - 1].chapter);
+                    if (!isNaN(firstNum) && !isNaN(lastNum) && firstNum > lastNum) {
+                        chs = chs.slice().reverse();
+                    }
+                }
+
+                mangaReader.chapters = chs;
+                if (chs.length) {
+                    mangaReader.currentId = chs[0].id;
+                    updateReaderNav();
+                    renderChapterDrawer();
+                    await openChapter(mangaReader.currentId);
+                } else {
+                    mrEl('mangaReadPages').innerHTML = '<div class="live-error">No chapters found on MangaPill for this title.</div>';
+                    updateReaderNav();
+                    renderChapterDrawer();
+                }
+                return;
+            }
+
             let mdId = m.id;
             const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(mdId));
             if (!isUuid) {
                 mdId = await resolveMangadexMangaId(m.title || '');
             }
             if (!mdId) {
-                throw new Error('Unable to find title on MangaDex');
+                console.info('Title not found on MangaDex, falling back to MangaPill');
+                return showMangaReader({ ...m, source: 'mangapill' });
             }
             mangaReader.mangaId = mdId;
 
-            // Fetch Manga details
             let detail = null;
             try {
                 const dRes = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}?includes[]=author&includes[]=artist&includes[]=cover_art`);
@@ -10881,7 +10945,6 @@ function showMangaReader(m) {
             mangaReader.info = detail || m;
             renderReaderDetail(detail, m);
 
-            // Fetch Chapters
             let chapterData = [];
             const langParam = mangaReader.language === 'all' ? '' : `&translatedLanguage[]=${encodeURIComponent(mangaReader.language)}`;
             const feedRes = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=500${langParam}&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica&includes[]=scanlation_group`, { cache: 'no-store' });
@@ -10899,7 +10962,6 @@ function showMangaReader(m) {
                         externalUrl: c.attributes?.externalUrl || null
                     }));
                 } else if (mangaReader.language !== 'all') {
-                    // Check available languages across all chapters
                     const probe = await fetchMangadex(`https://api.mangadex.org/manga/${encodeURIComponent(mdId)}/feed?limit=50&order[chapter]=asc&contentRating[]=safe&contentRating[]=suggestive&contentRating[]=erotica`, { cache: 'no-store' });
                     if (probe.ok) {
                         const pData = await probe.json();
@@ -10939,20 +11001,21 @@ function showMangaReader(m) {
                 }
             }
 
-            mangaReader.chapters = chapterData;
-
-            if (mangaReader.chapters.length) {
-                mangaReader.currentId = mangaReader.chapters[0].id;
-                updateReaderNav();
-                renderChapterDrawer();
-                await openChapter(mangaReader.currentId);
-            } else {
-                mrEl('mangaReadPages').innerHTML = '<div class="live-error">No chapters found for this title in the selected language. Try selecting "All languages" above.</div>';
-                updateReaderNav();
-                renderChapterDrawer();
+            if (!chapterData.length) {
+                console.info('No MangaDex chapters, falling back to MangaPill');
+                return showMangaReader({ ...m, source: 'mangapill' });
             }
+
+            mangaReader.chapters = chapterData;
+            mangaReader.currentId = mangaReader.chapters[0].id;
+            updateReaderNav();
+            renderChapterDrawer();
+            await openChapter(mangaReader.currentId);
         } catch (e) {
-            console.warn('showMangaReader error:', e.message);
+            console.warn('showMangaReader error, trying MangaPill:', e.message);
+            if (reqSource !== 'mangapill') {
+                return showMangaReader({ ...m, source: 'mangapill' });
+            }
             mangaReader.images = [];
             mrEl('mangaReadPages').innerHTML = `<div class="live-error">Unable to load chapters: ${escapeHtml(e.message || 'Manga unavailable')}.</div>`;
             updatePageNav();
@@ -10967,6 +11030,7 @@ function renderReaderDetail(detail, fallback) {
     const title = detail?.attributes?.title?.en
         || detail?.attributes?.title?.['ja-ro']
         || (detail?.attributes?.title ? Object.values(detail.attributes.title)[0] : '')
+        || detail?.title
         || fallback?.title
         || 'Manga';
     mrEl('mangaReadName').textContent = title;
@@ -10976,17 +11040,23 @@ function renderReaderDetail(detail, fallback) {
         const creators = detail.relationships.filter(r => r.type === 'author' || r.type === 'artist').map(r => r.attributes?.name).filter(Boolean);
         if (creators.length) meta.push('✍ ' + Array.from(new Set(creators)).join(', '));
     }
-    const status = detail?.attributes?.status || fallback?.status;
+    const status = detail?.attributes?.status || detail?.status || fallback?.status;
     if (status) meta.push(status.charAt(0).toUpperCase() + status.slice(1));
-    const year = detail?.attributes?.year || fallback?.year;
+    const year = detail?.attributes?.year || detail?.year || fallback?.year;
     if (year) meta.push(String(year));
     if (detail?.attributes?.lastChapter) meta.push('Last Ch. ' + detail.attributes.lastChapter);
+    else if (detail?.totalChapters) meta.push(`${detail.totalChapters} chapters`);
     mrEl('mangaReadMeta').textContent = meta.join('  ·  ');
 
     const genresEl = mrEl('mangaReadGenres');
     if (genresEl) {
-        const tags = (detail?.attributes?.tags || []).filter(t => t.attributes?.group === 'genre').map(t => t.attributes?.name?.en).filter(Boolean);
-        const list = tags.length ? tags : (fallback?.genre || []);
+        let list = [];
+        if (detail?.tags && Array.isArray(detail.tags)) {
+            list = detail.tags;
+        } else if (detail?.attributes?.tags) {
+            list = detail.attributes.tags.filter(t => t.attributes?.group === 'genre').map(t => t.attributes?.name?.en).filter(Boolean);
+        }
+        if (!list.length && fallback?.genre) list = fallback.genre;
         genresEl.innerHTML = list.map(g => `<span class="manga-genre-chip">${escapeHtml(g)}</span>`).join('');
     }
 }
@@ -11026,6 +11096,30 @@ async function openChapter(chId) {
 
     const chNum = ch?.chapter || (ch?.name ? (ch.name.match(/(?:ch(?:apter)?\.?|days|ep\.?|#)\s*([0-9\.]+)/i)?.[1] || '') : '');
 
+    // MangaPill chapter
+    const isMangaPillChapter = mangaReader.source === 'mangapill' || String(chId).includes('/') || String(chId).includes('chapter');
+    if (isMangaPillChapter) {
+        try {
+            const pillRes = await fetch(`/pill/pages/${encodeURIComponent(chId)}`);
+            if (pillRes.ok) {
+                const pData = await pillRes.json();
+                if (pData?.pages?.length) {
+                    mangaReader.images = pData.pages.map(p => ({ image: p, title: ch?.name || '' }));
+                    mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
+                    renderChapterPages();
+                    updateReaderNav();
+                    renderChapterDrawer();
+                    const body = mrEl('mangaReadBody');
+                    if (body) body.scrollTop = 0;
+                    return;
+                }
+            }
+        } catch (e) {
+            console.warn('MangaPill chapter page fetch error:', e);
+        }
+    }
+
+    // MangaDex chapter with externalUrl
     if (ch && ch.externalUrl) {
         pagesEl.innerHTML = '<div class="live-loading">Extracting chapter image pages…</div>';
         try {
@@ -11049,10 +11143,11 @@ async function openChapter(chId) {
 
         pagesEl.innerHTML = `<div class="live-error" style="text-align:center; padding: 36px 16px;">
             <p style="margin-bottom:14px; font-weight:600; font-size:15px; color:#ff2e63;">This chapter is hosted externally by the publisher.</p>
-            <p style="margin-bottom:18px; font-size:13px; color:#a0a0aa; max-width:480px; margin-left:auto; margin-right:auto;">Direct image pages could not be extracted for this specific chapter. You can read it directly on the publisher site below:</p>
+            <p style="margin-bottom:18px; font-size:13px; color:#a0a0aa; max-width:480px; margin-left:auto; margin-right:auto;">Direct image pages could not be extracted for this specific chapter. You can read it directly on the publisher site below or switch to MangaPill:</p>
             <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
-                <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none; font-weight:600;">Open on Official Publisher ↗</a>
-                <button type="button" class="btn btn-secondary" onclick="openChapter('${escapeHtml(chId)}')" style="display:inline-block; padding:10px 18px; font-size:14px; border-radius:8px; cursor:pointer;">Retry Extraction ↻</button>
+                <button type="button" class="btn btn-primary" onclick="showMangaReader({ ...mangaReader.item, source: 'mangapill' })" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; cursor:pointer;">Read on MangaPill 📖</button>
+                <a href="${escapeHtml(ch.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="display:inline-block; padding:10px 22px; font-size:14px; border-radius:8px; text-decoration:none;">Open Publisher ↗</a>
+                <button type="button" class="btn btn-secondary" onclick="openChapter('${escapeHtml(chId)}')" style="display:inline-block; padding:10px 18px; font-size:14px; border-radius:8px; cursor:pointer;">Retry ↻</button>
             </div>
         </div>`;
         mangaReader.images = [];
@@ -11063,6 +11158,7 @@ async function openChapter(chId) {
         return;
     }
 
+    // MangaDex standard chapter via at-home server
     try {
         const r = await fetchMangadex(`https://api.mangadex.org/at-home/server/${encodeURIComponent(chId)}`, { cache: 'no-store' });
         if (r.ok) {
@@ -11084,13 +11180,13 @@ async function openChapter(chId) {
             }
         }
     } catch (err) {
-        console.error('Error fetching chapter pages:', err);
+        console.error('Error fetching MangaDex chapter pages:', err);
     }
 
-    // Secondary fallback attempt if MangaDex At-Home server returned no images
+    // Secondary fallback to MangaPill resolver
     if (mangaTitle) {
         try {
-            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&chapter=${encodeURIComponent(chNum)}`);
+            const fbRes = await fetch(`/api/manga-fallback-chapter?title=${encodeURIComponent(mangaTitle)}&altTitles=${encodeURIComponent(JSON.stringify(altTitles))}&chapter=${encodeURIComponent(chNum)}`);
             if (fbRes.ok) {
                 const fbData = await fbRes.json();
                 if (fbData && fbData.pages && fbData.pages.length) {
@@ -11107,7 +11203,10 @@ async function openChapter(chId) {
         } catch (_) {}
     }
 
-    pagesEl.innerHTML = '<div class="live-error">No pages were returned for this chapter.</div>';
+    pagesEl.innerHTML = `<div class="live-error" style="text-align:center; padding: 36px 16px;">
+        <p style="margin-bottom:14px; font-weight:600; font-size:15px; color:#ff2e63;">No page images were returned for this chapter.</p>
+        <button type="button" class="btn btn-primary" onclick="showMangaReader({ ...mangaReader.item, source: mangaReader.source === 'mangadex' ? 'mangapill' : 'mangadex' })" style="padding:10px 20px; font-size:14px; border-radius:8px; cursor:pointer;">Switch to ${mangaReader.source === 'mangadex' ? 'MangaPill' : 'MangaDex'} ⇄</button>
+    </div>`;
     mangaReader.images = [];
     mrEl('mangaReadChapterLabel').textContent = ch?.name || `Chapter ${chId}`;
     updatePageNav();
