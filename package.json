@@ -16,6 +16,7 @@
     "node": ">=20.19.0"
   },
   "dependencies": {
+    "cheerio": "^1.2.0",
     "jsmediatags": "^3.9.7",
     "ws": "^8.22.0",
     "youtubei.js": "^18.0.0"
