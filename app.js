@@ -254,7 +254,7 @@ function hardenCloudIframe(iframe){
     } catch {}
     try {
         const src = iframe.src || iframe.getAttribute('src') || '';
-        const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|toustream|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
+        const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|vidstuck|vidnest|vixsrc|vidzee|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(src);
         if (isCloud && (!window.AdGuardPopupBlocker || window.AdGuardPopupBlocker.isEnabled())) {
             setTimeout(showPopupShield, 220);
         }
@@ -5663,8 +5663,8 @@ function embedsuIframe2(tmdbId, type, season, episode) {
 }
 function vidfastvcIframe2(tmdbId, type, season, episode) {
     let url;
-    if (type === 'tv') url = `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
-    else url = `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}`;
+    if (type === 'tv') url = `https://vidfast.vc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=ff2e63`;
+    else url = `https://vidfast.vc/embed/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=ff2e63`;
     return makePlaybackIframe(url);
 }
 function wfslolIframe2(tmdbId, type, season, episode) {
@@ -5679,10 +5679,33 @@ function vidsrctopIframe2(tmdbId, type, season, episode) {
     else url = `https://vid-src.top/embed/movie/${encodeURIComponent(tmdbId)}`;
     return makePlaybackIframe(url);
 }
-function toustreamIframe(tmdbId, type, season, episode) {
+function vidstuckIframe(tmdbId, type, season, episode) {
     let url;
-    if (type === 'tv') url = `https://toustream.xyz/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
-    else url = `https://toustream.xyz/movie/${encodeURIComponent(tmdbId)}`;
+    if (type === 'tv') url = `https://vidstuck.cc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=ff2e63&autoplay=true`;
+    else url = `https://vidstuck.cc/embed/movie/${encodeURIComponent(tmdbId)}?color=ff2e63&autoplay=true`;
+    return makePlaybackIframe(url);
+}
+function vidnestIframe(tmdbId, type, season, episode) {
+    const pc = playContext?.item;
+    if (pc && isAnime(pc)) {
+        const aid = pc.anilistId || pc.anilist_id;
+        if (aid) return makePlaybackIframe(`https://vidnest.fun/anime/${encodeURIComponent(aid)}/${encodeURIComponent(episode || 1)}/sub`);
+    }
+    let url;
+    if (type === 'tv') url = `https://vidnest.fun/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+    else url = `https://vidnest.fun/movie/${encodeURIComponent(tmdbId)}`;
+    return makePlaybackIframe(url);
+}
+function vixsrcIframe(tmdbId, type, season, episode) {
+    let url;
+    if (type === 'tv') url = `https://vixsrc.to/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+    else url = `https://vixsrc.to/movie/${encodeURIComponent(tmdbId)}`;
+    return makePlaybackIframe(url);
+}
+function vidzeeIframe(tmdbId, type, season, episode) {
+    let url;
+    if (type === 'tv') url = `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+    else url = `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(tmdbId)}`;
     return makePlaybackIframe(url);
 }
 
@@ -5789,7 +5812,7 @@ function effectiveServerFor(item, type) {
 }
 
 
-const SERVER_ORDER = ['scramjet', 'x8rrmovies', 'milkbox', 'pstream', 'tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'vidy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'vidlink', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','vidfastvc','wfslol','vidsrctop','toustream','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
+const SERVER_ORDER = ['scramjet', 'x8rrmovies', 'milkbox', 'vidstuck', 'vidlink', 'vidnest', 'vixsrc', 'vidfastvc', 'vidzee', 'pstream', 'tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'vidy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','wfslol','vidsrctop','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
 let fallbackLoaded = false;
@@ -5984,7 +6007,10 @@ const SERVER_IFRAME = {
     vidfastvc: vidfastvcIframe2,
     wfslol: wfslolIframe2,
     vidsrctop: vidsrctopIframe2,
-    toustream: toustreamIframe,
+    vidstuck: vidstuckIframe,
+    vidnest: vidnestIframe,
+    vixsrc: vixsrcIframe,
+    vidzee: vidzeeIframe,
     vidhawk: (tmdbId, type, season, episode) => {
         const pc = playContext?.item;
         if (!pc || !isAnime(pc)) return vidsrcIframe(tmdbId, type, season, episode);
