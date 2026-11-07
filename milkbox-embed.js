@@ -137,6 +137,9 @@
         { id: 'cinesrc', name: 'CineSRC 4K', icon: '🎬' },
         { id: 'vidsrcsbs', name: 'VidSrc SBS', icon: '🚀' },
         { id: 'vidcore', name: 'VidCore HD', icon: '🛡️' },
+        { id: 'vidrock', name: 'VidRock Ultra', icon: '🎸' },
+        { id: 'vidspark', name: 'VidSpark 1080p', icon: '⚡' },
+        { id: 'twoembed', name: '2Embed Fast', icon: '🚀' },
         { id: 'autoembed', name: 'AutoEmbed VIP', icon: '✨' }
     ];
 
@@ -304,6 +307,27 @@
                     return `https://vidcore.org/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
                 }
                 return `https://vidcore.org/embed/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vidrock': {
+                if (type === 'tv') {
+                    return `https://vidrock.net/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidrock.net/embed/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vidspark': {
+                if (type === 'tv') {
+                    return `https://vidspark.to/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidspark.to/embed/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'twoembed': {
+                if (type === 'tv') {
+                    return `https://vidsrc.buzz/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidsrc.buzz/embed/movie/${encodeURIComponent(id)}`;
             }
 
             case 'autoembed':

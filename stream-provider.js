@@ -243,6 +243,27 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 url: `https://vidcore.org/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
             },
             {
+                id: 'vidrock',
+                name: 'VidRock (vidrock.net)',
+                quality: '1080p Ultra',
+                icon: '🎸',
+                url: `https://vidrock.net/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'vidspark',
+                name: 'VidSpark (vidspark.to)',
+                quality: '1080p Ultra',
+                icon: '⚡',
+                url: `https://vidspark.to/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'twoembed',
+                name: '2Embed (vidsrc.buzz)',
+                quality: '1080p HD',
+                icon: '🚀',
+                url: `https://vidsrc.buzz/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
                 id: 'autoembed',
                 name: 'AutoEmbed VIP',
                 quality: '1080p HD',
@@ -348,6 +369,27 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             quality: '1080p HD',
             icon: '🛡️',
             url: `https://vidcore.org/embed/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'vidrock',
+            name: 'VidRock (vidrock.net)',
+            quality: '1080p Ultra',
+            icon: '🎸',
+            url: `https://vidrock.net/embed/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'vidspark',
+            name: 'VidSpark (vidspark.to)',
+            quality: '1080p Ultra',
+            icon: '⚡',
+            url: `https://vidspark.to/embed/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'twoembed',
+            name: '2Embed (vidsrc.buzz)',
+            quality: '1080p HD',
+            icon: '🚀',
+            url: `https://vidsrc.buzz/embed/movie/${encodeURIComponent(id)}`
         },
         {
             id: 'autoembed',
