@@ -4889,8 +4889,8 @@ function scramjetIframe(tmdbId, type, season, episode) {
         : `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`;
 
     const cinesrcDirect = type === 'tv'
-        ? `https://www.cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
-        : `https://www.cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+        ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+        : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
 
     const vidlinkDirect = type === 'tv'
         ? `https://vidlink.pro/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?primaryColor=ff2e63&autoplay=true`
@@ -4970,14 +4970,52 @@ function vidsrcIframe(tmdbId, type, season, episode) {
 }
 
 function cinesrcIframe(tmdbId, type, season, episode) {
-    let url;
-    if (type === 'tv') {
-        url = `https://www.cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
-    } else {
-        url = `https://www.cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
-    }
-    return makePlaybackIframe(url);
+    const se = season || 1;
+    const ep = episode || 1;
+    const url = type === 'tv'
+        ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+        : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+
+    return `
+        <div class="cinesrc-player-wrapper" style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;background:#000;">
+            <div class="cinesrc-hud-bar" style="position:absolute;top:10px;left:10px;right:10px;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(12,12,18,0.92);backdrop-filter:blur(10px);border:1px solid rgba(255,46,99,0.35);border-radius:10px;pointer-events:auto;gap:8px;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+                <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
+                    <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#ff5e82;text-transform:uppercase;letter-spacing:0.5px;background:rgba(255,46,99,0.18);padding:3px 8px;border-radius:6px;border:1px solid rgba(255,46,99,0.35);">
+                        🎬 CineSRC
+                    </span>
+                    <span style="font-size:11px;font-weight:600;color:#94a3b8;">
+                        cinesrc.st
+                    </span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                    <button type="button" onclick="window.reloadCinesrc()" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;" title="Retry CineSRC">
+                        🔄 Retry
+                    </button>
+                    <button type="button" onclick="renderTmdbPlay('x8rrmovies')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid #ff2e63;background:#ff2e63;color:#fff;cursor:pointer;" title="Switch to High Speed x8rr HLS Stream">
+                        🍿 x8rr Direct (1080p)
+                    </button>
+                    <button type="button" onclick="renderTmdbPlay('vidlink')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#d0d0d8;cursor:pointer;" title="Switch to VidLink">
+                        💎 VidLink
+                    </button>
+                    <button type="button" onclick="renderTmdbPlay('vidsrcsbs')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.08);color:#d0d0d8;cursor:pointer;" title="Switch to VidSrc SBS">
+                        🚀 VidSrc
+                    </button>
+                </div>
+            </div>
+            <iframe id="cinesrcPlayerIframe" src="${escapeHtml(url)}" width="100%" height="100%" style="flex:1;border:0;width:100%;height:100%;" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
+        </div>
+    `;
 }
+
+window.reloadCinesrc = function() {
+    const ifr = document.getElementById('cinesrcPlayerIframe');
+    if (ifr && ifr.src) {
+        const cur = ifr.src;
+        ifr.src = 'about:blank';
+        setTimeout(() => { ifr.src = cur; }, 100);
+        toast('CineSRC: Reloading stream player…', 'info');
+    }
+};
 
 function vidsrcSbsIframe(tmdbId, type, season, episode) {
     let url;
@@ -5907,8 +5945,11 @@ function armAutoFallback(frame, server) {
     ifr.addEventListener('error', () => { if (!fallbackLoaded) tryAutoFallback(server); });
     if (server === 'cinesrc') {
         setTimeout(() => {
-            if (!fallbackLoaded && fallbackStart === server) tryAutoFallback(server);
-        }, 20000);
+            if (!fallbackLoaded && fallbackStart === server) {
+                toast('CineSRC: Stream unavailable — switching to high-speed alternate…', 'info');
+                tryAutoFallback(server);
+            }
+        }, 7000);
     }
     if (server === 'scramjet') {
         setTimeout(() => {

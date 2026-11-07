@@ -287,9 +287,9 @@
 
             case 'cinesrc': {
                 if (type === 'tv') {
-                    return `https://www.cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
+                    return `https://cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`;
                 }
-                return `https://www.cinesrc.st/embed/movie/${encodeURIComponent(id)}`;
+                return `https://cinesrc.st/embed/movie/${encodeURIComponent(id)}`;
             }
 
             case 'vidsrcsbs': {

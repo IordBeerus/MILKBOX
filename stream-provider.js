@@ -170,7 +170,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 wisp: 'wss://wisp.classroom.lat/',
                 url: `/api/scramjet/embed?url=${encodeURIComponent(`https://vidsrc.pm/embed/tv/${id}/${se}/${ep}`)}`,
                 directUrl: `https://vidsrc.pm/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`,
-                fallbackUrl: `https://www.cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+                fallbackUrl: `https://cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
             },
             {
                 id: 'vidstuck',
@@ -226,7 +226,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 name: 'CineSRC 4K',
                 quality: '4K Ultra',
                 icon: '🎬',
-                url: `https://www.cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+                url: `https://cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
             },
             {
                 id: 'vidsrcsbs',
@@ -277,7 +277,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             wisp: 'wss://wisp.classroom.lat/',
             url: `/api/scramjet/embed?url=${encodeURIComponent(`https://vidsrc.pm/embed/movie/${id}`)}`,
             directUrl: `https://vidsrc.pm/embed/movie/${encodeURIComponent(id)}`,
-            fallbackUrl: `https://www.cinesrc.st/embed/movie/${encodeURIComponent(id)}`
+            fallbackUrl: `https://cinesrc.st/embed/movie/${encodeURIComponent(id)}`
         },
         {
             id: 'vidstuck',
@@ -333,7 +333,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             name: 'CineSRC 4K',
             quality: '4K Ultra',
             icon: '🎬',
-            url: `https://www.cinesrc.st/embed/movie/${encodeURIComponent(id)}`
+            url: `https://cinesrc.st/embed/movie/${encodeURIComponent(id)}`
         },
         {
             id: 'vidsrcsbs',

@@ -1423,8 +1423,8 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                     ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
                     : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 cinesrc: mediaType === 'tv'
-                    ? `https://www.cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
-                    : `https://www.cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                    ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
+                    : `https://cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 vidlink: mediaType === 'tv'
                     ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?primaryColor=ff2e63&autoplay=true`
                     : `https://vidlink.pro/movie/${encodeURIComponent(idForMirrors)}?primaryColor=ff2e63&autoplay=true`,
