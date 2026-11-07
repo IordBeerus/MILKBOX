@@ -525,6 +525,10 @@
                     <button class="manga-search-clear" id="mangaSearchClear" style="display:none">Clear</button>
                 </div>
                 <div class="manga-filter-row" id="mangaFilterRow">
+                <select id="mangaSourceFilter" class="manga-filter" aria-label="Manga source">
+                    <option value="mangadex">Source: MangaDex</option>
+                    <option value="mangapill">Source: MangaPill (x8rr)</option>
+                </select>
                 <select id="mangaTypeFilter" class="manga-filter" aria-label="Manga type"></select>
                 <select id="mangaStateFilter" class="manga-filter" aria-label="Manga state"></select>
                 <select id="mangaCategoryFilter" class="manga-filter" aria-label="Manga category"></select>
@@ -1595,6 +1599,10 @@
                         <div class="manga-reader-meta" id="mangaReadMeta"></div>
                         <div class="manga-reader-genres" id="mangaReadGenres"></div>
                     </div>
+                </div>
+                <div class="manga-source-control" style="display:inline-flex; align-items:center; gap:8px;">
+                    <span class="manga-source-badge" id="mangaReadSourceBadge" style="font-size:11px; padding:3px 8px; border-radius:6px; background:rgba(255,46,99,0.15); color:#ff2e63; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">MangaDex</span>
+                    <button class="manga-reader-btn" id="mangaReadSourceToggle" type="button" style="padding:4px 10px; font-size:11px;" title="Switch source between MangaDex and MangaPill">Switch Source ⇄</button>
                 </div>
                 <label class="manga-language-control" for="mangaLanguageSelect">Language
                     <select id="mangaLanguageSelect" class="manga-language-select" aria-label="Chapter language">
