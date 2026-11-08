@@ -205,7 +205,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
                 name: 'VidFast (vidfast.vc)',
                 quality: '1080p HD',
                 icon: '⚡',
-                url: `https://vidfast.vc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
+                url: `https://vidfast.vc/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
             },
             {
                 id: 'vidzee',
@@ -340,7 +340,7 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             name: 'VidFast (vidfast.vc)',
             quality: '1080p HD',
             icon: '⚡',
-            url: `https://vidfast.vc/embed/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`
+            url: `https://vidfast.vc/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`
         },
         {
             id: 'vidzee',

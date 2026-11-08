@@ -278,9 +278,9 @@
             case 'vidfast':
             case 'vidfastvc': {
                 if (type === 'tv') {
-                    return `https://vidfast.vc/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=${accent}`;
+                    return `https://vidfast.vc/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=${accent}`;
                 }
-                return `https://vidfast.vc/embed/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`;
+                return `https://vidfast.vc/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`;
             }
 
             case 'vidzee': {

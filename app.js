@@ -5620,9 +5620,9 @@ function smashystreamIframe(tmdbId, type, season, episode) {
 function vidfastIframe(tmdbId, type, season, episode) {
     let url;
     if (type === 'tv') {
-        url = `https://embedflix.net/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+        url = `https://vidfast.pro/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=ff2e63`;
     } else {
-        url = `https://embedflix.net/movie/${encodeURIComponent(tmdbId)}`;
+        url = `https://vidfast.pro/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=ff2e63`;
     }
     return makePlaybackIframe(url);
 }
@@ -5722,8 +5722,8 @@ function embedsuIframe2(tmdbId, type, season, episode) {
 }
 function vidfastvcIframe2(tmdbId, type, season, episode) {
     let url;
-    if (type === 'tv') url = `https://vidfast.vc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=ff2e63`;
-    else url = `https://vidfast.vc/embed/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=ff2e63`;
+    if (type === 'tv') url = `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=ff2e63`;
+    else url = `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=ff2e63`;
     return makePlaybackIframe(url);
 }
 function wfslolIframe2(tmdbId, type, season, episode) {
