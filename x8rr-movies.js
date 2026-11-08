@@ -933,22 +933,27 @@ async function vidoraExtract(type, tmdbId, season = 1, episode = 1) {
 }
 
 // -------------------------------------------------------------
-// Provider Runner (Parallel execution with checkStreams)
+// Provider Runner (Primary New Providers & Classic Old Fallback Servers)
 // -------------------------------------------------------------
-const PROVIDERS = [
+const PRIMARY_PROVIDERS = [
     { id: 'vidzee', name: 'VidZee', extract: vidzeeExtract },
     { id: 'vidnest', name: 'VidNest', extract: vidnestExtract },
     { id: 'vidrock', name: 'VidRock', extract: vidrockExtract },
     { id: 'vidspark', name: 'VidSpark', extract: vidsparkExtract },
     { id: 'twoembed', name: '2Embed', extract: twoembedExtract },
-    { id: 'vixsrc', name: 'VixSrc', extract: vixsrcExtract },
-    { id: 'vidora', name: 'VidOra', extract: vidoraExtract },
-    { id: 'vidsrc', name: 'VidSrc', extract: vidsrcExtract }
+    { id: 'vixsrc', name: 'VixSrc', extract: vixsrcExtract }
 ];
 
-const PROVIDER_TIMEOUT = 12000;
-const GRACE_AFTER_FIRST = 4000;
-const HARD_DEADLINE = 14000;
+const FALLBACK_PROVIDERS = [
+    { id: 'vidora', name: 'VidOra', extract: vidoraExtract },
+    { id: 'vidsrc', name: 'VidSrc PM', extract: vidsrcExtract }
+];
+
+const PROVIDERS = [...PRIMARY_PROVIDERS, ...FALLBACK_PROVIDERS];
+
+const PROVIDER_TIMEOUT = 10000;
+const GRACE_AFTER_FIRST = 5500;
+const HARD_DEADLINE = 11000;
 
 function withTimeout(promise, ms) {
     let timer;
@@ -989,7 +994,8 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
                         quality: s.quality || '1080p Ultra',
                         provider: s.provider || 'x8rr',
                         providerName: s.providerName || `x8rr Source ${idx + 1}`,
-                        serverLabel: s.serverLabel || `Server ${idx + 1}`
+                        serverLabel: s.serverLabel || `Server ${idx + 1}`,
+                        isFallback: !!s.isFallback
                     }));
                     streamCache.set(cacheKey, { streams: formatted, time: Date.now() });
                     return formatted;
@@ -1000,8 +1006,10 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         }
     }
 
-    const slots = PROVIDERS.map(() => []);
-    const pending = PROVIDERS.map((p, i) =>
+    const primarySlots = PRIMARY_PROVIDERS.map(() => []);
+    const fallbackSlots = FALLBACK_PROVIDERS.map(() => []);
+
+    const primaryPending = PRIMARY_PROVIDERS.map((p, i) =>
         withTimeout(
             Promise.resolve()
                 .then(() => p.extract(type, tmdbId, se, ep))
@@ -1009,7 +1017,20 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
                 .catch(() => []),
             PROVIDER_TIMEOUT
         ).then((streams) => {
-            slots[i] = streams;
+            primarySlots[i] = streams;
+            return streams;
+        })
+    );
+
+    const fallbackPending = FALLBACK_PROVIDERS.map((p, i) =>
+        withTimeout(
+            Promise.resolve()
+                .then(() => p.extract(type, tmdbId, se, ep))
+                .then(checkStreams)
+                .catch(() => []),
+            PROVIDER_TIMEOUT
+        ).then((streams) => {
+            fallbackSlots[i] = streams;
             return streams;
         })
     );
@@ -1023,9 +1044,9 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
             resolve();
         };
 
-        Promise.all(pending).then(done);
+        Promise.all([...primaryPending, ...fallbackPending]).then(done);
 
-        for (const p of pending) {
+        for (const p of primaryPending) {
             p.then((streams) => {
                 if (Array.isArray(streams) && streams.length > 0 && !grace) {
                     grace = setTimeout(done, GRACE_AFTER_FIRST);
@@ -1034,12 +1055,14 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
         }
     });
 
-    const rawList = slots.flat().filter(Boolean);
+    const primaryList = primarySlots.flat().filter(Boolean);
+    const fallbackList = fallbackSlots.flat().filter(Boolean);
     const seenUrls = new Set();
     const formatted = [];
     let idx = 1;
 
-    for (const s of rawList) {
+    // 1. Primary Streams (New x8rr Providers: VidZee, VidNest, VidRock, VidSpark, 2Embed, VixSrc)
+    for (const s of primaryList) {
         if (!s || !s.url || seenUrls.has(s.url)) continue;
         seenUrls.add(s.url);
 
@@ -1065,14 +1088,125 @@ async function scrapeAll(type, tmdbId, season = 1, episode = 1) {
             provider: s.provider || 'x8rr',
             providerName: s.providerName || `x8rr ${label}`,
             serverLabel: label,
+            isFallback: false,
             headers: s.headers
         });
         idx++;
     }
 
+    // 2. Old Servers Kept as Fallbacks (VidOra, VidSrc)
+    for (const s of fallbackList) {
+        if (!s || !s.url || seenUrls.has(s.url)) continue;
+        seenUrls.add(s.url);
+
+        let hParam = '';
+        if (s.headers && Object.keys(s.headers).length > 0) {
+            try {
+                hParam = `&h=${encodeURIComponent(Buffer.from(JSON.stringify(s.headers)).toString('base64'))}`;
+            } catch {}
+        }
+
+        const proxiedUrl = `/api/x8rr/proxy?url=${encodeURIComponent(s.url)}${hParam}`;
+        const baseLabel = s.serverLabel || s.providerName || `Classic Server ${idx}`;
+        const label = `Server ${idx} (${baseLabel} · Fallback)`;
+
+        formatted.push({
+            id: `x8rr-srv-${idx}`,
+            url: s.url,
+            proxiedUrl,
+            type: s.type || (s.url.includes('.m3u8') ? 'hls' : 'file'),
+            quality: s.quality || '1080p Ultra',
+            provider: s.provider || 'vidsrc',
+            providerName: `x8rr ${baseLabel} (Fallback)`,
+            serverLabel: label,
+            isFallback: true,
+            fallback: true,
+            headers: s.headers
+        });
+        idx++;
+    }
+
+    // 3. Guaranteed Embed Fallbacks if all direct HLS providers return empty
+    if (formatted.length === 0) {
+        const embedFallbacks = [
+            {
+                url: isTV
+                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                    : `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`,
+                proxiedUrl: '',
+                type: 'embed',
+                quality: '1080p HD',
+                provider: 'vidsrc',
+                providerName: 'x8rr VidSrc PM (Classic Fallback)',
+                serverLabel: 'Server 1 (VidSrc PM · Classic Fallback)',
+                isFallback: true,
+                fallback: true
+            },
+            {
+                url: isTV
+                    ? `https://vidsrc.sbs/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                    : `https://vidsrc.sbs/embed/movie/${encodeURIComponent(tmdbId)}`,
+                proxiedUrl: '',
+                type: 'embed',
+                quality: '1080p HD',
+                provider: 'vidsrcsbs',
+                providerName: 'x8rr VidSrc SBS (Classic Fallback)',
+                serverLabel: 'Server 2 (VidSrc SBS · Classic Fallback)',
+                isFallback: true,
+                fallback: true
+            }
+        ];
+        formatted.push(...embedFallbacks);
+    }
+
     if (formatted.length > 0) {
         streamCache.set(cacheKey, { streams: formatted, time: Date.now() });
     }
+
+    // Async background late collector: if fallback providers finish after initial return, append them to cache
+    Promise.all(fallbackPending).then((fSlots) => {
+        const lateFallback = fSlots.flat().filter(Boolean);
+        if (lateFallback.length > 0) {
+            const currentCache = streamCache.get(cacheKey);
+            if (currentCache && Array.isArray(currentCache.streams)) {
+                const hasFallbacks = currentCache.streams.some(s => s.isFallback);
+                if (!hasFallbacks) {
+                    const existingUrls = new Set(currentCache.streams.map(s => s.url));
+                    let nextIdx = currentCache.streams.length + 1;
+                    const appended = [...currentCache.streams];
+                    for (const s of lateFallback) {
+                        if (!s || !s.url || existingUrls.has(s.url)) continue;
+                        existingUrls.add(s.url);
+                        let hParam = '';
+                        if (s.headers && Object.keys(s.headers).length > 0) {
+                            try {
+                                hParam = `&h=${encodeURIComponent(Buffer.from(JSON.stringify(s.headers)).toString('base64'))}`;
+                            } catch {}
+                        }
+                        const proxiedUrl = `/api/x8rr/proxy?url=${encodeURIComponent(s.url)}${hParam}`;
+                        const baseLabel = s.serverLabel || s.providerName || `Classic Server ${nextIdx}`;
+                        const label = `Server ${nextIdx} (${baseLabel} · Fallback)`;
+                        appended.push({
+                            id: `x8rr-srv-${nextIdx}`,
+                            url: s.url,
+                            proxiedUrl,
+                            type: s.type || (s.url.includes('.m3u8') ? 'hls' : 'file'),
+                            quality: s.quality || '1080p Ultra',
+                            provider: s.provider || 'vidsrc',
+                            providerName: `x8rr ${baseLabel} (Fallback)`,
+                            serverLabel: label,
+                            isFallback: true,
+                            fallback: true,
+                            headers: s.headers
+                        });
+                        nextIdx++;
+                    }
+                    streamCache.set(cacheKey, { streams: appended, time: Date.now() });
+                }
+            }
+        }
+    }).catch(() => {});
+
     return formatted;
 }
 

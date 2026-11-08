@@ -140,6 +140,8 @@
         { id: 'vidrock', name: 'VidRock Ultra', icon: '🎸' },
         { id: 'vidspark', name: 'VidSpark 1080p', icon: '⚡' },
         { id: 'twoembed', name: '2Embed Fast', icon: '🚀' },
+        { id: 'vidsrc', name: 'VidSrc PM (Classic Fallback)', icon: '📺' },
+        { id: 'vidora', name: 'VidOra HD (Classic Fallback)', icon: '🎬' },
         { id: 'autoembed', name: 'AutoEmbed VIP', icon: '✨' }
     ];
 
@@ -328,6 +330,21 @@
                     return `https://vidsrc.buzz/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
                 }
                 return `https://vidsrc.buzz/embed/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vidsrc':
+            case 'vidsrcpm': {
+                if (type === 'tv') {
+                    return `https://vidsrc.pm/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidsrc.pm/embed/movie/${encodeURIComponent(id)}`;
+            }
+
+            case 'vidora': {
+                if (type === 'tv') {
+                    return `https://vidsrc.me/embed/tv?tmdb=${encodeURIComponent(id)}&season=${encodeURIComponent(season || 1)}&episode=${encodeURIComponent(episode || 1)}`;
+                }
+                return `https://vidsrc.me/embed/movie?tmdb=${encodeURIComponent(id)}`;
             }
 
             case 'autoembed':
@@ -1297,13 +1314,14 @@
         `).join('');
 
         if (state.x8rrStreams && state.x8rrStreams.length > 0) {
-            html += '<div class="mb-menu-header" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">x8rr Mirrors & Servers</div>';
+            html += '<div class="mb-menu-header" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">x8rr Mirrors & Fallbacks</div>';
             html += state.x8rrStreams.map((srv, idx) => {
                 const isActive = state.currentServer === 'x8rrmovies' && state.activeX8rrIndex === idx;
                 const label = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;
+                const icon = srv.isFallback ? '🛡️' : '📡';
                 return `
                     <button class="mb-menu-item mb-mirror-item ${isActive ? 'active' : ''}" data-mirror-index="${idx}">
-                        <span>📡 ${escapeHtml(label)}</span>
+                        <span>${icon} ${escapeHtml(label)}</span>
                         ${isActive ? '<span class="mb-menu-check" style="color:var(--mb-pink);font-weight:900;">✓</span>' : ''}
                     </button>
                 `;

@@ -272,10 +272,17 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
             },
             {
                 id: 'vidsrc',
-                name: 'VidSrc PM',
+                name: 'VidSrc PM (Classic Fallback)',
                 quality: '1080p HD',
                 icon: '📺',
                 url: `https://vidsrc.pm/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+            },
+            {
+                id: 'vidora',
+                name: 'VidOra HD (Classic Fallback)',
+                quality: '1080p Ultra',
+                icon: '🎬',
+                url: `https://vidsrc.me/embed/tv?tmdb=${encodeURIComponent(id)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}`
             }
         ];
     }
@@ -400,10 +407,17 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
         },
         {
             id: 'vidsrc',
-            name: 'VidSrc PM',
+            name: 'VidSrc PM (Classic Fallback)',
             quality: '1080p HD',
             icon: '📺',
             url: `https://vidsrc.pm/embed/movie/${encodeURIComponent(id)}`
+        },
+        {
+            id: 'vidora',
+            name: 'VidOra HD (Classic Fallback)',
+            quality: '1080p Ultra',
+            icon: '🎬',
+            url: `https://vidsrc.me/embed/movie?tmdb=${encodeURIComponent(id)}`
         }
     ];
 }
