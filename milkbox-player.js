@@ -1780,6 +1780,8 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         serverLabel.hidden = false;
         serverSelect.innerHTML = '';
         extraOptions.servers.forEach((srv, idx) => {
+            const opt = document.createElement('option');
+            opt.value = String(idx);
             const fullLabel = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;
             opt.textContent = _milkboxFormatShortServerLabel(fullLabel, idx);
             opt.title = fullLabel;
