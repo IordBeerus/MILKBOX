@@ -957,6 +957,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         tracks.forEach((track, index) => options.push(new Option(getLabel(track, index), String(index))));
         select.replaceChildren(...options);
         select.value = selectedValue;
+        select.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
     };
     const updateTrackSelectors = () => {
         const audioTracks = video.audioTracks;
@@ -990,6 +991,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             });
             subtitleTrackSelect.replaceChildren(...options);
             subtitleTrackSelect.value = activeTrack ? String(activeTrack.index) : 'off';
+            subtitleTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
         }
     };
     audioTrackSelect.addEventListener('change', () => {
@@ -1344,6 +1346,11 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 if (episodesModal) episodesModal.hidden = true;
                 if (searchSubsModal) searchSubsModal.hidden = true;
                 if (subStyleModal) subStyleModal.hidden = true;
+                controls.querySelectorAll('.milkbox-custom-dropdown').forEach(d => {
+                    d.classList.remove('is-open');
+                    const m = d.querySelector('.milkbox-custom-dropdown-menu');
+                    if (m) m.hidden = true;
+                });
                 controls.querySelectorAll('.milkbox-speed-pills .milkbox-settings-pill-btn').forEach(b => {
                     b.classList.toggle('is-active', Math.abs(parseFloat(b.dataset.speed) - (video.playbackRate || 1)) < 0.05);
                 });
@@ -1628,6 +1635,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                             Season ${s.season_number} (${s.episode_count || '?'} eps)
                         </option>
                     `).join('');
+                    epSeasonSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
                 }
             }
         } catch {}
@@ -2003,6 +2011,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         if (prevVal && Array.from(qualitySelect.options).some(o => o.value === prevVal)) {
             qualitySelect.value = prevVal;
         }
+        qualitySelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
     };
 
     if (qualitySelect) {
@@ -2029,6 +2038,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             }
             serverSelect.appendChild(opt);
         });
+        serverSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
 
         serverSelect.addEventListener('change', () => {
             const idx = parseInt(serverSelect.value, 10);
@@ -2094,6 +2104,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     const autoOpt = qualitySelect.querySelector('option[value="-1"]');
                     if (autoOpt && hls.levels[data.level]?.height) {
                         autoOpt.textContent = `Auto (${hls.levels[data.level].height}p)`;
+                        qualitySelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
                     }
                 }
             });
