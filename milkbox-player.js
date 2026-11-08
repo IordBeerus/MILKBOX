@@ -1059,6 +1059,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     if (searchSubsBtn) {
         searchSubsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (settingsMenu) settingsMenu.hidden = true;
             searchSubsModal.hidden = false;
             subStyleModal.hidden = true;
             if (currentLoadedSubtitles.length === 0) {
@@ -1072,11 +1073,77 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     if (subStyleBtn) {
         subStyleBtn.addEventListener('click', (e) => {
             e.stopPropagation();
+            if (settingsMenu) settingsMenu.hidden = true;
             subStyleModal.hidden = false;
             searchSubsModal.hidden = true;
             updatePreviewAndStyles(_milkboxGetSubtitleStyles());
         });
     }
+
+    searchSubsModal.querySelector('.milkbox-subs-to-style-btn')?.addEventListener('click', () => {
+        searchSubsModal.hidden = true;
+        subStyleModal.hidden = false;
+        updatePreviewAndStyles(_milkboxGetSubtitleStyles());
+    });
+
+    subStyleModal.querySelector('.milkbox-style-to-search-btn')?.addEventListener('click', () => {
+        subStyleModal.hidden = true;
+        searchSubsModal.hidden = false;
+        if (currentLoadedSubtitles.length === 0) {
+            fetchSubtitlesFromApi();
+        } else {
+            renderSearchResults();
+        }
+    });
+
+    if (settingsBtn && settingsMenu) {
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isHidden = settingsMenu.hidden;
+            settingsMenu.hidden = !isHidden;
+            if (!settingsMenu.hidden) {
+                if (episodesModal) episodesModal.hidden = true;
+                if (searchSubsModal) searchSubsModal.hidden = true;
+                if (subStyleModal) subStyleModal.hidden = true;
+                controls.querySelectorAll('.milkbox-speed-pills .milkbox-settings-pill-btn').forEach(b => {
+                    b.classList.toggle('is-active', Math.abs(parseFloat(b.dataset.speed) - (video.playbackRate || 1)) < 0.05);
+                });
+                controls.querySelectorAll('.milkbox-boost-pills .milkbox-settings-pill-btn').forEach(b => {
+                    b.classList.toggle('is-active', Math.abs(parseFloat(b.dataset.boost) - currentBoostMultiplier) < 0.05);
+                });
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (settingsWrap && !settingsWrap.contains(e.target) && !settingsMenu.hidden) {
+                settingsMenu.hidden = true;
+            }
+        });
+    }
+
+    controls.querySelectorAll('.milkbox-speed-pills .milkbox-settings-pill-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const rate = parseFloat(btn.dataset.speed);
+            video.playbackRate = rate;
+            controls.querySelectorAll('.milkbox-speed-pills .milkbox-settings-pill-btn').forEach(b => b.classList.toggle('is-active', b === btn));
+            if (speed) speed.value = String(rate);
+            if (typeof window.toast === 'function') window.toast(`Playback Speed: ${rate}×`, 'info');
+        });
+    });
+
+    controls.querySelectorAll('.milkbox-boost-pills .milkbox-settings-pill-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentBoostMultiplier = parseFloat(btn.dataset.boost);
+            localStorage.setItem('milkbox_audio_boost', String(currentBoostMultiplier));
+            updateAudioGain();
+            const pct = Math.round(currentBoostMultiplier * 100);
+            if (typeof window.toast === 'function') {
+                window.toast(`Audio Boost: ${pct}% ${pct > 100 ? '⚡ (Louder sound)' : '(Normal)'}`, 'info');
+            }
+        });
+    });
 
     searchSubsModal.querySelectorAll('.milkbox-player-modal-close, .milkbox-player-modal-backdrop').forEach(el => {
         el.addEventListener('click', () => { searchSubsModal.hidden = true; });
@@ -1570,10 +1637,15 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         if (boostText) {
             boostText.textContent = `${Math.round(currentBoostMultiplier * 100)}%`;
             if (boostButton) {
-                boostButton.style.background = currentBoostMultiplier > 1 ? 'rgba(255, 46, 99, 0.22)' : 'rgba(255, 255, 255, 0.08)';
+                const isBoosted = currentBoostMultiplier > 1;
+                boostButton.classList.toggle('is-boosted', isBoosted);
                 boostButton.title = `Audio Boost: ${Math.round(currentBoostMultiplier * 100)}% (Click to switch 100%, 175%, 250%, 300%)`;
             }
         }
+        controls.querySelectorAll('.milkbox-boost-pills .milkbox-settings-pill-btn').forEach(btn => {
+            const val = parseFloat(btn.dataset.boost);
+            btn.classList.toggle('is-active', Math.abs(val - currentBoostMultiplier) < 0.05);
+        });
     };
 
     volume.addEventListener('input', () => {
