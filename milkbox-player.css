@@ -424,44 +424,49 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
+    flex-wrap: nowrap;
+    width: 100%;
 }
 
 .milkbox-player-control-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
 }
 
 .milkbox-player-left-group {
-    gap: 8px;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .milkbox-player-right-group {
-    gap: 8px;
+    gap: 6px;
     margin-left: auto;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
 }
-
 
 .milkbox-player-button {
     display: inline-grid;
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
     padding: 0;
     place-items: center;
     border: 0;
     border-radius: 8px;
     background: transparent;
-    color: rgba(255, 255, 255, 0.9);
+    color: rgba(255, 255, 255, 0.88);
     cursor: pointer;
     transition: background 0.18s ease, color 0.18s ease, transform 0.15s ease, box-shadow 0.18s ease;
+    flex-shrink: 0;
 }
 
 .milkbox-player-button:hover {
     background: rgba(255, 46, 99, 0.16);
     color: #fff;
     transform: scale(1.05);
-    box-shadow: 0 0 14px rgba(255, 46, 99, 0.3);
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.28);
 }
 
 .milkbox-player-button:active {
@@ -469,12 +474,12 @@
 }
 
 .milkbox-player-button .material-symbols-outlined {
-    font-size: 22px;
+    font-size: 20px;
 }
 
 .milkbox-player-play {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     background: var(--milkbox-accent-grad);
     color: #fff;
@@ -487,11 +492,11 @@
     transform: scale(1.08);
 }
 
-
 .milkbox-player-vol-wrap {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
+    position: relative;
 }
 
 .milkbox-player-volume {
@@ -504,27 +509,68 @@
     -webkit-appearance: none;
     background: rgba(255, 255, 255, 0.3);
     cursor: pointer;
-    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease, margin 0.2s ease;
     accent-color: var(--milkbox-accent);
+    margin: 0;
 }
 
 .milkbox-player-vol-wrap:hover .milkbox-player-volume,
 .milkbox-player-volume:focus {
-    width: 68px;
+    width: 60px;
     opacity: 1;
+    margin: 0 4px;
 }
 
+.milkbox-player-boost-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    height: 24px;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    white-space: nowrap;
+    margin-left: 2px;
+    margin-right: 6px;
+    box-sizing: border-box;
+}
+
+.milkbox-player-boost-button:hover {
+    background: rgba(255, 46, 99, 0.18);
+    border-color: rgba(255, 46, 99, 0.45);
+    color: #ff6b8b;
+    transform: scale(1.04);
+}
+
+.milkbox-player-boost-button.is-boosted {
+    background: rgba(255, 46, 99, 0.22);
+    color: #ff6b8b;
+    border-color: rgba(255, 46, 99, 0.5);
+    box-shadow: 0 0 10px rgba(255, 46, 99, 0.25);
+}
 
 .milkbox-player-time {
     display: flex;
     align-items: center;
-    gap: 5px;
-    color: rgba(255, 255, 255, 0.7);
+    gap: 4px;
+    color: rgba(255, 255, 255, 0.75);
     font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    margin-left: 2px;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    letter-spacing: 0.2px;
 }
 
 .milkbox-player-current {
@@ -539,10 +585,11 @@
 .milkbox-player-duration {
     color: rgba(255, 255, 255, 0.55);
 }
+
 .milkbox-player-track-selects {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 5px;
     flex-wrap: nowrap;
 }
 
@@ -550,45 +597,89 @@
     position: relative;
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 5px 10px;
-    border-radius: 8px;
+    gap: 4px;
+    padding: 3px 7px;
+    height: 30px;
+    border-radius: 7px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     color: #fff;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: nowrap;
+    box-sizing: border-box;
 }
 
 .milkbox-player-track-label:hover {
     background: rgba(255, 46, 99, 0.14);
     border-color: rgba(255, 46, 99, 0.45);
-    box-shadow: 0 0 14px rgba(255, 46, 99, 0.25);
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.2);
 }
 
 .milkbox-player-track-label[hidden] {
     display: none !important;
 }
 
+.milkbox-player-server-label {
+    max-width: 140px;
+}
+
+.milkbox-player-server-select {
+    max-width: 90px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.milkbox-player-quality-label {
+    max-width: 95px;
+}
+
+.milkbox-player-quality-select {
+    max-width: 55px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.milkbox-player-subtitle-label {
+    max-width: 105px;
+}
+
+.milkbox-player-subtitle-track {
+    max-width: 65px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.milkbox-player-audio-label {
+    max-width: 105px;
+}
+
+.milkbox-player-audio-track {
+    max-width: 65px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
 .milkbox-player-chip-icon {
     font-size: 15px !important;
     color: var(--milkbox-accent-soft);
+    flex-shrink: 0;
 }
 
 .milkbox-player-chip-tag {
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.6px;
-    color: var(--milkbox-accent-soft);
+    display: none;
 }
 
 .milkbox-player-chip-arrow {
-    font-size: 16px !important;
-    color: rgba(255, 255, 255, 0.5);
+    font-size: 15px !important;
+    color: rgba(255, 255, 255, 0.45);
     pointer-events: none;
     transition: transform 0.2s ease;
+    flex-shrink: 0;
 }
 
 .milkbox-player-track-label:hover .milkbox-player-chip-arrow {
@@ -614,6 +705,138 @@
     background: #100d14;
     color: #fff;
     padding: 8px 12px;
+}
+
+/* Quick Settings Popover Menu */
+.milkbox-player-settings-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.milkbox-player-settings-menu {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    right: 0;
+    width: 250px;
+    background: rgba(14, 11, 20, 0.96);
+    border: 1px solid rgba(255, 46, 99, 0.35);
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.85), 0 0 25px rgba(255, 46, 99, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: milkboxMenuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.milkbox-player-settings-menu[hidden] {
+    display: none !important;
+}
+
+@keyframes milkboxMenuPop {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.milkbox-settings-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.milkbox-settings-section-title {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--milkbox-accent-soft);
+}
+
+.milkbox-settings-pills-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+    gap: 4px;
+}
+
+.milkbox-settings-pill-btn {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.85);
+    border-radius: 6px;
+    padding: 4px 5px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+}
+
+.milkbox-settings-pill-btn:hover {
+    background: rgba(255, 46, 99, 0.18);
+    border-color: rgba(255, 46, 99, 0.4);
+    color: #fff;
+}
+
+.milkbox-settings-pill-btn.is-active {
+    background: var(--milkbox-accent-grad);
+    border-color: var(--milkbox-accent);
+    color: #fff;
+    box-shadow: 0 0 10px rgba(255, 46, 99, 0.4);
+}
+
+.milkbox-settings-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 7px 9px;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.milkbox-settings-action-btn:hover {
+    background: rgba(255, 46, 99, 0.16);
+    border-color: rgba(255, 46, 99, 0.4);
+}
+
+.milkbox-modal-tab-switch {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.15s ease;
+}
+
+.milkbox-modal-tab-switch:hover {
+    background: rgba(255, 46, 99, 0.15);
+    border-color: rgba(255, 46, 99, 0.4);
+    color: #fff;
 }
 
 

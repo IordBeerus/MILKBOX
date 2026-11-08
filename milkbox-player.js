@@ -43,6 +43,23 @@ function _milkboxFormatTime(seconds) {
         : `${minutes}:${String(remainder).padStart(2, '0')}`;
 }
 
+function _milkboxFormatShortServerLabel(label, idx) {
+    if (!label) return `S${idx + 1}`;
+    const match = label.match(/Server\s*(\d+)\s*\(([^()·]+)/i);
+    if (match) {
+        return `S${match[1]}: ${match[2].trim()}`;
+    }
+    const altMatch = label.match(/Server\s*(\d+)/i);
+    if (altMatch && label.includes('(')) {
+        const inner = label.split('(')[1].split(/[)·]/)[0].trim();
+        if (inner) return `S${altMatch[1]}: ${inner}`;
+    }
+    if (label.length > 14) {
+        return label.slice(0, 13) + '…';
+    }
+    return label;
+}
+
 const MILKBOX_DEFAULT_SUB_STYLES = {
     fontSize: '1.2rem',
     color: '#ffffff',
@@ -311,9 +328,9 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                             <span class="material-symbols-outlined" aria-hidden="true">volume_up</span>
                         </button>
                         <input class="milkbox-player-volume" type="range" min="0" max="1" value="1" step="0.05" aria-label="Volume">
-                        <button class="milkbox-player-button milkbox-player-boost-button" type="button" aria-label="Audio Boost" title="Audio Boost: Make Quiet Streams Louder (x8rr)" style="font-size:11px; font-weight:700; padding:2px 7px; border-radius:6px; background:rgba(255,46,99,0.22); color:#ff6b8b; border:1px solid rgba(255,46,99,0.45); margin-left:6px; display:inline-flex; align-items:center; gap:2px; height:24px; cursor:pointer;">
-                            <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">bolt</span>
-                            <span class="milkbox-player-boost-text" style="font-size:11px; font-weight:700; color:#ff6b8b;">250%</span>
+                        <button class="milkbox-player-boost-button" type="button" aria-label="Audio Boost" title="Audio Boost: Click to cycle boost level">
+                            <span class="material-symbols-outlined" style="font-size:13px;">bolt</span>
+                            <span class="milkbox-player-boost-text">250%</span>
                         </button>
                     </div>
 
@@ -326,20 +343,18 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
 
                 <div class="milkbox-player-control-group milkbox-player-right-group">
                     <button class="milkbox-player-episodes-btn" type="button" aria-label="Episodes" title="Episode Selector" hidden>
-                        <span class="material-symbols-outlined" style="font-size:17px; color:#ff6b8b;">video_library</span>
+                        <span class="material-symbols-outlined" style="font-size:16px; color:#ff6b8b;">video_library</span>
                         <span class="milkbox-player-episodes-btn-text">Episodes</span>
                     </button>
 
                     <div class="milkbox-player-track-selects">
                         <label class="milkbox-player-track-label milkbox-player-server-label" hidden title="Select Stream Server">
                             <span class="milkbox-player-chip-icon material-symbols-outlined">dns</span>
-                            <span class="milkbox-player-chip-tag">Server</span>
                             <select class="milkbox-player-server-select" aria-label="Stream server"></select>
                             <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
                         </label>
                         <label class="milkbox-player-track-label milkbox-player-quality-label" hidden title="Select Stream Quality">
                             <span class="milkbox-player-chip-icon material-symbols-outlined">high_quality</span>
-                            <span class="milkbox-player-chip-tag">Quality</span>
                             <select class="milkbox-player-quality-select" aria-label="Playback quality">
                                 <option value="-1" selected>Auto</option>
                             </select>
@@ -347,38 +362,80 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                         </label>
                         <label class="milkbox-player-track-label milkbox-player-audio-label" hidden title="Audio Track">
                             <span class="milkbox-player-chip-icon material-symbols-outlined">audiotrack</span>
-                            <span class="milkbox-player-chip-tag">Audio</span>
                             <select class="milkbox-player-audio-track" aria-label="Audio track"></select>
                             <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
                         </label>
                         <label class="milkbox-player-track-label milkbox-player-subtitle-label" hidden title="Subtitles">
                             <span class="milkbox-player-chip-icon material-symbols-outlined">subtitles</span>
-                            <span class="milkbox-player-chip-tag">Subs</span>
                             <select class="milkbox-player-subtitle-track" aria-label="Subtitle track"></select>
                             <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
                         </label>
                     </div>
 
-                    <button class="milkbox-player-button milkbox-player-search-subs" type="button" aria-label="Search Subtitles" title="Search & Load Subtitles">
-                        <span class="material-symbols-outlined" aria-hidden="true">manage_search</span>
-                    </button>
+                    <div class="milkbox-player-settings-wrap">
+                        <button class="milkbox-player-button milkbox-player-settings-btn" type="button" aria-label="Playback Settings" title="Playback Settings (Speed, Audio Boost, Subtitles)">
+                            <span class="material-symbols-outlined" aria-hidden="true">settings</span>
+                        </button>
+                        <div class="milkbox-player-settings-menu" hidden>
+                            <div class="milkbox-settings-section">
+                                <div class="milkbox-settings-section-title">
+                                    <span class="material-symbols-outlined" style="font-size:14px;">speed</span>
+                                    <span>Playback Speed</span>
+                                </div>
+                                <div class="milkbox-settings-pills-row milkbox-speed-pills">
+                                    <button class="milkbox-settings-pill-btn" data-speed="0.5" type="button">0.5×</button>
+                                    <button class="milkbox-settings-pill-btn" data-speed="0.75" type="button">0.75×</button>
+                                    <button class="milkbox-settings-pill-btn is-active" data-speed="1" type="button">1.0×</button>
+                                    <button class="milkbox-settings-pill-btn" data-speed="1.25" type="button">1.25×</button>
+                                    <button class="milkbox-settings-pill-btn" data-speed="1.5" type="button">1.5×</button>
+                                    <button class="milkbox-settings-pill-btn" data-speed="2" type="button">2.0×</button>
+                                </div>
+                            </div>
+                            <div class="milkbox-settings-section">
+                                <div class="milkbox-settings-section-title">
+                                    <span class="material-symbols-outlined" style="font-size:14px;">bolt</span>
+                                    <span>Audio Boost</span>
+                                </div>
+                                <div class="milkbox-settings-pills-row milkbox-boost-pills">
+                                    <button class="milkbox-settings-pill-btn" data-boost="1.0" type="button">100%</button>
+                                    <button class="milkbox-settings-pill-btn" data-boost="1.75" type="button">175%</button>
+                                    <button class="milkbox-settings-pill-btn is-active" data-boost="2.5" type="button">250%</button>
+                                    <button class="milkbox-settings-pill-btn" data-boost="3.0" type="button">300%</button>
+                                </div>
+                            </div>
+                            <div class="milkbox-settings-section">
+                                <div class="milkbox-settings-section-title">
+                                    <span class="material-symbols-outlined" style="font-size:14px;">subtitles</span>
+                                    <span>Subtitles & CC</span>
+                                </div>
+                                <div style="display:flex; flex-direction:column; gap:4px;">
+                                    <button class="milkbox-settings-action-btn milkbox-menu-search-subs" type="button">
+                                        <span style="display:flex; align-items:center; gap:6px;">
+                                            <span class="material-symbols-outlined" style="font-size:16px; color:#ff6b8b;">manage_search</span>
+                                            <span>Search Subtitles Online</span>
+                                        </span>
+                                        <span class="material-symbols-outlined" style="font-size:16px; opacity:0.6;">chevron_right</span>
+                                    </button>
+                                    <button class="milkbox-settings-action-btn milkbox-menu-sub-style" type="button">
+                                        <span style="display:flex; align-items:center; gap:6px;">
+                                            <span class="material-symbols-outlined" style="font-size:16px; color:#ff6b8b;">tune</span>
+                                            <span>Subtitle Appearance</span>
+                                        </span>
+                                        <span class="material-symbols-outlined" style="font-size:16px; opacity:0.6;">chevron_right</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-                    <button class="milkbox-player-button milkbox-player-sub-style" type="button" aria-label="Subtitle Styling" title="Subtitle Styling Settings">
-                        <span class="material-symbols-outlined" aria-hidden="true">tune</span>
-                    </button>
-
-                    <label class="milkbox-player-track-label milkbox-player-speed-label" title="Playback Speed">
-                        <span class="material-symbols-outlined milkbox-player-chip-icon">speed</span>
-                        <select class="milkbox-player-speed" aria-label="Playback speed">
-                            <option value="0.5">0.5×</option>
-                            <option value="0.75">0.75×</option>
-                            <option value="1" selected>1.0×</option>
-                            <option value="1.25">1.25×</option>
-                            <option value="1.5">1.5×</option>
-                            <option value="2">2.0×</option>
-                        </select>
-                        <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
-                    </label>
+                    <select class="milkbox-player-speed" hidden aria-label="Playback speed">
+                        <option value="0.5">0.5×</option>
+                        <option value="0.75">0.75×</option>
+                        <option value="1" selected>1.0×</option>
+                        <option value="1.25">1.25×</option>
+                        <option value="1.5">1.5×</option>
+                        <option value="2">2.0×</option>
+                    </select>
 
                     <button class="milkbox-player-button milkbox-player-pip" type="button" aria-label="Picture in Picture" title="Picture in Picture">
                         <span class="material-symbols-outlined" aria-hidden="true">picture_in_picture_alt</span>
@@ -403,7 +460,13 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     <span class="milkbox-player-modal-title">Search Subtitles</span>
                     <span class="milkbox-player-modal-badge">${_milkboxEscapeHtml(titleText || 'Media')}</span>
                 </div>
-                <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="milkbox-modal-tab-switch milkbox-subs-to-style-btn" type="button" title="Subtitle Appearance">
+                        <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">tune</span>
+                        <span>Appearance</span>
+                    </button>
+                    <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+                </div>
             </div>
             <div class="milkbox-player-modal-body">
                 <div class="milkbox-subs-search-bar">
@@ -457,7 +520,13 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     <span class="material-symbols-outlined milkbox-player-modal-icon">tune</span>
                     <span class="milkbox-player-modal-title">Subtitle Styling</span>
                 </div>
-                <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="milkbox-modal-tab-switch milkbox-style-to-search-btn" type="button" title="Search Online Subtitles">
+                        <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">manage_search</span>
+                        <span>Search</span>
+                    </button>
+                    <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+                </div>
             </div>
             <div class="milkbox-player-modal-body">
                 <div class="milkbox-style-preview-container">
@@ -617,8 +686,11 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     const audioTrackSelect = controls.querySelector('.milkbox-player-audio-track');
     const subtitleTrackLabel = controls.querySelector('.milkbox-player-subtitle-label');
     const subtitleTrackSelect = controls.querySelector('.milkbox-player-subtitle-track');
-    const searchSubsBtn = controls.querySelector('.milkbox-player-search-subs');
-    const subStyleBtn = controls.querySelector('.milkbox-player-sub-style');
+    const searchSubsBtn = controls.querySelector('.milkbox-menu-search-subs') || controls.querySelector('.milkbox-player-search-subs');
+    const subStyleBtn = controls.querySelector('.milkbox-menu-sub-style') || controls.querySelector('.milkbox-player-sub-style');
+    const settingsBtn = controls.querySelector('.milkbox-player-settings-btn');
+    const settingsMenu = controls.querySelector('.milkbox-player-settings-menu');
+    const settingsWrap = controls.querySelector('.milkbox-player-settings-wrap');
     let hideControlsTimer;
     if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) pictureInPictureButton.hidden = true;
 
@@ -1636,9 +1708,9 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         serverLabel.hidden = false;
         serverSelect.innerHTML = '';
         extraOptions.servers.forEach((srv, idx) => {
-            const opt = document.createElement('option');
-            opt.value = String(idx);
-            opt.textContent = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;
+            const fullLabel = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;
+            opt.textContent = _milkboxFormatShortServerLabel(fullLabel, idx);
+            opt.title = fullLabel;
             if (idx === (extraOptions.activeServerIndex || 0) || srv.id === extraOptions.activeServerId) {
                 opt.selected = true;
             }
