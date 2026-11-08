@@ -518,6 +518,12 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 </div>
 
                 <div class="milkbox-player-control-group milkbox-player-right-group">
+                    <div class="milkbox-anime-audio-toggle" hidden title="Anime Audio (Subbed: Japanese / Dubbed: English)">
+                        <span class="milkbox-anime-toggle-label"><span class="material-symbols-outlined">translate</span>AUDIO</span>
+                        <button class="milkbox-anime-audio-btn is-active" data-audio="sub" type="button" title="Subbed · Japanese audio with English subtitles">SUB</button>
+                        <button class="milkbox-anime-audio-btn" data-audio="dub" type="button" title="Dubbed · English audio">DUB</button>
+                    </div>
+
                     <button class="milkbox-player-episodes-btn" type="button" aria-label="Episodes" title="Episode Selector" hidden>
                         <span class="material-symbols-outlined" style="font-size:16px; color:#ff6b8b;">video_library</span>
                         <span class="milkbox-player-episodes-btn-text">Episodes</span>
@@ -952,6 +958,161 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         });
     }
 
+    const animeAudioToggle = controls.querySelector('.milkbox-anime-audio-toggle');
+    const animeSubBtn = animeAudioToggle?.querySelector('[data-audio="sub"]');
+    const animeDubBtn = animeAudioToggle?.querySelector('[data-audio="dub"]');
+    let currentAnimeAudioMode = (extraOptions && extraOptions.animeLang) || (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_anime_lang')) || 'sub';
+
+    if (extraOptions && extraOptions.isAnime) {
+        if (animeAudioToggle) animeAudioToggle.hidden = false;
+    }
+
+    function applyAnimeAudioLang(desiredLang, notify = false) {
+        const mode = desiredLang === 'dub' ? 'dub' : 'sub';
+        currentAnimeAudioMode = mode;
+        try { localStorage.setItem('milkbox_anime_lang', mode); } catch {}
+
+        if (animeSubBtn) animeSubBtn.classList.toggle('is-active', mode === 'sub');
+        if (animeDubBtn) animeDubBtn.classList.toggle('is-active', mode === 'dub');
+
+        if (extraOptions && typeof extraOptions.onAnimeLangChange === 'function') {
+            try { extraOptions.onAnimeLangChange(mode); } catch {}
+        }
+
+        let audioTrackFound = false;
+
+        // 1. Try Hls.js audio tracks
+        if (video._hls && Array.isArray(video._hls.audioTracks) && video._hls.audioTracks.length > 0) {
+            const hlsTracks = video._hls.audioTracks;
+            let targetIdx = -1;
+            if (mode === 'sub') {
+                targetIdx = hlsTracks.findIndex(t => {
+                    const l = String(t.lang || '').toLowerCase();
+                    const n = String(t.name || '').toLowerCase();
+                    return l === 'ja' || l === 'jpn' || n.includes('japan') || n.includes('sub');
+                });
+                if (targetIdx < 0 && hlsTracks.length > 1) {
+                    targetIdx = hlsTracks.findIndex(t => {
+                        const l = String(t.lang || '').toLowerCase();
+                        const n = String(t.name || '').toLowerCase();
+                        return l !== 'en' && l !== 'eng' && !n.includes('english') && !n.includes('dub');
+                    });
+                }
+            } else {
+                targetIdx = hlsTracks.findIndex(t => {
+                    const l = String(t.lang || '').toLowerCase();
+                    const n = String(t.name || '').toLowerCase();
+                    return l === 'en' || l === 'eng' || n.includes('english') || n.includes('dub');
+                });
+            }
+
+            if (targetIdx >= 0) {
+                video._hls.audioTrack = targetIdx;
+                if (audioTrackSelect) {
+                    audioTrackSelect.value = String(targetIdx);
+                    audioTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+                }
+                audioTrackFound = true;
+            }
+        }
+
+        // 2. Try native HTML5 audio tracks
+        if (!audioTrackFound && video.audioTracks && video.audioTracks.length > 0) {
+            const nTracks = Array.from(video.audioTracks);
+            let targetIdx = -1;
+            if (mode === 'sub') {
+                targetIdx = nTracks.findIndex(t => {
+                    const l = String(t.language || '').toLowerCase();
+                    const lab = String(t.label || '').toLowerCase();
+                    return l === 'ja' || l === 'jpn' || lab.includes('japan');
+                });
+            } else {
+                targetIdx = nTracks.findIndex(t => {
+                    const l = String(t.language || '').toLowerCase();
+                    const lab = String(t.label || '').toLowerCase();
+                    return l === 'en' || l === 'eng' || lab.includes('english') || lab.includes('dub');
+                });
+            }
+            if (targetIdx >= 0) {
+                nTracks.forEach((t, i) => { t.enabled = (i === targetIdx); });
+                if (audioTrackSelect) {
+                    audioTrackSelect.value = String(targetIdx);
+                    audioTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+                }
+                audioTrackFound = true;
+            }
+        }
+
+        // 3. Subtitles coordination:
+        // Subbed -> enable English subtitle
+        // Dubbed -> turn off subtitles
+        if (subtitleTrackSelect) {
+            if (mode === 'sub') {
+                const opts = Array.from(subtitleTrackSelect.options || []);
+                const engOpt = opts.find(o => {
+                    const t = (o.textContent || '').toLowerCase();
+                    return o.value !== 'off' && (t.includes('english') || t.includes('en ·') || t.startsWith('en'));
+                }) || opts.find(o => o.value !== 'off');
+                if (engOpt) {
+                    subtitleTrackSelect.value = engOpt.value;
+                    subtitleTrackSelect.dispatchEvent(new Event('change'));
+                    subtitleTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+                }
+            } else {
+                subtitleTrackSelect.value = 'off';
+                subtitleTrackSelect.dispatchEvent(new Event('change'));
+                subtitleTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+            }
+        }
+
+        // 4. Server stream switching if multiple servers exist and current stream doesn't have the audio
+        if (!audioTrackFound && extraOptions && Array.isArray(extraOptions.servers) && extraOptions.servers.length > 1 && serverSelect) {
+            const srvs = extraOptions.servers;
+            const curIdx = parseInt(serverSelect.value, 10) || 0;
+            let targetSrvIdx = -1;
+            if (mode === 'dub') {
+                targetSrvIdx = srvs.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('(english)') || lbl.includes('english') || lbl.includes('dub');
+                });
+            } else {
+                targetSrvIdx = srvs.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('sub') || lbl.includes('japanese') || (!lbl.includes('english') && !lbl.includes('(english)'));
+                });
+            }
+            if (targetSrvIdx >= 0 && targetSrvIdx !== curIdx) {
+                serverSelect.value = String(targetSrvIdx);
+                serverSelect.dispatchEvent(new Event('change'));
+                serverSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+            }
+        }
+
+        if (notify) {
+            const msg = mode === 'dub'
+                ? '🎙️ Anime Audio: English (Dubbed)'
+                : '🎌 Anime Audio: Japanese (Subbed with English subtitles)';
+            if (typeof toast === 'function') {
+                toast(msg, 'success');
+            }
+        }
+    }
+
+    if (animeSubBtn && animeDubBtn) {
+        animeSubBtn.classList.toggle('is-active', currentAnimeAudioMode === 'sub');
+        animeDubBtn.classList.toggle('is-active', currentAnimeAudioMode === 'dub');
+
+        animeSubBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyAnimeAudioLang('sub', true);
+        });
+
+        animeDubBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyAnimeAudioLang('dub', true);
+        });
+    }
+
     const setTrackOptions = (select, tracks, getLabel, selectedValue) => {
         const options = [];
         tracks.forEach((track, index) => options.push(new Option(getLabel(track, index), String(index))));
@@ -959,19 +1120,39 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         select.value = selectedValue;
         select.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
     };
+
     const updateTrackSelectors = () => {
-        const audioTracks = video.audioTracks;
-        if (audioTracks) {
-            const tracks = Array.from(audioTracks);
-            audioTrackLabel.hidden = tracks.length === 0;
-            if (tracks.length) {
-                const selectedIndex = tracks.findIndex(track => track.enabled);
-                setTrackOptions(
-                    audioTrackSelect,
-                    tracks,
-                    (track, index) => track.label || track.name || [track.language, `Audio ${index + 1}`].filter(Boolean).join(' · '),
-                    String(selectedIndex < 0 ? 0 : selectedIndex)
-                );
+        const hlsTracks = video._hls && Array.isArray(video._hls.audioTracks) && video._hls.audioTracks.length > 0 ? video._hls.audioTracks : null;
+        const nativeTracks = video.audioTracks && video.audioTracks.length > 0 ? Array.from(video.audioTracks) : null;
+
+        if (hlsTracks) {
+            audioTrackLabel.hidden = hlsTracks.length <= 1;
+            const curIdx = video._hls.audioTrack >= 0 ? video._hls.audioTrack : 0;
+            const options = hlsTracks.map((tr, idx) => {
+                const label = tr.name || [tr.lang, `Audio ${idx + 1}`].filter(Boolean).join(' · ');
+                return new Option(label, String(idx));
+            });
+            audioTrackSelect.replaceChildren(...options);
+            audioTrackSelect.value = String(curIdx);
+            audioTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+
+            const hasJa = hlsTracks.some(t => String(t.lang || '').toLowerCase() === 'ja' || String(t.name || '').toLowerCase().includes('japan'));
+            const hasEn = hlsTracks.some(t => String(t.lang || '').toLowerCase() === 'en' || String(t.name || '').toLowerCase().includes('english'));
+            if (hasJa || (hasEn && hlsTracks.length > 1)) {
+                if (animeAudioToggle) animeAudioToggle.hidden = false;
+            }
+        } else if (nativeTracks) {
+            audioTrackLabel.hidden = nativeTracks.length <= 1;
+            const selectedIndex = nativeTracks.findIndex(track => track.enabled);
+            setTrackOptions(
+                audioTrackSelect,
+                nativeTracks,
+                (track, index) => track.label || track.name || [track.language, `Audio ${index + 1}`].filter(Boolean).join(' · '),
+                String(selectedIndex < 0 ? 0 : selectedIndex)
+            );
+            const hasJa = nativeTracks.some(t => String(t.language || '').toLowerCase() === 'ja' || String(t.label || '').toLowerCase().includes('japan'));
+            if (hasJa) {
+                if (animeAudioToggle) animeAudioToggle.hidden = false;
             }
         } else {
             audioTrackLabel.hidden = true;
@@ -994,11 +1175,16 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             subtitleTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
         }
     };
+
     audioTrackSelect.addEventListener('change', () => {
-        const tracks = video.audioTracks;
-        if (!tracks) return;
         const selectedIndex = Number(audioTrackSelect.value);
-        Array.from(tracks).forEach((track, index) => { track.enabled = index === selectedIndex; });
+        if (video._hls && Array.isArray(video._hls.audioTracks)) {
+            video._hls.audioTrack = selectedIndex;
+        } else if (video.audioTracks) {
+            Array.from(video.audioTracks).forEach((track, index) => {
+                track.enabled = index === selectedIndex;
+            });
+        }
     });
     let activeParsedCues = [];
     let activeParsedTrackUrl = '';
@@ -2057,6 +2243,8 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     video._hls.off(window.Hls.Events.MANIFEST_PARSED, onParsed);
                     loading.hidden = true;
                     updateHlsQualityOptions(video._hls);
+                    updateTrackSelectors();
+                    applyAnimeAudioLang(currentAnimeAudioMode, false);
                     if (resumePos > 0) {
                         try { video.currentTime = resumePos; } catch {}
                     }
@@ -2097,7 +2285,19 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
                 loading.hidden = true;
                 updateHlsQualityOptions(hls);
+                updateTrackSelectors();
+                applyAnimeAudioLang(currentAnimeAudioMode, false);
                 video.play().catch(() => {});
+            });
+            hls.on(window.Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+                updateTrackSelectors();
+                applyAnimeAudioLang(currentAnimeAudioMode, false);
+            });
+            hls.on(window.Hls.Events.AUDIO_TRACK_SWITCHED, (_event, data) => {
+                if (audioTrackSelect && data && typeof data.id === 'number') {
+                    audioTrackSelect.value = String(data.id);
+                    audioTrackSelect.closest?.('.milkbox-custom-dropdown')?._syncCustomDropdown?.();
+                }
             });
             hls.on(window.Hls.Events.LEVEL_SWITCHED, (_event, data) => {
                 if (hls.autoLevelEnabled && qualitySelect) {
