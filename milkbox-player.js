@@ -293,11 +293,17 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     <button class="milkbox-player-button milkbox-player-play" type="button" aria-label="Play" title="Play / Pause (Space)">
                         <span class="material-symbols-outlined" aria-hidden="true">play_arrow</span>
                     </button>
+                    <button class="milkbox-player-button milkbox-player-prev-ep" type="button" aria-label="Previous Episode" title="Previous Episode" hidden>
+                        <span class="material-symbols-outlined" aria-hidden="true">skip_previous</span>
+                    </button>
                     <button class="milkbox-player-button milkbox-player-skip-back" type="button" aria-label="Rewind 10 seconds" title="Rewind 10s (←)">
                         <span class="material-symbols-outlined" aria-hidden="true">replay_10</span>
                     </button>
                     <button class="milkbox-player-button milkbox-player-skip-fwd" type="button" aria-label="Forward 10 seconds" title="Forward 10s (→)">
                         <span class="material-symbols-outlined" aria-hidden="true">forward_10</span>
+                    </button>
+                    <button class="milkbox-player-button milkbox-player-next-ep" type="button" aria-label="Next Episode" title="Next Episode" hidden>
+                        <span class="material-symbols-outlined" aria-hidden="true">skip_next</span>
                     </button>
 
                     <div class="milkbox-player-vol-wrap">
@@ -319,6 +325,11 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 </div>
 
                 <div class="milkbox-player-control-group milkbox-player-right-group">
+                    <button class="milkbox-player-episodes-btn" type="button" aria-label="Episodes" title="Episode Selector" hidden>
+                        <span class="material-symbols-outlined" style="font-size:17px; color:#ff6b8b;">video_library</span>
+                        <span class="milkbox-player-episodes-btn-text">Episodes</span>
+                    </button>
+
                     <div class="milkbox-player-track-selects">
                         <label class="milkbox-player-track-label milkbox-player-server-label" hidden title="Select Stream Server">
                             <span class="milkbox-player-chip-icon material-symbols-outlined">dns</span>
@@ -536,16 +547,56 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         </div>
     `;
 
+    const episodesModal = document.createElement('div');
+    episodesModal.className = 'milkbox-player-modal milkbox-player-episodes-modal';
+    episodesModal.hidden = true;
+    episodesModal.innerHTML = `
+        <div class="milkbox-player-modal-backdrop"></div>
+        <div class="milkbox-player-modal-content" style="max-width: 780px; width: 92%; max-height: 85vh; display: flex; flex-direction: column;">
+            <div class="milkbox-player-modal-header">
+                <div class="milkbox-player-modal-title-group">
+                    <span class="material-symbols-outlined milkbox-player-modal-icon" style="color:var(--milkbox-accent, #ff2e63);">video_library</span>
+                    <span class="milkbox-player-modal-title">Episode List</span>
+                    <span class="milkbox-player-modal-badge">${_milkboxEscapeHtml(titleText || 'x8rr Movies')}</span>
+                </div>
+                <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="milkbox-player-modal-body" style="display: flex; flex-direction: column; overflow: hidden; padding: 14px; gap: 12px; max-height: calc(85vh - 70px);">
+                <div class="milkbox-ep-controls-bar">
+                    <div class="milkbox-ep-season-wrap">
+                        <label class="milkbox-ep-season-label">Season</label>
+                        <select class="milkbox-ep-season-select"></select>
+                    </div>
+                    <div class="milkbox-ep-search-wrap">
+                        <span class="material-symbols-outlined milkbox-ep-search-icon">search</span>
+                        <input class="milkbox-ep-search-input" type="search" placeholder="Search episode by name or number…" autocomplete="off">
+                    </div>
+                    <span class="milkbox-ep-count-tag" style="font-size: 12px; color: #ffb6d8; font-weight: 600;"></span>
+                </div>
+                <div class="milkbox-ep-grid-container" style="flex: 1; overflow-y: auto; padding-right: 4px;">
+                    <div class="milkbox-ep-loading-state" style="padding: 40px 16px; text-align: center; color: #aaa; font-size: 14px;">Loading episodes…</div>
+                </div>
+            </div>
+        </div>
+    `;
+
     const subtitlesOverlay = document.createElement('div');
     subtitlesOverlay.className = 'milkbox-subtitles-overlay';
     subtitlesOverlay.setAttribute('aria-live', 'polite');
 
-    player.append(video, subtitlesOverlay, loading, error, centerPlay, controls, searchSubsModal, subStyleModal);
+    player.append(video, subtitlesOverlay, loading, error, centerPlay, controls, searchSubsModal, subStyleModal, episodesModal);
     container.replaceChildren(player);
 
     const playButton = controls.querySelector('.milkbox-player-play');
     const skipBackButton = controls.querySelector('.milkbox-player-skip-back');
     const skipFwdButton = controls.querySelector('.milkbox-player-skip-fwd');
+    const prevEpBtn = controls.querySelector('.milkbox-player-prev-ep');
+    const nextEpBtn = controls.querySelector('.milkbox-player-next-ep');
+    const episodesBtn = controls.querySelector('.milkbox-player-episodes-btn');
+    const epSeasonSelect = episodesModal.querySelector('.milkbox-ep-season-select');
+    const epSearchInput = episodesModal.querySelector('.milkbox-ep-search-input');
+    const epListContainer = episodesModal.querySelector('.milkbox-ep-grid-container');
+    const epCountTag = episodesModal.querySelector('.milkbox-ep-count-tag');
     const seek = controls.querySelector('.milkbox-player-seek');
     const seekLoaded = controls.querySelector('.milkbox-player-seek-loaded');
     const seekProgress = controls.querySelector('.milkbox-player-seek-progress');
@@ -1088,6 +1139,201 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         }
         const selectedSub = filtered[subIdx];
         if (selectedSub) activateSubtitleTrack(selectedSub);
+    });
+
+    // -------------------------------------------------------------
+    // Episode List & TV Playback Management
+    // -------------------------------------------------------------
+    const isTV = (extraOptions?.mediaType === 'tv') || (extraOptions?.type === 'tv');
+    let currentSeasonNum = parseInt(extraOptions?.season || '1', 10) || 1;
+    let currentEpisodeNum = parseInt(extraOptions?.episode || '1', 10) || 1;
+    const tvTmdbId = extraOptions?.tmdbId || extraOptions?.id || '';
+    const cachedSeasonEpisodes = new Map();
+    let showSeasonsList = [];
+
+    if (isTV && tvTmdbId) {
+        if (episodesBtn) episodesBtn.hidden = false;
+        if (prevEpBtn) prevEpBtn.hidden = currentEpisodeNum <= 1;
+        if (nextEpBtn) nextEpBtn.hidden = false;
+    }
+
+    const renderEpisodesGrid = (episodes, filterText = '') => {
+        if (!epListContainer) return;
+        if (!episodes || !episodes.length) {
+            epListContainer.innerHTML = '<div style="padding:32px; text-align:center; color:#888;">No episodes found.</div>';
+            return;
+        }
+
+        const q = (filterText || '').toLowerCase().trim();
+        const filtered = episodes.filter(ep => {
+            if (!q) return true;
+            const nameMatch = (ep.name || '').toLowerCase().includes(q);
+            const numMatch = String(ep.episode_number).includes(q);
+            const descMatch = (ep.overview || '').toLowerCase().includes(q);
+            return nameMatch || numMatch || descMatch;
+        });
+
+        if (epCountTag) {
+            epCountTag.textContent = `${filtered.length} Episode${filtered.length === 1 ? '' : 's'}`;
+        }
+
+        if (!filtered.length) {
+            epListContainer.innerHTML = `<div style="padding:32px; text-align:center; color:#888;">No episodes match "${_milkboxEscapeHtml(q)}"</div>`;
+            return;
+        }
+
+        epListContainer.innerHTML = `
+            <div class="milkbox-ep-grid">
+                ${filtered.map(ep => {
+                    const epNum = ep.episode_number || 1;
+                    const isActive = Number(ep.season_number) === Number(currentSeasonNum) && Number(epNum) === Number(currentEpisodeNum);
+                    const epTitle = ep.name || `Episode ${epNum}`;
+                    const thumb = ep.still_path ? `https://image.tmdb.org/t/p/w300${ep.still_path}` : '';
+                    const dur = ep.runtime ? `${ep.runtime}m` : '';
+                    const meta = [ep.air_date, dur].filter(Boolean).join(' • ');
+                    return `
+                        <div class="milkbox-ep-card ${isActive ? 'is-active' : ''}" data-season="${ep.season_number}" data-episode="${epNum}" tabindex="0" role="button">
+                            <div class="milkbox-ep-thumb-wrap">
+                                ${thumb ? `<img class="milkbox-ep-thumb" src="${_milkboxEscapeHtml(thumb)}" alt="${_milkboxEscapeHtml(epTitle)}" loading="lazy">` : `<div style="width:100%;height:100%;background:#1b1b26;display:flex;align-items:center;justify-content:center;color:#444;"><span class="material-symbols-outlined">movie</span></div>`}
+                                <div class="milkbox-ep-num-pill">S${ep.season_number}:E${epNum}</div>
+                                <div class="milkbox-ep-play-overlay">
+                                    <span class="material-symbols-outlined">play_arrow</span>
+                                </div>
+                            </div>
+                            <div class="milkbox-ep-info">
+                                <div class="milkbox-ep-title">${_milkboxEscapeHtml(epTitle)}</div>
+                                <div class="milkbox-ep-sub">${_milkboxEscapeHtml(meta)}</div>
+                                ${ep.overview ? `<div class="milkbox-ep-desc">${_milkboxEscapeHtml(ep.overview)}</div>` : ''}
+                                ${isActive ? `<div class="milkbox-ep-active-badge"><span class="material-symbols-outlined" style="font-size:12px;">play_arrow</span> Now Playing</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    };
+
+    const loadSeasonEpisodesData = async (seasonNum) => {
+        if (!epListContainer) return;
+        if (cachedSeasonEpisodes.has(seasonNum)) {
+            renderEpisodesGrid(cachedSeasonEpisodes.get(seasonNum), epSearchInput ? epSearchInput.value : '');
+            return;
+        }
+
+        epListContainer.innerHTML = `<div class="milkbox-ep-loading-state" style="padding:40px 16px; text-align:center; color:#aaa; font-size:14px;">Loading Season ${seasonNum} episodes…</div>`;
+
+        try {
+            const res = await fetch(`/api/tmdb/tv/${encodeURIComponent(tvTmdbId)}/season/${encodeURIComponent(seasonNum)}`);
+            if (res.ok) {
+                const data = await res.json();
+                const eps = Array.isArray(data.episodes) ? data.episodes : [];
+                cachedSeasonEpisodes.set(seasonNum, eps);
+                renderEpisodesGrid(eps, epSearchInput ? epSearchInput.value : '');
+            } else {
+                epListContainer.innerHTML = `<div style="padding:32px; text-align:center; color:#ff6b8b;">Could not load Season ${seasonNum} episodes.</div>`;
+            }
+        } catch (e) {
+            epListContainer.innerHTML = `<div style="padding:32px; text-align:center; color:#ff6b8b;">Episode load error: ${_milkboxEscapeHtml(e.message)}</div>`;
+        }
+    };
+
+    const loadShowSeasonsData = async () => {
+        if (!tvTmdbId || !isTV) return;
+        try {
+            const res = await fetch(`/api/tmdb/tv/${encodeURIComponent(tvTmdbId)}`);
+            if (res.ok) {
+                const data = await res.json();
+                showSeasonsList = (data.seasons || []).filter(s => s.season_number > 0);
+                if (epSeasonSelect && showSeasonsList.length > 0) {
+                    epSeasonSelect.innerHTML = showSeasonsList.map(s => `
+                        <option value="${s.season_number}" ${s.season_number === currentSeasonNum ? 'selected' : ''}>
+                            Season ${s.season_number} (${s.episode_count || '?'} eps)
+                        </option>
+                    `).join('');
+                }
+            }
+        } catch {}
+
+        loadSeasonEpisodesData(currentSeasonNum);
+    };
+
+    if (epSeasonSelect) {
+        epSeasonSelect.addEventListener('change', () => {
+            const chosen = parseInt(epSeasonSelect.value, 10);
+            if (!isNaN(chosen)) {
+                if (epSearchInput) epSearchInput.value = '';
+                loadSeasonEpisodesData(chosen);
+            }
+        });
+    }
+
+    if (epSearchInput) {
+        epSearchInput.addEventListener('input', () => {
+            const cur = epSeasonSelect ? parseInt(epSeasonSelect.value, 10) : currentSeasonNum;
+            const eps = cachedSeasonEpisodes.get(cur) || [];
+            renderEpisodesGrid(eps, epSearchInput.value);
+        });
+    }
+
+    if (epListContainer) {
+        epListContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.milkbox-ep-card');
+            if (!card) return;
+            const sNum = parseInt(card.dataset.season, 10) || currentSeasonNum;
+            const eNum = parseInt(card.dataset.episode, 10);
+            if (!isNaN(eNum)) {
+                currentSeasonNum = sNum;
+                currentEpisodeNum = eNum;
+                episodesModal.hidden = true;
+                if (prevEpBtn) prevEpBtn.hidden = currentEpisodeNum <= 1;
+                if (typeof extraOptions?.onEpisodeSelect === 'function') {
+                    extraOptions.onEpisodeSelect(sNum, eNum);
+                }
+            }
+        });
+    }
+
+    if (episodesBtn) {
+        episodesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            episodesModal.hidden = false;
+            searchSubsModal.hidden = true;
+            subStyleModal.hidden = true;
+            if (showSeasonsList.length === 0) {
+                loadShowSeasonsData();
+            } else {
+                loadSeasonEpisodesData(epSeasonSelect ? parseInt(epSeasonSelect.value, 10) : currentSeasonNum);
+            }
+        });
+    }
+
+    episodesModal.querySelectorAll('.milkbox-player-modal-close, .milkbox-player-modal-backdrop').forEach(el => {
+        el.addEventListener('click', () => { episodesModal.hidden = true; });
+    });
+
+    if (prevEpBtn) {
+        prevEpBtn.addEventListener('click', () => {
+            if (currentEpisodeNum > 1 && typeof extraOptions?.onEpisodeSelect === 'function') {
+                extraOptions.onEpisodeSelect(currentSeasonNum, currentEpisodeNum - 1);
+            }
+        });
+    }
+
+    if (nextEpBtn) {
+        nextEpBtn.addEventListener('click', () => {
+            if (typeof extraOptions?.onEpisodeSelect === 'function') {
+                extraOptions.onEpisodeSelect(currentSeasonNum, currentEpisodeNum + 1);
+            }
+        });
+    }
+
+    video.addEventListener('ended', () => {
+        if (isTV && typeof extraOptions?.onEpisodeSelect === 'function') {
+            if (typeof toast === 'function') toast(`Up next: Episode ${currentEpisodeNum + 1}…`, 'info');
+            setTimeout(() => {
+                extraOptions.onEpisodeSelect(currentSeasonNum, currentEpisodeNum + 1);
+            }, 1200);
+        }
     });
 
     const updatePlayState = () => {

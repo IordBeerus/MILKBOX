@@ -5135,6 +5135,16 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
     const isTV = type === 'tv';
     const subText = isTV ? `Season ${season} • Episode ${episode}` : (item.year ? `${item.year}` : '');
 
+    // Synchronize playContext and page episode selector for TV shows
+    playContext = { item, type: isTV ? 'tv' : 'movie', season, episode };
+    const epSelector = document.getElementById('episodeSelector');
+    if (epSelector) {
+        epSelector.style.display = isTV ? 'block' : 'none';
+        if (isTV && tmdbId) {
+            renderTmdbEpisodes(item, 'x8rrmovies');
+        }
+    }
+
     frame.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ffb6d8;gap:12px;text-align:center;padding:24px;">
             <div style="width:36px;height:36px;border:3px solid rgba(255,182,216,0.3);border-top-color:#ff2e63;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
@@ -5148,7 +5158,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
             ? `/api/x8rr/stream/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season)}/${encodeURIComponent(episode)}`
             : `/api/x8rr/stream/movie/${encodeURIComponent(tmdbId)}`;
         const res = await fetch(endpoint);
-        if (playContext !== context) return;
+        if (playContext !== context && playContext.item !== item) return;
         const data = await res.json();
         if (data && Array.isArray(data.streams) && data.streams.length > 0) {
             let activeIdx = 0;
@@ -5163,6 +5173,9 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                 mediaType: isTV ? 'tv' : 'movie',
                 season: isTV ? season : 1,
                 episode: isTV ? episode : 1,
+                onEpisodeSelect: (newSeason, newEpisode) => {
+                    playTmdbEpisode(item, newSeason, newEpisode, 'x8rrmovies');
+                },
                 onError: () => {
                     if (activeIdx + 1 < data.streams.length) {
                         activeIdx++;
@@ -5188,7 +5201,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
 
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
     } catch (e) {
-        if (playContext !== context) return;
+        if (playContext !== context && playContext.item !== item) return;
         frame.innerHTML = x8rrmoviesIframe(tmdbId, type, season, episode);
     }
 }
