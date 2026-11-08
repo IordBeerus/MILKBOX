@@ -60,6 +60,182 @@ function _milkboxFormatShortServerLabel(label, idx) {
     return label;
 }
 
+function _milkboxSetupCustomDropdown(dropdownEl, actions = {}) {
+    if (!dropdownEl || dropdownEl._mbDropdownInitialized) return;
+    dropdownEl._mbDropdownInitialized = true;
+
+    const triggerBtn = dropdownEl.querySelector('.milkbox-custom-dropdown-trigger');
+    const menuEl = dropdownEl.querySelector('.milkbox-custom-dropdown-menu');
+    const listEl = dropdownEl.querySelector('.milkbox-custom-dropdown-list');
+    const valEl = dropdownEl.querySelector('.milkbox-custom-dropdown-val');
+    const selectEl = dropdownEl.querySelector('select');
+    const searchInput = dropdownEl.querySelector('.milkbox-custom-dropdown-search');
+    const searchWrap = dropdownEl.querySelector('.milkbox-custom-dropdown-search-wrap');
+    const footerSearchSubs = dropdownEl.querySelector('.milkbox-footer-search-subs');
+    const footerSubStyle = dropdownEl.querySelector('.milkbox-footer-sub-style');
+
+    if (!triggerBtn || !menuEl || !listEl || !selectEl) return;
+
+    let filterText = '';
+
+    const renderList = () => {
+        const options = Array.from(selectEl.options || []);
+        if (options.length === 0) {
+            listEl.innerHTML = '<div style="padding: 10px 12px; color: rgba(255,255,255,0.4); font-size: 11px; text-align: center;">No options available</div>';
+            if (valEl) valEl.textContent = 'None';
+            return;
+        }
+
+        const selectedOpt = (selectEl.selectedIndex >= 0 ? selectEl.options[selectEl.selectedIndex] : null) || options[0];
+        if (valEl) {
+            valEl.textContent = selectedOpt ? (selectedOpt.textContent || selectedOpt.value) : 'Select';
+            if (selectedOpt && selectedOpt.title) {
+                triggerBtn.title = selectedOpt.title;
+            }
+        }
+
+        if (searchWrap) {
+            searchWrap.hidden = options.length <= 6;
+        }
+
+        let filtered = options;
+        if (filterText) {
+            const q = filterText.toLowerCase().trim();
+            filtered = options.filter(opt => (opt.textContent || '').toLowerCase().includes(q));
+        }
+
+        if (filtered.length === 0) {
+            listEl.innerHTML = '<div style="padding: 10px 12px; color: rgba(255,255,255,0.4); font-size: 11px; text-align: center;">No matching options</div>';
+            return;
+        }
+
+        listEl.innerHTML = '';
+        filtered.forEach(opt => {
+            const itemBtn = document.createElement('button');
+            itemBtn.type = 'button';
+            itemBtn.className = 'milkbox-custom-dropdown-item';
+            const isSelected = opt === selectedOpt || opt.value === selectEl.value;
+            if (isSelected) itemBtn.classList.add('is-selected');
+
+            itemBtn.innerHTML = `
+                <span class="milkbox-custom-dropdown-item-label">${_milkboxEscapeHtml(opt.textContent || opt.value)}</span>
+                <span class="material-symbols-outlined milkbox-custom-dropdown-item-check" aria-hidden="true">check</span>
+            `;
+
+            itemBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectEl.value = opt.value;
+                selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+                closeMenu();
+                renderList();
+            });
+
+            listEl.appendChild(itemBtn);
+        });
+    };
+
+    const openMenu = () => {
+        const player = dropdownEl.closest('.milkbox-player');
+        if (player) {
+            player.querySelectorAll('.milkbox-custom-dropdown').forEach(d => {
+                if (d !== dropdownEl) {
+                    d.classList.remove('is-open');
+                    const m = d.querySelector('.milkbox-custom-dropdown-menu');
+                    if (m) m.hidden = true;
+                }
+            });
+            const settingsMenu = player.querySelector('.milkbox-player-settings-menu');
+            if (settingsMenu) settingsMenu.hidden = true;
+        }
+
+        renderList();
+        menuEl.hidden = false;
+        dropdownEl.classList.add('is-open');
+        triggerBtn.setAttribute('aria-expanded', 'true');
+        if (searchInput && !searchWrap?.hidden) {
+            setTimeout(() => searchInput.focus(), 50);
+        }
+    };
+
+    const closeMenu = () => {
+        menuEl.hidden = true;
+        dropdownEl.classList.remove('is-open');
+        triggerBtn.setAttribute('aria-expanded', 'false');
+        if (searchInput) {
+            searchInput.value = '';
+            filterText = '';
+        }
+    };
+
+    triggerBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (menuEl.hidden) {
+            openMenu();
+        } else {
+            closeMenu();
+        }
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            filterText = e.target.value;
+            renderList();
+        });
+        searchInput.addEventListener('click', (e) => e.stopPropagation());
+    }
+
+    if (footerSearchSubs) {
+        footerSearchSubs.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeMenu();
+            if (actions.searchSubsBtn) {
+                actions.searchSubsBtn.click();
+            } else {
+                const btn = dropdownEl.closest('.milkbox-player')?.querySelector('.milkbox-menu-search-subs');
+                if (btn) btn.click();
+            }
+        });
+    }
+
+    if (footerSubStyle) {
+        footerSubStyle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeMenu();
+            if (actions.subStyleBtn) {
+                actions.subStyleBtn.click();
+            } else {
+                const btn = dropdownEl.closest('.milkbox-player')?.querySelector('.milkbox-menu-sub-style');
+                if (btn) btn.click();
+            }
+        });
+    }
+
+    selectEl.addEventListener('change', () => {
+        const selectedOpt = selectEl.options[selectEl.selectedIndex];
+        if (valEl && selectedOpt) {
+            valEl.textContent = selectedOpt.textContent || selectedOpt.value;
+        }
+        renderList();
+    });
+
+    if (typeof MutationObserver !== 'undefined') {
+        const observer = new MutationObserver(() => {
+            renderList();
+        });
+        observer.observe(selectEl, { childList: true, subtree: true });
+    }
+
+    renderList();
+
+    document.addEventListener('click', (e) => {
+        if (!dropdownEl.contains(e.target)) {
+            closeMenu();
+        }
+    });
+
+    dropdownEl._syncCustomDropdown = renderList;
+}
+
 const MILKBOX_DEFAULT_SUB_STYLES = {
     fontSize: '1.2rem',
     color: '#ffffff',
@@ -348,28 +524,73 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                     </button>
 
                     <div class="milkbox-player-track-selects">
-                        <label class="milkbox-player-track-label milkbox-player-server-label" hidden title="Select Stream Server">
-                            <span class="milkbox-player-chip-icon material-symbols-outlined">dns</span>
-                            <select class="milkbox-player-server-select" aria-label="Stream server"></select>
-                            <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
-                        </label>
-                        <label class="milkbox-player-track-label milkbox-player-quality-label" hidden title="Select Stream Quality">
-                            <span class="milkbox-player-chip-icon material-symbols-outlined">high_quality</span>
-                            <select class="milkbox-player-quality-select" aria-label="Playback quality">
+                        <div class="milkbox-custom-dropdown milkbox-player-server-label" hidden title="Select Stream Server">
+                            <button class="milkbox-custom-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Stream Server">
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-icon">dns</span>
+                                <span class="milkbox-custom-dropdown-val">Server</span>
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
+                            </button>
+                            <div class="milkbox-custom-dropdown-menu" hidden>
+                                <div class="milkbox-custom-dropdown-header">Stream Server</div>
+                                <div class="milkbox-custom-dropdown-list" role="listbox"></div>
+                            </div>
+                            <select class="milkbox-player-server-select" hidden aria-label="Stream server"></select>
+                        </div>
+
+                        <div class="milkbox-custom-dropdown milkbox-player-quality-label" hidden title="Select Stream Quality">
+                            <button class="milkbox-custom-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Stream Quality">
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-icon">high_quality</span>
+                                <span class="milkbox-custom-dropdown-val">Auto</span>
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
+                            </button>
+                            <div class="milkbox-custom-dropdown-menu" hidden>
+                                <div class="milkbox-custom-dropdown-header">Playback Quality</div>
+                                <div class="milkbox-custom-dropdown-list" role="listbox"></div>
+                            </div>
+                            <select class="milkbox-player-quality-select" hidden aria-label="Playback quality">
                                 <option value="-1" selected>Auto</option>
                             </select>
-                            <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
-                        </label>
-                        <label class="milkbox-player-track-label milkbox-player-audio-label" hidden title="Audio Track">
-                            <span class="milkbox-player-chip-icon material-symbols-outlined">audiotrack</span>
-                            <select class="milkbox-player-audio-track" aria-label="Audio track"></select>
-                            <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
-                        </label>
-                        <label class="milkbox-player-track-label milkbox-player-subtitle-label" hidden title="Subtitles">
-                            <span class="milkbox-player-chip-icon material-symbols-outlined">subtitles</span>
-                            <select class="milkbox-player-subtitle-track" aria-label="Subtitle track"></select>
-                            <span class="material-symbols-outlined milkbox-player-chip-arrow">expand_more</span>
-                        </label>
+                        </div>
+
+                        <div class="milkbox-custom-dropdown milkbox-player-audio-label" hidden title="Audio Track">
+                            <button class="milkbox-custom-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Audio Track">
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-icon">audiotrack</span>
+                                <span class="milkbox-custom-dropdown-val">Audio</span>
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
+                            </button>
+                            <div class="milkbox-custom-dropdown-menu" hidden>
+                                <div class="milkbox-custom-dropdown-header">Audio Track</div>
+                                <div class="milkbox-custom-dropdown-list" role="listbox"></div>
+                            </div>
+                            <select class="milkbox-player-audio-track" hidden aria-label="Audio track"></select>
+                        </div>
+
+                        <div class="milkbox-custom-dropdown milkbox-player-subtitle-label" hidden title="Subtitles">
+                            <button class="milkbox-custom-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Subtitles & Captions">
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-icon">subtitles</span>
+                                <span class="milkbox-custom-dropdown-val">Off</span>
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
+                            </button>
+                            <div class="milkbox-custom-dropdown-menu milkbox-dropdown-subtitles-menu" hidden>
+                                <div class="milkbox-custom-dropdown-header">Subtitles & Captions</div>
+                                <div class="milkbox-custom-dropdown-search-wrap" hidden>
+                                    <span class="material-symbols-outlined" style="font-size:14px; opacity:0.6;">search</span>
+                                    <input class="milkbox-custom-dropdown-search" type="search" placeholder="Filter languages…" autocomplete="off">
+                                </div>
+                                <div class="milkbox-custom-dropdown-list" role="listbox"></div>
+                                <div class="milkbox-custom-dropdown-footer">
+                                    <button class="milkbox-dropdown-footer-btn milkbox-footer-search-subs" type="button">
+                                        <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">manage_search</span>
+                                        <span>Search Online Subtitles…</span>
+                                    </button>
+                                    <button class="milkbox-dropdown-footer-btn milkbox-footer-sub-style" type="button">
+                                        <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">tune</span>
+                                        <span>Subtitle Appearance…</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <select class="milkbox-player-subtitle-track" hidden aria-label="Subtitle track"></select>
+                        </div>
                     </div>
 
                     <div class="milkbox-player-settings-wrap">
@@ -634,7 +855,17 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 <div class="milkbox-ep-controls-bar">
                     <div class="milkbox-ep-season-wrap">
                         <label class="milkbox-ep-season-label">Season</label>
-                        <select class="milkbox-ep-season-select"></select>
+                        <div class="milkbox-custom-dropdown milkbox-ep-season-dropdown">
+                            <button class="milkbox-custom-dropdown-trigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Season">
+                                <span class="milkbox-custom-dropdown-val">Season 1</span>
+                                <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
+                            </button>
+                            <div class="milkbox-custom-dropdown-menu" hidden>
+                                <div class="milkbox-custom-dropdown-header">Select Season</div>
+                                <div class="milkbox-custom-dropdown-list" role="listbox"></div>
+                            </div>
+                            <select class="milkbox-ep-season-select" hidden></select>
+                        </div>
                     </div>
                     <div class="milkbox-ep-search-wrap">
                         <span class="material-symbols-outlined milkbox-ep-search-icon">search</span>
@@ -691,6 +922,14 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     const settingsBtn = controls.querySelector('.milkbox-player-settings-btn');
     const settingsMenu = controls.querySelector('.milkbox-player-settings-menu');
     const settingsWrap = controls.querySelector('.milkbox-player-settings-wrap');
+
+    controls.querySelectorAll('.milkbox-custom-dropdown').forEach(dropdown => {
+        _milkboxSetupCustomDropdown(dropdown, { searchSubsBtn, subStyleBtn });
+    });
+    episodesModal.querySelectorAll('.milkbox-custom-dropdown').forEach(dropdown => {
+        _milkboxSetupCustomDropdown(dropdown);
+    });
+
     let hideControlsTimer;
     if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) pictureInPictureButton.hidden = true;
 
