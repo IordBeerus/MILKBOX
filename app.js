@@ -10460,6 +10460,31 @@ function mangaItemToItem(m) {
     if (!m) return null;
     if (m.type === 'manga' && m.poster && m.title) return m;
 
+    if (m.id && m.title && (m.cover || m.poster)) {
+        const poster = m.poster || m.cover || makeSvgCover(m.title, 'Manga');
+        const authors = Array.isArray(m.authors) ? m.authors.join(', ') : (m.author || '');
+        return {
+            id: String(m.id),
+            title: m.title,
+            description: m.description || '',
+            genre: Array.isArray(m.genre) ? m.genre : ['manga'],
+            year: m.year ? String(m.year) : '',
+            rating: m.rating || '',
+            poster,
+            backdrop: poster,
+            logo: '',
+            tmdbId: '',
+            videoUrl: '',
+            certification: '',
+            quality: 'HD',
+            type: 'manga',
+            source: m.source || (String(m.id).includes('/') ? 'mangapill' : 'mangadex'),
+            mangaChapter: m.mangaChapter || (m.latestChapter ? `Ch. ${m.latestChapter}` : (m.chapters ? `Ch. ${m.chapters}` : '')),
+            mangaView: m.mangaView || (authors ? `By ${authors}` : (m.status ? String(m.status).toUpperCase() : '')),
+            status: m.status || ''
+        };
+    }
+
     if (m.attributes && m.relationships) {
         const attrs = m.attributes;
         const enAlt = (attrs.altTitles || []).find(t => t && t.en)?.en;
@@ -10592,21 +10617,22 @@ async function fetchMangaList(page = 1, type = '', forceSearch = null) {
         } else {
             // MangaDex branch
             let fetchedFromProxy = false;
-            if (searchQuery) {
-                try {
-                    const mdRes = await fetch(`/mangadex/search?title=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}&sort=relevance${st.state ? '&status=' + encodeURIComponent(st.state) : ''}${st.category ? '&genre=' + encodeURIComponent(st.category) : ''}`);
-                    if (mdRes.ok) {
-                        const mdData = await mdRes.json();
-                        if (currentReqId !== mangaRequestId) return;
-                        if (Array.isArray(mdData?.items)) {
-                            items = mdData.items.map(mangaItemToItem).filter(Boolean);
-                            totalItems = mdData.total || items.length;
-                            hasNext = !!mdData.next;
-                            fetchedFromProxy = true;
-                        }
+            try {
+                const proxyEndpoint = searchQuery
+                    ? `/mangadex/search?title=${encodeURIComponent(searchQuery)}&page=${page}&limit=${limit}&sort=relevance${st.state ? '&status=' + encodeURIComponent(st.state) : ''}${st.category ? '&genre=' + encodeURIComponent(st.category) : ''}`
+                    : `/mangadex/search?page=${page}&limit=${limit}&sort=popular${st.state ? '&status=' + encodeURIComponent(st.state) : ''}${st.category ? '&genre=' + encodeURIComponent(st.category) : ''}`;
+                const mdRes = await fetch(proxyEndpoint);
+                if (mdRes.ok) {
+                    const mdData = await mdRes.json();
+                    if (currentReqId !== mangaRequestId) return;
+                    if (Array.isArray(mdData?.items) && mdData.items.length > 0) {
+                        items = mdData.items.map(mangaItemToItem).filter(Boolean);
+                        totalItems = mdData.total || items.length;
+                        hasNext = !!mdData.next;
+                        fetchedFromProxy = true;
                     }
-                } catch (_) {}
-            }
+                }
+            } catch (_) {}
 
             if (!fetchedFromProxy) {
                 const queryParams = new URLSearchParams({
@@ -10648,10 +10674,13 @@ async function fetchMangaList(page = 1, type = '', forceSearch = null) {
                 }
             }
 
-            // If MangaDex returned 0 results for a search, automatically fallback to MangaPill
-            if (!items.length && searchQuery) {
+            // If MangaDex returned 0 results, automatically fallback to MangaPill
+            if (!items.length) {
                 try {
-                    const pRes = await fetch(`/pill/search?q=${encodeURIComponent(searchQuery)}&page=${page}`);
+                    const pillEndpoint = searchQuery
+                        ? `/pill/search?q=${encodeURIComponent(searchQuery)}&page=${page}`
+                        : `/pill/latest?page=${page}`;
+                    const pRes = await fetch(pillEndpoint);
                     if (pRes.ok) {
                         const pData = await pRes.json();
                         if (currentReqId !== mangaRequestId) return;
@@ -10673,6 +10702,13 @@ async function fetchMangaList(page = 1, type = '', forceSearch = null) {
                     }
                 } catch (_) {}
             }
+        }
+
+        if (!items.length && !searchQuery) {
+            const fallbackItems = mangaFallbackItems();
+            items = fallbackItems.map(mangaItemToItem).filter(Boolean);
+            totalItems = items.length;
+            hasNext = false;
         }
 
         if (currentReqId !== mangaRequestId) return;
@@ -10877,6 +10913,7 @@ function renderMangaGrid(page) {
     const grid = document.getElementById('mangaGrid');
     const pager = document.getElementById('mangaPager');
     if (!grid) return;
+    const st = liveState.manga || {};
     if (!st.items || !st.items.length) {
         const queryText = (st.search || '').trim();
         grid.innerHTML = `
