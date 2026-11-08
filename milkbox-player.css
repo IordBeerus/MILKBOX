@@ -1329,3 +1329,246 @@
     background: var(--milkbox-accent-hover, #ff6b9d);
 }
 
+/* -------------------------------------------------------------
+ * Episode List Drawer & Controls in Milkbox Player
+ * ------------------------------------------------------------- */
+.milkbox-player-episodes-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 6px;
+    background: rgba(255, 46, 99, 0.18);
+    border: 1px solid rgba(255, 46, 99, 0.45);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    user-select: none;
+}
+.milkbox-player-episodes-btn:hover {
+    background: rgba(255, 46, 99, 0.35);
+    border-color: #ff2e63;
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.35);
+}
+.milkbox-player-episodes-btn[hidden] {
+    display: none !important;
+}
+
+.milkbox-player-prev-ep[hidden],
+.milkbox-player-next-ep[hidden] {
+    display: none !important;
+}
+
+.milkbox-ep-controls-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.milkbox-ep-season-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.milkbox-ep-season-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.milkbox-ep-season-select {
+    background: #181520;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.milkbox-ep-season-select:focus {
+    border-color: #ff2e63;
+}
+
+.milkbox-ep-search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 170px;
+    display: flex;
+    align-items: center;
+}
+
+.milkbox-ep-search-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 18px;
+    color: #777;
+    pointer-events: none;
+}
+
+.milkbox-ep-search-input {
+    width: 100%;
+    padding: 6px 12px 6px 34px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.milkbox-ep-search-input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #ff2e63;
+}
+
+.milkbox-ep-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 12px;
+    padding: 4px 2px;
+}
+
+.milkbox-ep-card {
+    display: flex;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 8px;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    text-align: left;
+    outline: none;
+}
+
+.milkbox-ep-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 46, 99, 0.5);
+    transform: translateY(-1px);
+}
+
+.milkbox-ep-card.is-active {
+    background: rgba(255, 46, 99, 0.16);
+    border-color: #ff2e63;
+    box-shadow: 0 0 14px rgba(255, 46, 99, 0.3);
+}
+
+.milkbox-ep-thumb-wrap {
+    position: relative;
+    width: 105px;
+    height: 62px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #111;
+    flex-shrink: 0;
+}
+
+.milkbox-ep-thumb {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.milkbox-ep-num-pill {
+    position: absolute;
+    bottom: 4px;
+    left: 4px;
+    background: rgba(0, 0, 0, 0.85);
+    color: #ffb6d8;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    line-height: 1;
+}
+
+.milkbox-ep-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.milkbox-ep-card:hover .milkbox-ep-play-overlay {
+    opacity: 1;
+}
+
+.milkbox-ep-play-overlay .material-symbols-outlined {
+    font-size: 24px;
+    color: #fff;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6));
+}
+
+.milkbox-ep-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.milkbox-ep-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.milkbox-ep-sub {
+    font-size: 11px;
+    color: #888;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.milkbox-ep-desc {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 4px;
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.milkbox-ep-active-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: #ff2e63;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+}
+
+
