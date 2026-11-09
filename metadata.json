@@ -1,6 +1,6 @@
 {
   "name": "MILKBOX",
-  "description": "MILKBOX personal streaming and media platform",
+  "description": "Explore movies, TV series, anime, manga, and music on MILKBOX. Watch ad-free with Milkbox Player, host watch parties, and stream across all your devices.",
   "capabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]

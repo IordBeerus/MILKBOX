@@ -1808,6 +1808,16 @@ const server = http.createServer(async (req, res) => {
         return;
     }
 
+    function injectAbsoluteOg(htmlString, requestObj) {
+        const host = requestObj.headers['x-forwarded-host'] || requestObj.headers.host || '';
+        const proto = requestObj.headers['x-forwarded-proto'] || (requestObj.socket && requestObj.socket.encrypted ? 'https' : 'http');
+        const origin = host ? `${proto}://${host}` : '';
+        if (!origin) return htmlString;
+        return htmlString
+            .replace(/content="\/assets\/milkbox-og-banner\.png"/g, `content="${origin}/assets/milkbox-og-banner.png"`)
+            .replace(/"image":\s*"\/assets\/milkbox-og-banner\.png"/g, `"image": "${origin}/assets/milkbox-og-banner.png"`);
+    }
+
     fs.readFile(filePath, (error, content) => {
         if (error) {
             // Dedicated player embed fallback: /movie/:id, /tv/:id/:s/:e, /anime/:id/:ep
@@ -1834,8 +1844,9 @@ const server = http.createServer(async (req, res) => {
                         res.end('Server error');
                         return;
                     }
+                    const processed = injectAbsoluteOg(indexContent.toString('utf8'), req);
                     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-                    res.end(indexContent);
+                    res.end(processed);
                 });
                 return;
             }
@@ -1852,17 +1863,21 @@ const server = http.createServer(async (req, res) => {
             res.end(error.code === 'ENOENT' ? 'Not found' : 'Server error');
             return;
         }
+        let outputContent = content;
+        if (filePath.endsWith('index.html')) {
+            outputContent = Buffer.from(injectAbsoluteOg(content.toString('utf8'), req));
+        }
         const ext = path.extname(filePath).toLowerCase();
         const type = mimeTypes[ext] || 'application/octet-stream';
         const isStaticAsset = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'].includes(ext);
         const cacheControl = isStaticAsset ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache';
         const acceptEncoding = (req.headers && req.headers['accept-encoding']) || '';
 
-        if (content.length > 2048 && ['.json', '.js', '.css', '.html', '.svg'].includes(ext) && acceptEncoding.includes('gzip')) {
-            zlib.gzip(content, (gzErr, gzData) => {
+        if (outputContent.length > 2048 && ['.json', '.js', '.css', '.html', '.svg'].includes(ext) && acceptEncoding.includes('gzip')) {
+            zlib.gzip(outputContent, (gzErr, gzData) => {
                 if (gzErr) {
                     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
-                    res.end(content);
+                    res.end(outputContent);
                 } else {
                     res.writeHead(200, {
                         'Content-Type': type,
@@ -1876,7 +1891,7 @@ const server = http.createServer(async (req, res) => {
         }
 
         res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
-        res.end(content);
+        res.end(outputContent);
     });
 });
 
