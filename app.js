@@ -3972,14 +3972,7 @@ function genreMatchesAnime(genreList) {
 }
 
 function isAnime(item) {
-    if (!item) return false;
-    if (genreMatchesAnime(item.genre)) return true;
-    if (item.isAnime || item.anime) return true;
-    const gIds = item.genre_ids || (Array.isArray(item.genres) ? item.genres.map(g => g.id) : []);
-    const countries = item.origin_country || (Array.isArray(item.production_countries) ? item.production_countries.map(c => c.iso_3166_1) : []);
-    if (isTmdbAnime(gIds, countries, item.original_language)) return true;
-    if (item.original_language === 'ja' && (gIds.includes(16) || genArr(item.genre).some(g => String(g).toLowerCase().includes('anim')))) return true;
-    return false;
+    return item && genreMatchesAnime(item.genre);
 }
 
 
@@ -5127,11 +5120,9 @@ function x8rrmoviesIframe(tmdbId, type, season, episode) {
     const isTV = type === 'tv';
     const se = season || 1;
     const ep = episode || 1;
-    const isAnimeItem = isAnime(playContext?.item);
-    const animeParam = isAnimeItem ? `&isAnime=true&animeLang=${encodeURIComponent(currentAnimeLang || 'sub')}` : '';
     const url = isTV
-        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true${animeParam}`
-        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true${animeParam}`;
+        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
+        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
     return makePlaybackIframe(url, 'allow="autoplay; fullscreen; encrypted-media; picture-in-picture"');
 }
 
@@ -5162,18 +5153,6 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         </div>
     `;
 
-    const isAnimeTitle = isAnime(item);
-    const langSel = document.getElementById('animeLangSelector');
-    if (langSel) {
-        langSel.style.display = isAnimeTitle ? 'flex' : 'none';
-        document.querySelectorAll('.lang-btn').forEach(b => {
-            const isActive = b.dataset.lang === (currentAnimeLang || 'sub');
-            b.classList.toggle('active', isActive);
-            if (isActive) { b.style.background = '#ffb6d8'; b.style.color = '#000'; b.style.border = 'none'; }
-            else { b.style.background = 'rgba(255,255,255,0.08)'; b.style.color = '#fff'; b.style.border = '1px solid rgba(255,255,255,0.12)'; }
-        });
-    }
-
     try {
         const endpoint = isTV
             ? `/api/x8rr/stream/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(season)}/${encodeURIComponent(episode)}`
@@ -5183,19 +5162,6 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         const data = await res.json();
         if (data && Array.isArray(data.streams) && data.streams.length > 0) {
             let activeIdx = 0;
-            if (isAnimeTitle && (currentAnimeLang || 'sub') === 'dub') {
-                const dubIdx = data.streams.findIndex(s => {
-                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
-                    return lbl.includes('(english)') || lbl.includes('english') || lbl.includes('dub');
-                });
-                if (dubIdx >= 0) activeIdx = dubIdx;
-            } else if (isAnimeTitle && (currentAnimeLang || 'sub') === 'sub') {
-                const subIdx = data.streams.findIndex(s => {
-                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
-                    return lbl.includes('sub') || lbl.includes('japanese') || (!lbl.includes('english') && !lbl.includes('(english)'));
-                });
-                if (subIdx >= 0) activeIdx = subIdx;
-            }
             const stream = data.streams[activeIdx];
             const streamUrl = stream.proxiedUrl || `/api/x8rr/proxy?url=${encodeURIComponent(stream.url)}`;
             createCustomVideoPlayer(frame, streamUrl, item.title, subText, {
@@ -5207,18 +5173,6 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                 mediaType: isTV ? 'tv' : 'movie',
                 season: isTV ? season : 1,
                 episode: isTV ? episode : 1,
-                isAnime: isAnimeTitle,
-                animeLang: currentAnimeLang || 'sub',
-                onAnimeLangChange: (newLang) => {
-                    currentAnimeLang = newLang;
-                    try { localStorage.setItem('milkbox_anime_lang', newLang); } catch {}
-                    document.querySelectorAll('.lang-btn').forEach(b => {
-                        const isActive = b.dataset.lang === newLang;
-                        b.classList.toggle('active', isActive);
-                        if (isActive) { b.style.background = '#ffb6d8'; b.style.color = '#000'; b.style.border = 'none'; }
-                        else { b.style.background = 'rgba(255,255,255,0.08)'; b.style.color = '#fff'; b.style.border = '1px solid rgba(255,255,255,0.12)'; }
-                    });
-                },
                 onEpisodeSelect: (newSeason, newEpisode) => {
                     playTmdbEpisode(item, newSeason, newEpisode, 'x8rrmovies');
                 },
@@ -5628,11 +5582,6 @@ document.addEventListener('click', async (e) => {
             } catch {}
         }
         const frame = document.getElementById('playerFrame');
-        const customPlayerBtn = frame?.querySelector(`.milkbox-anime-audio-btn[data-audio="${lang}"]`);
-        if (customPlayerBtn) {
-            customPlayerBtn.click();
-            return;
-        }
         if (frame) frame.innerHTML = '<div class="live-loading">Switching to ' + (lang === 'dub' ? 'Dubbed (English)' : 'Subbed (Japanese + English subs)') + '…</div>';
         try { toast('Switched to ' + (lang === 'dub' ? 'Dubbed — English audio' : 'Subbed — Japanese with English subtitles'), 'success'); } catch {}
         renderPlay();
