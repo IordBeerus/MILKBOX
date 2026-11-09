@@ -5879,6 +5879,40 @@ let playerServer = settings.playerServer || 'x8rrmovies';
 if (playerServer === 'milkbox') { playerServer = 'x8rrmovies'; settings.playerServer = 'x8rrmovies'; try { saveData(); } catch {} }
 if (playerServer === 'miruro') { playerServer = 'tmdb'; settings.playerServer = 'tmdb'; try { saveData(); } catch {} }
 
+const SERVER_CUSTOM_DROPDOWN_META = {
+    'auto': { icon: '✨', badge: 'Auto', badgeClass: '', desc: 'Smart fallback across fast mirrors' },
+    'scramjet': { icon: '⚡', badge: 'Fast Proxy', badgeClass: 'tag-primary', desc: 'VidSrc → CineSRC → VidLink' },
+    'x8rrmovies': { icon: '🍿', badge: 'Recommended', badgeClass: 'tag-primary', desc: 'Direct Stream / Ad-Free HLS' },
+    'vidstuck': { icon: '⚡', badge: 'Fast', badgeClass: '', desc: 'vidstuck.cc' },
+    'vidlink': { icon: '💎', badge: 'HD Stream', badgeClass: '', desc: 'vidlink.pro' },
+    'vidnest': { icon: '🪺', badge: 'Multi-Res', badgeClass: '', desc: 'vidnest.fun' },
+    'vixsrc': { icon: '🦊', badge: 'Fast Mirror', badgeClass: '', desc: 'vixsrc.to' },
+    'vidfastvc': { icon: '🚀', badge: 'Low Buffer', badgeClass: '', desc: 'vidfast.vc' },
+    'vidzee': { icon: '🪐', badge: 'Embed', badgeClass: '', desc: 'player.vidzee.wtf' },
+    'pstream': { icon: '🛰️', badge: 'Fast HLS', badgeClass: '', desc: 'embed.pstream.cfd' },
+    'direct': { icon: '📁', badge: 'Uploaded', badgeClass: '', desc: 'Direct / Uploaded Video' },
+    'phantom': { icon: '🎮', badge: 'Mirror', badgeClass: '', desc: 'VidMario' },
+    'cinesrc': { icon: '🎬', badge: 'Multi-Audio', badgeClass: '', desc: 'CineSRC' },
+    'vidsrcsbs': { icon: '⚡', badge: 'Embed', badgeClass: '', desc: 'VidSrc SBS' },
+    'vidsrc': { icon: '📺', badge: 'Mirror', badgeClass: '', desc: 'Vidsrc (PM)' },
+    'vidcore': { icon: '💿', badge: 'Fast', badgeClass: '', desc: 'VidCore' },
+    'videasy': { icon: '🍿', badge: 'Embed', badgeClass: '', desc: 'Videasy' },
+    'vidy': { icon: '🎥', badge: 'Fast', badgeClass: '', desc: 'Vidy' },
+    'superembed': { icon: '📽️', badge: 'Multi', badgeClass: '', desc: 'SuperEmbed' },
+    'twoembed': { icon: '🎞️', badge: 'Mirror', badgeClass: '', desc: 'MoviesAPI' },
+    'autoembed': { icon: '📡', badge: 'Embed', badgeClass: '', desc: 'AutoEmbed.app' },
+    'smashystream': { icon: '📻', badge: 'Mirror', badgeClass: '', desc: 'YapGrid' },
+    'vidfast': { icon: '⚡', badge: 'Mirror', badgeClass: '', desc: 'VidFast' },
+    'embedsu': { icon: '📽️', badge: 'Mirror', badgeClass: '', desc: 'VidSrc TO' },
+    'nontongo': { icon: '🎬', badge: 'Stream', badgeClass: '', desc: 'SuperEmbed Stream' },
+    'kisskh': { icon: '🌸', badge: 'All Genres', badgeClass: '', desc: 'KissKH' },
+    'vidhawk': { icon: '⛩️', badge: 'Anime', badgeClass: 'tag-anime', desc: 'VidHawk (Anime)' },
+    'anixo': { icon: '⛩️', badge: 'Anime', badgeClass: 'tag-anime', desc: 'Anixo (Anime)' },
+    'megaplay': { icon: '⛩️', badge: 'Sub / Dub', badgeClass: 'tag-anime', desc: 'MegaPlay / Zoro' },
+    'autoembedanime': { icon: '⛩️', badge: 'Anime', badgeClass: 'tag-anime', desc: 'AutoEmbed (Anime)' },
+    'animekai': { icon: '⛩️', badge: 'Sub / Dub', badgeClass: 'tag-anime', desc: 'Megavid (Anime)' }
+};
+
 let _animeOptGroupHolder = null;
 function setAnimeServerOptionsVisible(show) {
     const sel = document.getElementById('serverSelect');
@@ -5895,6 +5929,214 @@ function setAnimeServerOptionsVisible(show) {
             group.remove();
         }
     }
+    renderServerSelectCustomDropdownList();
+    updateServerSelectCustomDropdownUI();
+}
+
+function updateServerSelectCustomDropdownUI() {
+    const sel = document.getElementById('serverSelect');
+    const valEl = document.getElementById('serverDropdownVal');
+    const listEl = document.getElementById('serverDropdownList');
+    if (!sel || !valEl) return;
+    const curVal = sel.value || playerServer || 'x8rrmovies';
+    const opt = sel.querySelector(`option[value="${curVal}"]`);
+    if (opt) {
+        valEl.textContent = opt.textContent;
+    } else {
+        valEl.textContent = 'Milkbox Player (Direct Stream / Ad-Free HLS)';
+    }
+    if (listEl) {
+        listEl.querySelectorAll('.server-dropdown-item').forEach(item => {
+            const isMatch = item.dataset.value === curVal;
+            item.classList.toggle('is-selected', isMatch);
+            item.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+        });
+    }
+}
+
+function renderServerSelectCustomDropdownList() {
+    const sel = document.getElementById('serverSelect');
+    const listEl = document.getElementById('serverDropdownList');
+    if (!sel || !listEl) return;
+
+    listEl.innerHTML = '';
+    const curVal = sel.value || playerServer || 'x8rrmovies';
+
+    const primaryKeys = ['auto', 'scramjet', 'x8rrmovies'];
+    const animeKeys = ['vidhawk', 'anixo', 'megaplay', 'autoembedanime', 'animekai'];
+
+    const allOpts = Array.from(sel.querySelectorAll('option'));
+    if (!allOpts.length) return;
+
+    const createGroupHeader = (title, icon) => {
+        const h = document.createElement('div');
+        h.className = 'server-dropdown-cat-title';
+        h.innerHTML = `<span class="material-symbols-outlined" style="font-size:12px; color:#ff6b8b;">${icon}</span><span>${title}</span>`;
+        return h;
+    };
+
+    const createItemBtn = (opt) => {
+        const val = opt.value;
+        const text = opt.textContent.trim();
+        const meta = SERVER_CUSTOM_DROPDOWN_META[val] || { icon: '📺', badge: '', desc: text };
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'server-dropdown-item' + (val === curVal ? ' is-selected' : '');
+        btn.dataset.value = val;
+        btn.dataset.label = text.toLowerCase();
+        btn.setAttribute('role', 'option');
+        btn.setAttribute('aria-selected', val === curVal ? 'true' : 'false');
+
+        const badgeHtml = meta.badge ? `<span class="server-dropdown-item-tag ${meta.badgeClass || ''}">${meta.badge}</span>` : '';
+
+        btn.innerHTML = `
+            <div class="server-dropdown-item-left">
+                <span class="server-dropdown-item-icon">${meta.icon || '📺'}</span>
+                <span class="server-dropdown-item-text">
+                    <span class="server-dropdown-item-name">${text}</span>
+                </span>
+                ${badgeHtml}
+            </div>
+            <span class="material-symbols-outlined server-dropdown-item-check">check</span>
+        `;
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (sel.value !== val) {
+                sel.value = val;
+                playerServer = val;
+                settings.playerServer = val;
+                try { saveData(); } catch {}
+                sel.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            updateServerSelectCustomDropdownUI();
+            closeServerSelectCustomDropdown();
+        });
+
+        return btn;
+    };
+
+    // 1. Primary Servers Header & Items
+    const primaryOpts = allOpts.filter(o => primaryKeys.includes(o.value));
+    if (primaryOpts.length) {
+        listEl.appendChild(createGroupHeader('Direct Stream & Recommended', 'star'));
+        primaryOpts.forEach(o => listEl.appendChild(createItemBtn(o)));
+    }
+
+    // 2. Anime Servers (if present in DOM)
+    const animeOpts = allOpts.filter(o => animeKeys.includes(o.value));
+    if (animeOpts.length) {
+        listEl.appendChild(createGroupHeader('Anime Dedicated (Sub / Dub)', 'theater_comedy'));
+        animeOpts.forEach(o => listEl.appendChild(createItemBtn(o)));
+    }
+
+    // 3. Fast Embeds & Mirrors
+    const generalOpts = allOpts.filter(o => !primaryKeys.includes(o.value) && !animeKeys.includes(o.value));
+    if (generalOpts.length) {
+        listEl.appendChild(createGroupHeader('Fast Mirrors & Video Embeds', 'dns'));
+        generalOpts.forEach(o => listEl.appendChild(createItemBtn(o)));
+    }
+}
+
+function openServerSelectCustomDropdown() {
+    const wrap = document.getElementById('serverSelectDropdown');
+    const menu = document.getElementById('serverDropdownMenu');
+    const trigger = document.getElementById('serverDropdownTrigger');
+    const searchInput = document.getElementById('serverDropdownSearch');
+    if (!wrap || !menu || !trigger) return;
+    wrap.classList.add('is-open');
+    menu.hidden = false;
+    trigger.setAttribute('aria-expanded', 'true');
+    if (searchInput) {
+        searchInput.value = '';
+        filterServerSelectCustomDropdown('');
+        setTimeout(() => searchInput.focus(), 50);
+    }
+}
+
+function closeServerSelectCustomDropdown() {
+    const wrap = document.getElementById('serverSelectDropdown');
+    const menu = document.getElementById('serverDropdownMenu');
+    const trigger = document.getElementById('serverDropdownTrigger');
+    if (!wrap || !menu || !trigger) return;
+    wrap.classList.remove('is-open');
+    menu.hidden = true;
+    trigger.setAttribute('aria-expanded', 'false');
+}
+
+function toggleServerSelectCustomDropdown() {
+    const wrap = document.getElementById('serverSelectDropdown');
+    if (!wrap) return;
+    if (wrap.classList.contains('is-open')) {
+        closeServerSelectCustomDropdown();
+    } else {
+        openServerSelectCustomDropdown();
+    }
+}
+
+function filterServerSelectCustomDropdown(query) {
+    const listEl = document.getElementById('serverDropdownList');
+    if (!listEl) return;
+    const q = (query || '').toLowerCase().trim();
+    const items = listEl.querySelectorAll('.server-dropdown-item');
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        const matches = !q || text.includes(q);
+        item.style.display = matches ? '' : 'none';
+    });
+    const headers = listEl.querySelectorAll('.server-dropdown-cat-title');
+    headers.forEach(h => {
+        let sibling = h.nextElementSibling;
+        let anyVisible = false;
+        while (sibling && !sibling.classList.contains('server-dropdown-cat-title')) {
+            if (sibling.style.display !== 'none') {
+                anyVisible = true;
+                break;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+        h.style.display = anyVisible ? '' : 'none';
+    });
+}
+
+function initServerSelectCustomDropdown() {
+    const trigger = document.getElementById('serverDropdownTrigger');
+    const searchInput = document.getElementById('serverDropdownSearch');
+    if (trigger && !trigger._bound) {
+        trigger._bound = true;
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleServerSelectCustomDropdown();
+        });
+    }
+    if (searchInput && !searchInput._bound) {
+        searchInput._bound = true;
+        searchInput.addEventListener('input', (e) => {
+            filterServerSelectCustomDropdown(e.target.value);
+        });
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeServerSelectCustomDropdown();
+            }
+        });
+    }
+    if (!document._serverDropdownDocListener) {
+        document._serverDropdownDocListener = true;
+        document.addEventListener('click', (e) => {
+            const wrap = document.getElementById('serverSelectDropdown');
+            if (wrap && !wrap.contains(e.target)) {
+                closeServerSelectCustomDropdown();
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                closeServerSelectCustomDropdown();
+            }
+        });
+    }
+    renderServerSelectCustomDropdownList();
+    updateServerSelectCustomDropdownUI();
 }
 
 function serverBtnActive() {
@@ -5908,12 +6150,18 @@ function serverBtnActive() {
             sel.value = 'x8rrmovies';
         }
     }
+    updateServerSelectCustomDropdownUI();
 }
+
 try {
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setAnimeServerOptionsVisible(false));
+        document.addEventListener('DOMContentLoaded', () => {
+            setAnimeServerOptionsVisible(false);
+            initServerSelectCustomDropdown();
+        });
     } else {
         setAnimeServerOptionsVisible(false);
+        initServerSelectCustomDropdown();
     }
 } catch {}
 
@@ -6534,6 +6782,9 @@ document.addEventListener('change', (e) => {
     playerServer = sel.value;
     settings.playerServer = playerServer;
     saveData();
+    if (typeof updateServerSelectCustomDropdownUI === 'function') {
+        updateServerSelectCustomDropdownUI();
+    }
     renderPlay();
 });
 
