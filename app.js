@@ -5127,9 +5127,11 @@ function x8rrmoviesIframe(tmdbId, type, season, episode) {
     const isTV = type === 'tv';
     const se = season || 1;
     const ep = episode || 1;
+    const isAnimeItem = isAnime(playContext?.item);
+    const animeParam = isAnimeItem ? `&isAnime=true&animeLang=${encodeURIComponent(currentAnimeLang || 'sub')}` : '';
     const url = isTV
-        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
-        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
+        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true${animeParam}`
+        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true${animeParam}`;
     return makePlaybackIframe(url, 'allow="autoplay; fullscreen; encrypted-media; picture-in-picture"');
 }
 
@@ -5181,6 +5183,19 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
         const data = await res.json();
         if (data && Array.isArray(data.streams) && data.streams.length > 0) {
             let activeIdx = 0;
+            if (isAnimeTitle && (currentAnimeLang || 'sub') === 'dub') {
+                const dubIdx = data.streams.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('(english)') || lbl.includes('english') || lbl.includes('dub');
+                });
+                if (dubIdx >= 0) activeIdx = dubIdx;
+            } else if (isAnimeTitle && (currentAnimeLang || 'sub') === 'sub') {
+                const subIdx = data.streams.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('sub') || lbl.includes('japanese') || (!lbl.includes('english') && !lbl.includes('(english)'));
+                });
+                if (subIdx >= 0) activeIdx = subIdx;
+            }
             const stream = data.streams[activeIdx];
             const streamUrl = stream.proxiedUrl || `/api/x8rr/proxy?url=${encodeURIComponent(stream.url)}`;
             createCustomVideoPlayer(frame, streamUrl, item.title, subText, {
