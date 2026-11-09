@@ -102,7 +102,7 @@ API availability depends on the external services and their rate limits.
 
 ## Embedding movies and series
 
-The player selector offers playback providers including x8rr Movies (Direct Stream / Ad-Free HLS),
+The player selector offers playback providers including Milkbox Player (Direct Stream / Ad-Free HLS),
 Scramjet, and direct/uploaded video options. Other providers continue to
 use their respective embedded players.
 

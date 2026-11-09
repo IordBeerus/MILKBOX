@@ -458,7 +458,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             <div class="milkbox-player-header-left">
                 <span class="milkbox-player-brand-badge">
                     <span class="milkbox-player-pulse-dot"></span>
-                    <span>x8rr Movies</span>
+                    <span>Milkbox Player</span>
                 </span>
                 <div class="milkbox-player-header-info">
                     <span class="milkbox-player-header-title">${_milkboxEscapeHtml(titleText || 'Now Playing')}</span>
@@ -847,7 +847,7 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 <div class="milkbox-player-modal-title-group">
                     <span class="material-symbols-outlined milkbox-player-modal-icon" style="color:var(--milkbox-accent, #ff2e63);">video_library</span>
                     <span class="milkbox-player-modal-title">Episode List</span>
-                    <span class="milkbox-player-modal-badge">${_milkboxEscapeHtml(titleText || 'x8rr Movies')}</span>
+                    <span class="milkbox-player-modal-badge">${_milkboxEscapeHtml(titleText || 'Milkbox Player')}</span>
                 </div>
                 <button class="milkbox-player-modal-close" type="button" aria-label="Close">✕</button>
             </div>

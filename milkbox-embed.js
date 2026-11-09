@@ -126,8 +126,7 @@
 
     
     const SERVERS = [
-        { id: 'x8rrmovies', name: 'x8rr Movies (Ad-Free HLS)', icon: '🍿' },
-        { id: 'milkbox', name: 'Milkbox Pink (Core)', icon: '⚡' },
+        { id: 'x8rrmovies', name: 'Milkbox Player (Ad-Free HLS)', icon: '🍿' },
         { id: 'vidstuck', name: 'VidStuck (vidstuck.cc)', icon: '⚡' },
         { id: 'vidlink', name: 'VidLink Ultra', icon: '💎' },
         { id: 'vidnest', name: 'VidNest (vidnest.fun)', icon: '🪺' },
@@ -981,7 +980,7 @@
         const streamUrl = stream.proxiedUrl || stream.url;
 
         const label = stream.serverLabel || stream.providerName || `Server ${index + 1}`;
-        elements.serverBadgeLabel.textContent = `x8rr · ${label}`;
+        elements.serverBadgeLabel.textContent = `Milkbox · ${label}`;
         elements.serverActiveLabel.textContent = label;
 
         renderServerMenu();
@@ -1137,7 +1136,7 @@
 
                     const srv = SERVERS.find(s => s.id === state.currentServer) || SERVERS[0];
                     const label = currentMirror ? (currentMirror.serverLabel || currentMirror.providerName || srv.name) : srv.name;
-                    elements.serverBadgeLabel.textContent = currentMirror ? `x8rr · ${label}` : label;
+                    elements.serverBadgeLabel.textContent = currentMirror ? `Milkbox · ${label}` : label;
                     elements.serverActiveLabel.textContent = label;
                     renderServerMenu();
                     renderQualityMenu();
@@ -1314,7 +1313,7 @@
         `).join('');
 
         if (state.x8rrStreams && state.x8rrStreams.length > 0) {
-            html += '<div class="mb-menu-header" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">x8rr Mirrors & Fallbacks</div>';
+            html += '<div class="mb-menu-header" style="margin-top:8px; border-top:1px solid rgba(255,255,255,0.08); padding-top:8px;">Milkbox Mirrors & Fallbacks</div>';
             html += state.x8rrStreams.map((srv, idx) => {
                 const isActive = state.currentServer === 'x8rrmovies' && state.activeX8rrIndex === idx;
                 const label = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;

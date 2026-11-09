@@ -5148,7 +5148,7 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
     frame.innerHTML = `
         <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#ffb6d8;gap:12px;text-align:center;padding:24px;">
             <div style="width:36px;height:36px;border:3px solid rgba(255,182,216,0.3);border-top-color:#ff2e63;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
-            <div style="font-weight:700;font-size:16px;color:#fff;">x8rr Movies</div>
+            <div style="font-weight:700;font-size:16px;color:#fff;">Milkbox Player</div>
             <div style="font-size:13px;color:#ffb6d8;">Connecting to stream…</div>
         </div>
     `;
@@ -5180,22 +5180,22 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                     if (activeIdx + 1 < data.streams.length) {
                         activeIdx++;
                         const next = data.streams[activeIdx];
-                        toast(`x8rr Movies: Connecting to ${next.serverLabel || `Server ${activeIdx + 1}`}…`, 'info');
+                        toast(`Milkbox Player: Connecting to ${next.serverLabel || `Server ${activeIdx + 1}`}…`, 'info');
                         const sel = frame.querySelector('.milkbox-player-server-select');
                         if (sel) {
                             sel.value = String(activeIdx);
                             sel.dispatchEvent(new Event('change'));
                         }
                     } else {
-                        toast('x8rr Movies: Primary stream hiccup. Use the Server dropdown to switch mirrors.', 'warn');
+                        toast('Milkbox Player: Primary stream hiccup. Use the Server dropdown to switch mirrors.', 'warn');
                     }
                 },
                 onServerChange: (newStream, idx) => {
                     activeIdx = idx;
-                    toast(`x8rr Movies: Switched to ${newStream.serverLabel || `Server ${idx + 1}`}`, 'success');
+                    toast(`Milkbox Player: Switched to ${newStream.serverLabel || `Server ${idx + 1}`}`, 'success');
                 }
             });
-            toast(`x8rr Movies: Playing ad-free 1080p stream (${stream.serverLabel || stream.providerName})`, 'success');
+            toast(`Milkbox Player: Playing ad-free 1080p stream (${stream.serverLabel || stream.providerName})`, 'success');
             return;
         }
 

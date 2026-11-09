@@ -156,8 +156,8 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
         return [
             {
                 id: 'x8rrmovies',
-                name: 'x8rr Movies (Direct Stream / Ad-Free HLS)',
-                quality: '1080p Ultra (x8rr)',
+                name: 'Milkbox Player (Direct Stream / Ad-Free HLS)',
+                quality: '1080p Ultra (Milkbox)',
                 icon: '🍿',
                 url: `/milkbox-embed.html?type=tv&id=${encodeURIComponent(id)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`,
                 streamApi: `/api/x8rr/stream/tv/${encodeURIComponent(id)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
@@ -291,8 +291,8 @@ function generateStreamProviders(type, id, season, episode, imdbId) {
     return [
         {
             id: 'x8rrmovies',
-            name: 'x8rr Movies (Direct Stream / Ad-Free HLS)',
-            quality: '1080p Ultra (x8rr)',
+            name: 'Milkbox Player (Direct Stream / Ad-Free HLS)',
+            quality: '1080p Ultra (Milkbox)',
             icon: '🍿',
             url: `/milkbox-embed.html?type=movie&id=${encodeURIComponent(id)}&server=x8rrmovies&autoplay=true`,
             streamApi: `/api/x8rr/stream/movie/${encodeURIComponent(id)}`
