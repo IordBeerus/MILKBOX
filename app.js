@@ -5819,7 +5819,8 @@ function kisskhIframe(episodeId, color, autoplay, epNum) {
 
 
 let playContext = null;
-let playerServer = settings.playerServer || 'milkbox';
+let playerServer = settings.playerServer || 'x8rrmovies';
+if (playerServer === 'milkbox') { playerServer = 'x8rrmovies'; settings.playerServer = 'x8rrmovies'; try { saveData(); } catch {} }
 if (playerServer === 'miruro') { playerServer = 'tmdb'; settings.playerServer = 'tmdb'; try { saveData(); } catch {} }
 
 let _animeOptGroupHolder = null;
@@ -5848,7 +5849,7 @@ function serverBtnActive() {
         if (hasOption) {
             sel.value = playerServer;
         } else {
-            sel.value = 'milkbox';
+            sel.value = 'x8rrmovies';
         }
     }
 }
@@ -5864,14 +5865,14 @@ function effectiveServerFor(item, type) {
     if (playerServer === 'direct') return 'direct';
     if (playerServer === 'auto') {
         if (isAnime(item) && currentAnimekaiMalId) return 'animekai';
-        return item.tmdbId ? 'milkbox' : 'direct';
+        return item.tmdbId ? 'x8rrmovies' : 'direct';
     }
-    if (playerServer === 'milkbox' || playerServer === 'pstream' || playerServer === 'x8rrmovies' || SERVER_IFRAME[playerServer] || playerServer === 'kisskh') return playerServer;
-    return item.tmdbId ? 'milkbox' : 'direct';
+    if (playerServer === 'x8rrmovies' || playerServer === 'pstream' || SERVER_IFRAME[playerServer] || playerServer === 'kisskh') return playerServer;
+    return item.tmdbId ? 'x8rrmovies' : 'direct';
 }
 
 
-const SERVER_ORDER = ['scramjet', 'x8rrmovies', 'milkbox', 'vidstuck', 'vidlink', 'vidnest', 'vixsrc', 'vidfastvc', 'vidzee', 'pstream', 'tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'vidy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','wfslol','vidsrctop','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
+const SERVER_ORDER = ['scramjet', 'x8rrmovies', 'vidstuck', 'vidlink', 'vidnest', 'vixsrc', 'vidfastvc', 'vidzee', 'pstream', 'tmdb', 'phantom', 'cinesrc', 'vidsrcsbs', 'vidsrc', 'vidcore', 'videasy', 'vidy', 'superembed', 'twoembed', 'autoembed', 'smashystream', 'vidfast', 'embedsu', 'nontongo', 'vidspark','vidrock','vidflix','vidlux','vidsrcme','vidsrcin','vidsrcio','vsembed','twoembedcc','embedsu2','wfslol','vidsrctop','vidhawk','anixo','megaplay','autoembedanime','animekai', 'kisskh'];
 let fallbackStart = null;
 let fallbackTimer = null;
 let fallbackLoaded = false;

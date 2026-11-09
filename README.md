@@ -102,10 +102,8 @@ API availability depends on the external services and their rate limits.
 
 ## Embedding movies and series
 
-The player selector keeps the existing playback providers and adds Milkbox
-Player and direct/uploaded video options. Milkbox Player uses the title's TMDB
-ID with the same VidSrc TMDB embed route used by the Vidsrc option; it does not
-require a separately configured playback API. Other providers continue to
+The player selector offers playback providers including x8rr Movies (Direct Stream / Ad-Free HLS),
+Scramjet, and direct/uploaded video options. Other providers continue to
 use their respective embedded players.
 
 For personal videos, add a movie with either a direct video URL or an uploaded
