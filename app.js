@@ -5172,7 +5172,19 @@ async function playX8rrMoviesStream(item, type, season = 1, episode = 1) {
                 tmdbId: tmdbId,
                 mediaType: isTV ? 'tv' : 'movie',
                 season: isTV ? season : 1,
-                episode: isTV ? episode : 1,
+                item: item,
+                onSwitchToScramjet: () => {
+                    playerServer = 'scramjet';
+                    settings.playerServer = 'scramjet';
+                    try { saveData(); } catch {}
+                    const srvSelect = document.getElementById('playerServerSelect');
+                    if (srvSelect) srvSelect.value = 'scramjet';
+                    if (isTV) {
+                        playTmdbEpisode(item, season, episode, 'scramjet');
+                    } else {
+                        renderTmdbPlay('scramjet');
+                    }
+                },
                 onEpisodeSelect: (newSeason, newEpisode) => {
                     playTmdbEpisode(item, newSeason, newEpisode, 'x8rrmovies');
                 },

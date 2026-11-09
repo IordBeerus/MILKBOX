@@ -127,6 +127,7 @@
     
     const SERVERS = [
         { id: 'x8rrmovies', name: 'Milkbox Player (Ad-Free HLS)', icon: '🍿' },
+        { id: 'scramjet', name: 'Scramjet (Shielded Proxy)', icon: '⚡' },
         { id: 'vidstuck', name: 'VidStuck (vidstuck.cc)', icon: '⚡' },
         { id: 'vidlink', name: 'VidLink Ultra', icon: '💎' },
         { id: 'vidnest', name: 'VidNest (vidnest.fun)', icon: '🪺' },
@@ -229,6 +230,26 @@
         const accent = 'ff2e63';
 
         switch (server) {
+            case 'scramjet': {
+                const isProxy = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_mode')) !== 'direct';
+                const mirror = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_source')) || 'vidsrc';
+                let directUrl;
+                if (mirror === 'cinesrc') {
+                    directUrl = type === 'tv'
+                        ? `https://cinesrc.st/embed/tv/${encodeURIComponent(id)}?s=${encodeURIComponent(season || 1)}&e=${encodeURIComponent(episode || 1)}`
+                        : `https://cinesrc.st/embed/movie/${encodeURIComponent(id)}`;
+                } else if (mirror === 'vidlink') {
+                    directUrl = type === 'tv'
+                        ? `https://vidlink.pro/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?primaryColor=${accent}&autoplay=true`
+                        : `https://vidlink.pro/movie/${encodeURIComponent(id)}?primaryColor=${accent}&autoplay=true`;
+                } else {
+                    directUrl = type === 'tv'
+                        ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`
+                        : `https://vidsrc.pm/embed/movie/${encodeURIComponent(id)}`;
+                }
+                return isProxy ? `/api/scramjet/embed?url=${encodeURIComponent(directUrl)}` : directUrl;
+            }
+
             case 'x8rrmovies':
             case 'milkbox': {
                 if (type === 'anime') {

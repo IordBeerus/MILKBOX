@@ -45,6 +45,7 @@ function _milkboxFormatTime(seconds) {
 
 function _milkboxFormatShortServerLabel(label, idx) {
     if (!label) return `S${idx + 1}`;
+    if (/scramjet/i.test(label)) return '⚡ Scramjet';
     const match = label.match(/Server\s*(\d+)\s*\(([^()·]+)/i);
     if (match) {
         return `S${match[1]}: ${match[2].trim()}`;
@@ -622,6 +623,31 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                                     <button class="milkbox-settings-pill-btn" data-boost="1.75" type="button">175%</button>
                                     <button class="milkbox-settings-pill-btn is-active" data-boost="2.5" type="button">250%</button>
                                     <button class="milkbox-settings-pill-btn" data-boost="3.0" type="button">300%</button>
+                                </div>
+                            </div>
+                            <div class="milkbox-settings-section milkbox-scramjet-section">
+                                <div class="milkbox-settings-section-title">
+                                    <span class="material-symbols-outlined" style="font-size:14px; color:#ff2e63;">shield</span>
+                                    <span>Scramjet Proxy Shield</span>
+                                    <span class="milkbox-scramjet-status-dot" style="width:6px; height:6px; border-radius:50%; background:#10b981; margin-left:auto; box-shadow:0 0 6px #10b981;" title="Tunnel Operational"></span>
+                                </div>
+                                <div style="font-size:10px; color:rgba(255,255,255,0.65); line-height:1.3; margin:2px 0 4px;">
+                                    Bypass ISP blocks, CORS filters & popunders
+                                </div>
+                                <div class="milkbox-settings-pills-row milkbox-scramjet-mode-pills">
+                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-mode="proxy" type="button" title="Route video through Scramjet secure proxy tunnel">⚡ Proxy (Shield)</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-mode="direct" type="button" title="Direct CDN connection without proxy">🌐 Direct</button>
+                                </div>
+                                <div class="milkbox-settings-pills-row milkbox-scramjet-source-pills" style="margin-top:4px;">
+                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-src="vidsrc" type="button" title="Scramjet VidSrc Mirror">1. VidSrc</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="cinesrc" type="button" title="Scramjet CineSRC Mirror">2. CineSRC</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidlink" type="button" title="Scramjet VidLink Mirror">3. VidLink</button>
+                                </div>
+                                <div style="display:flex; gap:6px; margin-top:6px;">
+                                    <button class="milkbox-settings-action-btn milkbox-scramjet-switch-btn" type="button" style="justify-content:center; gap:6px; background:rgba(255,46,99,0.18); border-color:rgba(255,46,99,0.4); color:#ffb6d8; font-weight:700;">
+                                        <span class="material-symbols-outlined" style="font-size:14px; color:#ff2e63;">bolt</span>
+                                        <span>Switch to Scramjet Stream</span>
+                                    </button>
                                 </div>
                             </div>
                             <div class="milkbox-settings-section">
@@ -1357,6 +1383,14 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 controls.querySelectorAll('.milkbox-boost-pills .milkbox-settings-pill-btn').forEach(b => {
                     b.classList.toggle('is-active', Math.abs(parseFloat(b.dataset.boost) - currentBoostMultiplier) < 0.05);
                 });
+                const curScramjetMode = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_mode')) || window._scramjetProxyMode || 'proxy';
+                controls.querySelectorAll('.milkbox-scramjet-mode-pills .milkbox-settings-pill-btn').forEach(b => {
+                    b.classList.toggle('is-active', b.dataset.scramjetMode === curScramjetMode);
+                });
+                const curScramjetSrc = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_source')) || window._scramjetActiveSource || 'vidsrc';
+                controls.querySelectorAll('.milkbox-scramjet-source-pills .milkbox-settings-pill-btn').forEach(b => {
+                    b.classList.toggle('is-active', b.dataset.scramjetSrc === curScramjetSrc);
+                });
             }
         });
 
@@ -1390,6 +1424,68 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
             }
         });
     });
+
+    // Scramjet Proxy Mode Toggle
+    controls.querySelectorAll('.milkbox-scramjet-mode-pills .milkbox-settings-pill-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const mode = btn.dataset.scramjetMode || 'proxy';
+            try { localStorage.setItem('milkbox_scramjet_mode', mode); } catch {}
+            window._scramjetProxyMode = mode;
+            controls.querySelectorAll('.milkbox-scramjet-mode-pills .milkbox-settings-pill-btn').forEach(b => {
+                b.classList.toggle('is-active', b === btn);
+            });
+            const isProxy = mode === 'proxy';
+            const toastFn = typeof window.toast === 'function' ? window.toast : (typeof toast === 'function' ? toast : null);
+            if (toastFn) {
+                toastFn(isProxy ? 'Scramjet Shield: ⚡ Proxy Mode (ISP filters & blocks bypassed)' : 'Scramjet Shield: 🌐 Direct Mode (Fastest CDN)', 'info');
+            }
+            if (typeof window.toggleScramjetProxyMode === 'function' && document.getElementById('scramjetPlayerIframe')) {
+                window.toggleScramjetProxyMode();
+            }
+        });
+    });
+
+    // Scramjet Mirror Source Selection
+    controls.querySelectorAll('.milkbox-scramjet-source-pills .milkbox-settings-pill-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const src = btn.dataset.scramjetSrc || 'vidsrc';
+            try { localStorage.setItem('milkbox_scramjet_source', src); } catch {}
+            window._scramjetActiveSource = src;
+            controls.querySelectorAll('.milkbox-scramjet-source-pills .milkbox-settings-pill-btn').forEach(b => {
+                b.classList.toggle('is-active', b === btn);
+            });
+            const label = src === 'vidsrc' ? '1. VidSrc' : src === 'cinesrc' ? '2. CineSRC' : '3. VidLink';
+            const toastFn = typeof window.toast === 'function' ? window.toast : (typeof toast === 'function' ? toast : null);
+            if (toastFn) {
+                toastFn(`Scramjet Mirror: Set to ${label}`, 'info');
+            }
+            if (typeof window.switchScramjetSource === 'function') {
+                window.switchScramjetSource(src);
+            }
+        });
+    });
+
+    // Scramjet Switch Stream Button
+    const scramjetSwitchBtn = controls.querySelector('.milkbox-scramjet-switch-btn');
+    if (scramjetSwitchBtn) {
+        scramjetSwitchBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (settingsMenu) settingsMenu.hidden = true;
+            const toastFn = typeof window.toast === 'function' ? window.toast : (typeof toast === 'function' ? toast : null);
+            if (toastFn) toastFn('Milkbox Player: Switching to Scramjet Shielded Stream… ⚡', 'info');
+
+            if (extraOptions && typeof extraOptions.onSwitchToScramjet === 'function') {
+                extraOptions.onSwitchToScramjet();
+            } else if (typeof window.renderTmdbPlay === 'function') {
+                window.playerServer = 'scramjet';
+                if (window.settings) window.settings.playerServer = 'scramjet';
+                if (typeof window.saveData === 'function') window.saveData();
+                window.renderTmdbPlay('scramjet');
+            }
+        });
+    }
 
     searchSubsModal.querySelectorAll('.milkbox-player-modal-close, .milkbox-player-modal-backdrop').forEach(el => {
         el.addEventListener('click', () => { searchSubsModal.hidden = true; });
@@ -2027,7 +2123,16 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     if (serverLabel && serverSelect && extraOptions && Array.isArray(extraOptions.servers) && extraOptions.servers.length > 0) {
         serverLabel.hidden = false;
         serverSelect.innerHTML = '';
-        extraOptions.servers.forEach((srv, idx) => {
+        const serverChoices = extraOptions.servers.slice();
+        if (!serverChoices.some(s => s.id === 'scramjet')) {
+            serverChoices.push({
+                id: 'scramjet',
+                serverLabel: 'Server ⚡ (Scramjet Shielded Proxy)',
+                providerName: 'Scramjet Proxy',
+                isScramjet: true
+            });
+        }
+        serverChoices.forEach((srv, idx) => {
             const opt = document.createElement('option');
             opt.value = String(idx);
             const fullLabel = srv.serverLabel || srv.providerName || `Server ${idx + 1}`;
@@ -2042,8 +2147,19 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
 
         serverSelect.addEventListener('change', () => {
             const idx = parseInt(serverSelect.value, 10);
-            const srv = extraOptions.servers[idx];
+            const srv = serverChoices[idx];
             if (!srv) return;
+            if (srv.isScramjet || srv.id === 'scramjet') {
+                if (typeof extraOptions.onSwitchToScramjet === 'function') {
+                    extraOptions.onSwitchToScramjet();
+                } else if (typeof window.renderTmdbPlay === 'function') {
+                    window.playerServer = 'scramjet';
+                    if (window.settings) window.settings.playerServer = 'scramjet';
+                    if (typeof window.saveData === 'function') window.saveData();
+                    window.renderTmdbPlay('scramjet');
+                }
+                return;
+            }
             const newUrl = srv.proxiedUrl || srv.url;
             if (!newUrl) return;
 
