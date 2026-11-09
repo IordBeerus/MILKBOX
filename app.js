@@ -9691,18 +9691,6 @@ document.getElementById('settingsHighContrastToggle')?.addEventListener('change'
 
 document.getElementById('checkHealthBtn')?.addEventListener('click', runSystemDiagnostics);
 document.getElementById('testServerLatencyBtn')?.addEventListener('click', testStreamingServerLatencies);
-document.getElementById('copyShareLinkBtn')?.addEventListener('click', () => {
-    const url = window.location.origin;
-    if (navigator.clipboard) {
-        navigator.clipboard.writeText(url).then(() => {
-            toast('MILKBOX Discord share link copied to clipboard! 📋', 'success');
-        }).catch(() => {
-            prompt('Copy MILKBOX share link:', url);
-        });
-    } else {
-        prompt('Copy MILKBOX share link:', url);
-    }
-});
 
 
 document.getElementById('settingsTrackMovieCw')?.addEventListener('change', (e) => {
