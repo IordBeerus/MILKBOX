@@ -638,10 +638,18 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                                     <button class="milkbox-settings-pill-btn is-active" data-scramjet-mode="proxy" type="button" title="Route video through Scramjet secure proxy tunnel">⚡ Proxy (Shield)</button>
                                     <button class="milkbox-settings-pill-btn" data-scramjet-mode="direct" type="button" title="Direct CDN connection without proxy">🌐 Direct</button>
                                 </div>
-                                <div class="milkbox-settings-pills-row milkbox-scramjet-source-pills" style="margin-top:4px;">
-                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-src="vidsrc" type="button" title="Scramjet VidSrc Mirror">1. VidSrc</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="cinesrc" type="button" title="Scramjet CineSRC Mirror">2. CineSRC</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidlink" type="button" title="Scramjet VidLink Mirror">3. VidLink</button>
+                                <div style="font-size:10px; font-weight:700; color:#ffb6d8; margin:6px 0 3px;">Milkbox Streaming Servers:</div>
+                                <div class="milkbox-settings-pills-row milkbox-scramjet-source-pills" style="grid-template-columns: repeat(2, 1fr); gap: 4px;">
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidstuck" type="button" title="VidStuck (vidstuck.cc)">⚡ VidStuck</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidlink" type="button" title="VidLink (vidlink.pro)">💎 VidLink</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidnest" type="button" title="VidNest (vidnest.fun)">🪺 VidNest</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vixsrc" type="button" title="VixSrc (vixsrc.to)">🦊 VixSrc</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidfastvc" type="button" title="VidFast (vidfast.vc)">⚡ VidFast</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidzee" type="button" title="VidZee (player.vidzee.wtf)">🪐 VidZee</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="pstream" type="button" title="P-Stream (embed.pstream.cfd)">🚀 P-Stream</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="cinesrc" type="button" title="CineSRC (cinesrc.st)">🎬 CineSRC</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidsrc" type="button" title="VidSrc (vidsrc.pm)">📺 VidSrc</button>
+                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-src="x8rrmovies" type="button" title="Milkbox Player (HLS)">🍿 Milkbox HLS</button>
                                 </div>
                                 <div style="display:flex; gap:6px; margin-top:6px;">
                                     <button class="milkbox-settings-action-btn milkbox-scramjet-switch-btn" type="button" style="justify-content:center; gap:6px; background:rgba(255,46,99,0.18); border-color:rgba(255,46,99,0.4); color:#ffb6d8; font-weight:700;">
@@ -1446,23 +1454,48 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
         });
     });
 
-    // Scramjet Mirror Source Selection
+    // Milkbox Streaming Server Selection via Scramjet
     controls.querySelectorAll('.milkbox-scramjet-source-pills .milkbox-settings-pill-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const src = btn.dataset.scramjetSrc || 'vidsrc';
+            const src = btn.dataset.scramjetSrc || 'x8rrmovies';
             try { localStorage.setItem('milkbox_scramjet_source', src); } catch {}
             window._scramjetActiveSource = src;
             controls.querySelectorAll('.milkbox-scramjet-source-pills .milkbox-settings-pill-btn').forEach(b => {
                 b.classList.toggle('is-active', b === btn);
             });
-            const label = src === 'vidsrc' ? '1. VidSrc' : src === 'cinesrc' ? '2. CineSRC' : '3. VidLink';
+            const SERVER_NAMES = {
+                vidstuck: 'VidStuck',
+                vidlink: 'VidLink',
+                vidnest: 'VidNest',
+                vixsrc: 'VixSrc',
+                vidfastvc: 'VidFast',
+                vidzee: 'VidZee',
+                pstream: 'P-Stream',
+                cinesrc: 'CineSRC',
+                vidsrc: 'VidSrc',
+                x8rrmovies: 'Milkbox Player (HLS)'
+            };
+            const label = SERVER_NAMES[src] || src;
             const toastFn = typeof window.toast === 'function' ? window.toast : (typeof toast === 'function' ? toast : null);
             if (toastFn) {
-                toastFn(`Scramjet Mirror: Set to ${label}`, 'info');
+                toastFn(`Milkbox: Switching to ${label}…`, 'info');
             }
-            if (typeof window.switchScramjetSource === 'function') {
+            if (settingsMenu) settingsMenu.hidden = true;
+
+            if (typeof window.switchScramjetSource === 'function' && document.getElementById('scramjetPlayerIframe')) {
                 window.switchScramjetSource(src);
+            } else if (typeof window.renderTmdbPlay === 'function') {
+                window.playerServer = src;
+                if (window.settings) window.settings.playerServer = src;
+                try { if (typeof window.saveData === 'function') window.saveData(); } catch {}
+                const srvSelect = document.getElementById('playerServerSelect') || document.getElementById('serverSelect');
+                if (srvSelect) srvSelect.value = src;
+                if (extraOptions && extraOptions.item && (extraOptions.mediaType === 'tv' || extraOptions.type === 'tv') && typeof window.playTmdbEpisode === 'function') {
+                    window.playTmdbEpisode(extraOptions.item, extraOptions.season || 1, extraOptions.episode || 1, src);
+                } else {
+                    window.renderTmdbPlay(src);
+                }
             }
         });
     });

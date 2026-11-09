@@ -4794,13 +4794,86 @@ window.addEventListener('message', function(ev) {
     }
 });
 
+const MILKBOX_SCRAMJET_SERVERS = [
+    { id: 'vidstuck', name: 'VidStuck', icon: '⚡' },
+    { id: 'vidlink', name: 'VidLink', icon: '💎' },
+    { id: 'vidnest', name: 'VidNest', icon: '🪺' },
+    { id: 'vixsrc', name: 'VixSrc', icon: '🦊' },
+    { id: 'vidfastvc', name: 'VidFast', icon: '⚡' },
+    { id: 'vidzee', name: 'VidZee', icon: '🪐' },
+    { id: 'pstream', name: 'P-Stream', icon: '🚀' },
+    { id: 'cinesrc', name: 'CineSRC', icon: '🎬' },
+    { id: 'vidsrc', name: 'VidSrc', icon: '📺' },
+    { id: 'x8rrmovies', name: 'Milkbox HLS', icon: '🍿' }
+];
+
 function getScramjetSourceUrl(sourceKey, mode = window._scramjetProxyMode) {
     const ctx = window._scramjetContext;
     if (!ctx) return '';
-    const directUrl = sourceKey === 'cinesrc' ? ctx.cinesrcDirect
-        : sourceKey === 'vidlink' ? ctx.vidlinkDirect
-        : ctx.vidsrcDirect;
-    if (mode === 'proxy') {
+    const tmdbId = ctx.tmdbId;
+    const type = ctx.type;
+    const se = ctx.season || 1;
+    const ep = ctx.episode || 1;
+    const accent = 'ff2e63';
+
+    let directUrl;
+    switch (sourceKey) {
+        case 'vidstuck':
+            directUrl = type === 'tv'
+                ? `https://vidstuck.cc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`
+                : `https://vidstuck.cc/embed/movie/${encodeURIComponent(tmdbId)}?color=${accent}&autoplay=true`;
+            break;
+        case 'vidlink':
+            directUrl = type === 'tv'
+                ? `https://vidlink.pro/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?primaryColor=${accent}&autoplay=true`
+                : `https://vidlink.pro/movie/${encodeURIComponent(tmdbId)}?primaryColor=${accent}&autoplay=true`;
+            break;
+        case 'vidnest':
+            directUrl = type === 'tv'
+                ? `https://vidnest.fun/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                : `https://vidnest.fun/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+        case 'vixsrc':
+            directUrl = type === 'tv'
+                ? `https://vixsrc.to/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                : `https://vixsrc.to/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+        case 'vidfastvc':
+        case 'vidfast':
+            directUrl = type === 'tv'
+                ? `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
+                : `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=${accent}`;
+            break;
+        case 'vidzee':
+            directUrl = type === 'tv'
+                ? `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                : `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+        case 'pstream':
+            directUrl = type === 'tv'
+                ? `https://embed.pstream.cfd/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                : `https://embed.pstream.cfd/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+        case 'cinesrc':
+            directUrl = type === 'tv'
+                ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+                : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+        case 'x8rrmovies':
+        case 'milkbox':
+            directUrl = type === 'tv'
+                ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
+                : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
+            break;
+        case 'vidsrc':
+        default:
+            directUrl = type === 'tv'
+                ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
+                : `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`;
+            break;
+    }
+
+    if (mode === 'proxy' && !directUrl.startsWith('/milkbox-embed')) {
         return `/api/scramjet/embed?url=${encodeURIComponent(directUrl)}`;
     }
     return directUrl;
@@ -4841,9 +4914,6 @@ window.switchScramjetSource = function(targetSource) {
     const ctx = window._scramjetContext;
     if (!ctx) return;
     const ifr = document.getElementById('scramjetPlayerIframe');
-    const btnVidsrc = document.getElementById('scramjetBtnVidsrc');
-    const btnCinesrc = document.getElementById('scramjetBtnCinesrc');
-    const btnVidlink = document.getElementById('scramjetBtnVidlink');
     const badge = document.getElementById('scramjetActiveBadge');
 
     window._scramjetActiveSource = targetSource;
@@ -4857,65 +4927,43 @@ window.switchScramjetSource = function(targetSource) {
         }
     }
 
-    const buttons = [
-        { key: 'vidsrc', el: btnVidsrc },
-        { key: 'cinesrc', el: btnCinesrc },
-        { key: 'vidlink', el: btnVidlink }
-    ];
-
-    buttons.forEach(({ key, el }) => {
-        if (!el) return;
-        const isActive = key === targetSource;
+    document.querySelectorAll('.scramjet-srv-btn').forEach(el => {
+        const isActive = el.dataset.srv === targetSource;
         el.style.background = isActive ? '#ff2e63' : 'rgba(255,255,255,0.08)';
         el.style.borderColor = isActive ? '#ff2e63' : 'rgba(255,255,255,0.2)';
         el.style.color = isActive ? '#fff' : '#d0d0d8';
     });
 
+    const srvObj = MILKBOX_SCRAMJET_SERVERS.find(s => s.id === targetSource) || { name: targetSource, icon: '🍿' };
     if (badge) {
-        badge.textContent = targetSource === 'vidsrc' ? '1. VidSrc'
-            : targetSource === 'cinesrc' ? '2. CineSRC'
-            : '3. VidLink';
+        badge.textContent = `${srvObj.icon} ${srvObj.name}`;
     }
 
-    toast(`Scramjet: Switched to ${targetSource === 'vidsrc' ? '1. VidSrc' : targetSource === 'cinesrc' ? '2. CineSRC' : '3. VidLink'}`, 'info');
+    toast(`Scramjet: Switched to ${srvObj.icon} ${srvObj.name}`, 'info');
 };
 
 function scramjetIframe(tmdbId, type, season, episode) {
     const se = season || 1;
     const ep = episode || 1;
 
-    const vidsrcDirect = type === 'tv'
-        ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
-        : `https://vidsrc.pm/embed/movie/${encodeURIComponent(tmdbId)}`;
-
-    const cinesrcDirect = type === 'tv'
-        ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
-        : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
-
-    const vidlinkDirect = type === 'tv'
-        ? `https://vidlink.pro/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?primaryColor=ff2e63&autoplay=true`
-        : `https://vidlink.pro/movie/${encodeURIComponent(tmdbId)}?primaryColor=ff2e63&autoplay=true`;
-
     window._scramjetContext = {
         tmdbId,
         type,
         season: se,
         episode: ep,
-        vidsrcDirect,
-        cinesrcDirect,
-        vidlinkDirect,
-        active: window._scramjetActiveSource || 'vidsrc',
+        active: window._scramjetActiveSource || 'vidstuck',
         wisp: SCRAMJET_WISP_URL
     };
 
-    const initialSource = window._scramjetActiveSource || 'vidsrc';
+    const initialSource = window._scramjetActiveSource || 'vidstuck';
     const initialUrl = getScramjetSourceUrl(initialSource, window._scramjetProxyMode);
+    const initialSrv = MILKBOX_SCRAMJET_SERVERS.find(s => s.id === initialSource) || { name: initialSource, icon: '🍿' };
 
     const isProxy = window._scramjetProxyMode === 'proxy';
 
     return `
         <div class="scramjet-player-wrapper" style="position:relative;width:100%;height:100%;display:flex;flex-direction:column;background:#000;">
-            <div class="scramjet-hud-bar" style="position:absolute;top:10px;left:10px;right:10px;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(12,12,18,0.92);backdrop-filter:blur(10px);border:1px solid rgba(255,46,99,0.35);border-radius:10px;pointer-events:auto;gap:8px;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,0.6);">
+            <div class="scramjet-hud-bar" style="position:absolute;top:10px;left:10px;right:10px;z-index:40;display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:rgba(12,12,18,0.92);backdrop-filter:blur(10px);border:1px solid rgba(255,46,99,0.35);border-radius:10px;pointer-events:auto;gap:8px;font-family:inherit;box-shadow:0 8px 24px rgba(0,0,0,0.6);flex-wrap:wrap;">
                 <div style="display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;">
                     <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#ff5e82;text-transform:uppercase;letter-spacing:0.5px;background:rgba(255,46,99,0.18);padding:3px 8px;border-radius:6px;border:1px solid rgba(255,46,99,0.35);">
                         ⚡ Scramjet Proxy
@@ -4924,22 +4972,18 @@ function scramjetIframe(tmdbId, type, season, episode) {
                         ${isProxy ? '⚡ Proxied (Filters Bypassed)' : '🌐 Direct Embed'}
                     </span>
                     <span id="scramjetActiveBadge" style="font-size:10px;padding:2px 6px;border-radius:4px;background:rgba(255,255,255,0.06);color:#ffb6d8;font-weight:600;">
-                        ${initialSource === 'vidsrc' ? '1. VidSrc' : initialSource === 'cinesrc' ? '2. CineSRC' : '3. VidLink'}
+                        ${initialSrv.icon} ${initialSrv.name}
                     </span>
                 </div>
-                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;flex-wrap:wrap;">
                     <button type="button" id="scramjetModeBtn" onclick="window.toggleScramjetProxyMode()" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${isProxy ? '#10b981' : 'rgba(255,255,255,0.25)'};background:${isProxy ? '#059669' : 'rgba(255,255,255,0.12)'};color:#fff;cursor:pointer;transition:all 0.15s;" title="Toggle between Server Proxy and Direct embed">
                         ${isProxy ? '⚡ Proxy: ON' : '🌐 Direct'}
                     </button>
-                    <button type="button" id="scramjetBtnVidsrc" onclick="window.switchScramjetSource('vidsrc')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${initialSource === 'vidsrc' ? '#ff2e63' : 'rgba(255,255,255,0.2)'};background:${initialSource === 'vidsrc' ? '#ff2e63' : 'rgba(255,255,255,0.08)'};color:${initialSource === 'vidsrc' ? '#fff' : '#d0d0d8'};cursor:pointer;transition:all 0.15s;" title="1. VidSrc">
-                        1. VidSrc
-                    </button>
-                    <button type="button" id="scramjetBtnCinesrc" onclick="window.switchScramjetSource('cinesrc')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${initialSource === 'cinesrc' ? '#ff2e63' : 'rgba(255,255,255,0.2)'};background:${initialSource === 'cinesrc' ? '#ff2e63' : 'rgba(255,255,255,0.08)'};color:${initialSource === 'cinesrc' ? '#fff' : '#d0d0d8'};cursor:pointer;transition:all 0.15s;" title="2. CineSRC">
-                        2. CineSRC
-                    </button>
-                    <button type="button" id="scramjetBtnVidlink" onclick="window.switchScramjetSource('vidlink')" style="padding:4px 9px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${initialSource === 'vidlink' ? '#ff2e63' : 'rgba(255,255,255,0.2)'};background:${initialSource === 'vidlink' ? '#ff2e63' : 'rgba(255,255,255,0.08)'};color:${initialSource === 'vidlink' ? '#fff' : '#d0d0d8'};cursor:pointer;transition:all 0.15s;" title="3. VidLink">
-                        3. VidLink
-                    </button>
+                    ${MILKBOX_SCRAMJET_SERVERS.map(s => `
+                        <button type="button" class="scramjet-srv-btn" data-srv="${s.id}" onclick="window.switchScramjetSource('${s.id}')" style="padding:4px 8px;font-size:11px;font-weight:700;border-radius:6px;border:1px solid ${initialSource === s.id ? '#ff2e63' : 'rgba(255,255,255,0.2)'};background:${initialSource === s.id ? '#ff2e63' : 'rgba(255,255,255,0.08)'};color:${initialSource === s.id ? '#fff' : '#d0d0d8'};cursor:pointer;transition:all 0.15s;" title="${s.name}">
+                            ${s.icon} ${s.name}
+                        </button>
+                    `).join('')}
                 </div>
             </div>
             <iframe id="scramjetPlayerIframe" src="${escapeHtml(initialUrl)}" width="100%" height="100%" style="flex:1;border:0;width:100%;height:100%;" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
@@ -5998,33 +6042,23 @@ function tryAutoFallback(server) {
 
     
     if (server === 'scramjet' || playerServer === 'scramjet') {
-        if (window._scramjetActiveSource === 'vidsrc') {
-            toast('Scramjet Proxy: VidSrc timed out — switching to 2. CineSRC (Proxied)...');
+        const curIdx = MILKBOX_SCRAMJET_SERVERS.findIndex(s => s.id === window._scramjetActiveSource);
+        const nextIdx = (curIdx >= 0 ? curIdx : 0) + 1;
+        if (nextIdx < MILKBOX_SCRAMJET_SERVERS.length) {
+            const nextSrv = MILKBOX_SCRAMJET_SERVERS[nextIdx];
+            toast(`Scramjet Proxy: Switching to alternate ${nextSrv.icon} ${nextSrv.name}…`, 'info');
             if (typeof window.switchScramjetSource === 'function') {
-                window.switchScramjetSource('cinesrc');
+                window.switchScramjetSource(nextSrv.id);
             }
             fallbackLoaded = false;
             fallbackTimer = setTimeout(() => {
-                if (window._scramjetActiveSource === 'cinesrc' && !fallbackLoaded) {
+                if (window._scramjetActiveSource === nextSrv.id && !fallbackLoaded) {
                     tryAutoFallback('scramjet');
                 }
-            }, 20000);
-            return;
-        } else if (window._scramjetActiveSource === 'cinesrc') {
-            toast('Scramjet Proxy: CineSRC timed out — switching to 3. VidLink (Proxied)...');
-            if (typeof window.switchScramjetSource === 'function') {
-                window.switchScramjetSource('vidlink');
-            }
-            fallbackLoaded = false;
-            fallbackTimer = setTimeout(() => {
-                if (window._scramjetActiveSource === 'vidlink' && !fallbackLoaded) {
-                    tryAutoFallback('scramjet');
-                }
-            }, 20000);
+            }, 18000);
             return;
         } else {
-            toast('Scramjet Proxy: All proxy sources attempted — trying next streaming server...');
-            
+            toast('Scramjet Proxy: All Milkbox proxy sources attempted — trying next streaming server...');
         }
     }
 

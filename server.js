@@ -1420,15 +1420,33 @@ async function handleScramjetProxy(req, res, requestPath, query) {
 
             const idForMirrors = mediaId || '550';
             const mirrors = {
-                vidsrc: mediaType === 'tv'
-                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
-                    : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
-                cinesrc: mediaType === 'tv'
-                    ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
-                    : `https://cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                vidstuck: mediaType === 'tv'
+                    ? `https://vidstuck.cc/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=ff2e63&autoplay=true`
+                    : `https://vidstuck.cc/embed/movie/${encodeURIComponent(idForMirrors)}?color=ff2e63&autoplay=true`,
                 vidlink: mediaType === 'tv'
                     ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?primaryColor=ff2e63&autoplay=true`
                     : `https://vidlink.pro/movie/${encodeURIComponent(idForMirrors)}?primaryColor=ff2e63&autoplay=true`,
+                vidnest: mediaType === 'tv'
+                    ? `https://vidnest.fun/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://vidnest.fun/movie/${encodeURIComponent(idForMirrors)}`,
+                vixsrc: mediaType === 'tv'
+                    ? `https://vixsrc.to/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://vixsrc.to/movie/${encodeURIComponent(idForMirrors)}`,
+                vidfastvc: mediaType === 'tv'
+                    ? `https://vidfast.vc/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?autoPlay=true&nextButton=true&theme=ff2e63`
+                    : `https://vidfast.vc/movie/${encodeURIComponent(idForMirrors)}?autoPlay=true&theme=ff2e63`,
+                vidzee: mediaType === 'tv'
+                    ? `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                pstream: mediaType === 'tv'
+                    ? `https://embed.pstream.cfd/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://embed.pstream.cfd/movie/${encodeURIComponent(idForMirrors)}`,
+                cinesrc: mediaType === 'tv'
+                    ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
+                    : `https://cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
+                vidsrc: mediaType === 'tv'
+                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 hls: mediaType === 'tv'
                     ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${season}&episode=${episode}&server=x8rrmovies&autoplay=true`
                     : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(idForMirrors)}&server=x8rrmovies&autoplay=true`
@@ -1575,11 +1593,17 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 referrerpolicy="no-referrer"></iframe>
 
         <div class="scramjet-quick-bar" id="scramjetQuickBar">
-            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Proxy:</span>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidsrc')">1. VidSrc</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('cinesrc')">2. CineSRC</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidlink')">3. VidLink</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('hls')">🍿 HLS</button>
+            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Milkbox:</span>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidstuck')">⚡ VidStuck</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidlink')">💎 VidLink</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidnest')">🪺 VidNest</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vixsrc')">🦊 VixSrc</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidfastvc')">⚡ VidFast</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidzee')">🪐 VidZee</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('pstream')">🚀 P-Stream</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('cinesrc')">🎬 CineSRC</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidsrc')">📺 VidSrc</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('hls')">🍿 Milkbox HLS</button>
         </div>
     </div>
 
