@@ -1671,3 +1671,64 @@ html, body {
 .mb-style-save-btn:hover {
     background: var(--mb-pink-hover, #ff6b9d);
 }
+
+/* Anime Subbed / Dubbed Audio Selector Toggle (Embed) */
+.mb-anime-audio-toggle {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+    box-sizing: border-box;
+    height: 32px;
+    user-select: none;
+    transition: all 0.2s ease;
+}
+
+.mb-anime-audio-toggle:hover {
+    border-color: rgba(255, 46, 99, 0.4);
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.2);
+}
+
+.mb-anime-label {
+    font-size: 9px;
+    font-weight: 800;
+    color: var(--mb-pink-light, #ffb6d8);
+    letter-spacing: 0.6px;
+    padding: 0 4px 0 6px;
+    text-transform: uppercase;
+}
+
+.mb-anime-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    outline: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    padding: 0 9px;
+    height: 26px;
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.68);
+    background: transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
+}
+
+.mb-anime-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.mb-anime-btn.is-active {
+    background: linear-gradient(135deg, #ff2e63 0%, #ff6b9d 100%);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.45);
+}
+
