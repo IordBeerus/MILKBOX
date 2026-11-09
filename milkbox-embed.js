@@ -25,7 +25,9 @@
         currentTime: 0,
         idleTimer: null,
         upNextTimer: null,
-        upNextSeconds: 5
+        upNextSeconds: 5,
+        isAnime: false,
+        animeLang: (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_anime_lang')) || 'sub'
     };
 
     
@@ -67,6 +69,9 @@
         audioBoostLabel: document.getElementById('mbAudioBoostLabel'),
         timeCur: document.getElementById('mbTimeCur'),
         timeDur: document.getElementById('mbTimeDur'),
+        animeAudioToggle: document.getElementById('mbAnimeAudioToggle'),
+        audioSubBtn: document.getElementById('mbAudioSubBtn'),
+        audioDubBtn: document.getElementById('mbAudioDubBtn'),
         epDrawerBtn: document.getElementById('mbEpDrawerBtn'),
         serverMenuBtn: document.getElementById('mbServerMenuBtn'),
         serverMenu: document.getElementById('mbServerMenu'),
@@ -171,51 +176,52 @@
         const qServer = search.get('server');
         if (qServer) state.currentServer = qServer;
 
-        
+        const qLang = search.get('animeLang') || search.get('lang') || search.get('audio');
+        if (qLang) {
+            state.animeLang = qLang.toLowerCase() === 'dub' ? 'dub' : 'sub';
+        }
+
         const movieMatch = path.match(/^\/movie\/([0-9]+)$/i);
         if (movieMatch) {
             state.type = 'movie';
             state.tmdbId = movieMatch[1];
-            return;
-        }
-
-        
-        const tvMatch = path.match(/^\/tv\/([0-9]+)\/([0-9]+)\/([0-9]+)$/i);
-        if (tvMatch) {
-            state.type = 'tv';
-            state.tmdbId = tvMatch[1];
-            state.season = parseInt(tvMatch[2], 10) || 1;
-            state.episode = parseInt(tvMatch[3], 10) || 1;
-            return;
-        }
-
-        
-        const animeMatch = path.match(/^\/anime\/([0-9]+)\/([0-9]+)$/i);
-        if (animeMatch) {
-            state.type = 'anime';
-            state.anilistId = animeMatch[1];
-            state.episode = parseInt(animeMatch[2], 10) || 1;
-            return;
-        }
-
-        
-        const qTmdb = search.get('tmdb') || search.get('id');
-        const qType = (search.get('type') || (search.has('season') || search.has('s') ? 'tv' : 'movie')).toLowerCase();
-        const qAni = search.get('anilist') || search.get('ani') || (qType === 'anime' ? qTmdb : null);
-
-        if (qAni) {
-            state.type = 'anime';
-            state.anilistId = qAni;
-            state.episode = parseInt(search.get('ep') || search.get('episode') || search.get('e') || '1', 10);
-        } else if (qTmdb) {
-            state.type = qType === 'tv' ? 'tv' : 'movie';
-            state.tmdbId = qTmdb;
-            state.season = parseInt(search.get('s') || search.get('season') || '1', 10);
-            state.episode = parseInt(search.get('e') || search.get('episode') || '1', 10);
         } else {
-            
-            state.type = 'movie';
-            state.tmdbId = '550';
+            const tvMatch = path.match(/^\/tv\/([0-9]+)\/([0-9]+)\/([0-9]+)$/i);
+            if (tvMatch) {
+                state.type = 'tv';
+                state.tmdbId = tvMatch[1];
+                state.season = parseInt(tvMatch[2], 10) || 1;
+                state.episode = parseInt(tvMatch[3], 10) || 1;
+            } else {
+                const animeMatch = path.match(/^\/anime\/([0-9]+)\/([0-9]+)$/i);
+                if (animeMatch) {
+                    state.type = 'anime';
+                    state.anilistId = animeMatch[1];
+                    state.episode = parseInt(animeMatch[2], 10) || 1;
+                } else {
+                    const qTmdb = search.get('tmdb') || search.get('id');
+                    const qType = (search.get('type') || (search.has('season') || search.has('s') ? 'tv' : 'movie')).toLowerCase();
+                    const qAni = search.get('anilist') || search.get('ani') || (qType === 'anime' ? qTmdb : null);
+
+                    if (qAni) {
+                        state.type = 'anime';
+                        state.anilistId = qAni;
+                        state.episode = parseInt(search.get('ep') || search.get('episode') || search.get('e') || '1', 10);
+                    } else if (qTmdb) {
+                        state.type = qType === 'tv' ? 'tv' : 'movie';
+                        state.tmdbId = qTmdb;
+                        state.season = parseInt(search.get('s') || search.get('season') || '1', 10);
+                        state.episode = parseInt(search.get('e') || search.get('episode') || '1', 10);
+                    } else {
+                        state.type = 'movie';
+                        state.tmdbId = '550';
+                    }
+                }
+            }
+        }
+
+        if (search.get('anime') === 'true' || search.get('isAnime') === 'true' || state.type === 'anime') {
+            state.isAnime = true;
         }
     }
 
@@ -973,6 +979,129 @@
         renderSearchResults();
     }
 
+    function applyAnimeAudioLang(desiredLang, notify = false) {
+        const mode = desiredLang === 'dub' ? 'dub' : 'sub';
+        state.animeLang = mode;
+        try { localStorage.setItem('milkbox_anime_lang', mode); } catch {}
+
+        if (elements.audioSubBtn) elements.audioSubBtn.classList.toggle('is-active', mode === 'sub');
+        if (elements.audioDubBtn) elements.audioDubBtn.classList.toggle('is-active', mode === 'dub');
+
+        let audioTrackFound = false;
+
+        // 1. Try Hls.js audio tracks
+        if (hlsInstance && Array.isArray(hlsInstance.audioTracks) && hlsInstance.audioTracks.length > 0) {
+            const hlsTracks = hlsInstance.audioTracks;
+            let targetIdx = -1;
+            if (mode === 'sub') {
+                targetIdx = hlsTracks.findIndex(t => {
+                    const l = String(t.lang || '').toLowerCase();
+                    const n = String(t.name || '').toLowerCase();
+                    return l === 'ja' || l === 'jpn' || n.includes('japan') || n.includes('sub');
+                });
+                if (targetIdx < 0 && hlsTracks.length > 1) {
+                    targetIdx = hlsTracks.findIndex(t => {
+                        const l = String(t.lang || '').toLowerCase();
+                        const n = String(t.name || '').toLowerCase();
+                        return l !== 'en' && l !== 'eng' && !n.includes('english') && !n.includes('dub');
+                    });
+                }
+            } else {
+                targetIdx = hlsTracks.findIndex(t => {
+                    const l = String(t.lang || '').toLowerCase();
+                    const n = String(t.name || '').toLowerCase();
+                    return l === 'en' || l === 'eng' || n.includes('english') || n.includes('dub');
+                });
+            }
+
+            if (targetIdx >= 0) {
+                hlsInstance.audioTrack = targetIdx;
+                audioTrackFound = true;
+            }
+        }
+
+        // 2. Try native HTML5 audio tracks
+        if (!audioTrackFound && elements.nativeVideo && elements.nativeVideo.audioTracks && elements.nativeVideo.audioTracks.length > 0) {
+            const nTracks = Array.from(elements.nativeVideo.audioTracks);
+            let targetIdx = -1;
+            if (mode === 'sub') {
+                targetIdx = nTracks.findIndex(t => {
+                    const l = String(t.language || '').toLowerCase();
+                    const lab = String(t.label || '').toLowerCase();
+                    return l === 'ja' || l === 'jpn' || lab.includes('japan');
+                });
+            } else {
+                targetIdx = nTracks.findIndex(t => {
+                    const l = String(t.language || '').toLowerCase();
+                    const lab = String(t.label || '').toLowerCase();
+                    return l === 'en' || l === 'eng' || lab.includes('english') || lab.includes('dub');
+                });
+            }
+            if (targetIdx >= 0) {
+                nTracks.forEach((t, i) => { t.enabled = (i === targetIdx); });
+                audioTrackFound = true;
+            }
+        }
+
+        // 3. Subtitles coordination:
+        // Subbed -> enable English subtitle
+        // Dubbed -> turn off subtitles
+        if (mode === 'sub') {
+            if (state.subtitles && state.subtitles.length > 0) {
+                const engIdx = state.subtitles.findIndex(s => {
+                    const lbl = (s.label || s.language || '').toLowerCase();
+                    return lbl.includes('english') || lbl.includes('en') || lbl.startsWith('en');
+                });
+                const chosenIdx = engIdx >= 0 ? engIdx : 0;
+                state.activeSubtitleIndex = chosenIdx;
+                const textTracks = Array.from(elements.nativeVideo?.textTracks || []);
+                textTracks.forEach((track, index) => {
+                    if (['subtitles', 'captions'].includes(track.kind)) {
+                        track.mode = index === chosenIdx ? 'showing' : 'disabled';
+                    }
+                });
+                if (typeof loadCuesForSub === 'function') {
+                    loadCuesForSub(state.subtitles[chosenIdx]);
+                }
+                renderSubtitlesMenu();
+                renderSearchResults();
+            }
+        } else {
+            state.activeSubtitleIndex = -1;
+            const textTracks = Array.from(elements.nativeVideo?.textTracks || []);
+            textTracks.forEach(track => {
+                if (['subtitles', 'captions'].includes(track.kind)) {
+                    track.mode = 'disabled';
+                }
+            });
+            if (typeof loadCuesForSub === 'function') {
+                loadCuesForSub(null);
+            }
+            renderSubtitlesMenu();
+            renderSearchResults();
+        }
+
+        // 4. Server stream switching if multiple x8rr mirrors exist and current stream doesn't have the audio
+        if (!audioTrackFound && state.x8rrStreams && state.x8rrStreams.length > 1 && state.currentServer === 'x8rrmovies') {
+            const srvs = state.x8rrStreams;
+            let targetSrvIdx = -1;
+            if (mode === 'dub') {
+                targetSrvIdx = srvs.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('(english)') || lbl.includes('english') || lbl.includes('dub');
+                });
+            } else {
+                targetSrvIdx = srvs.findIndex(s => {
+                    const lbl = (s.serverLabel || s.providerName || '').toLowerCase();
+                    return lbl.includes('sub') || lbl.includes('japanese') || (!lbl.includes('english') && !lbl.includes('(english)'));
+                });
+            }
+            if (targetSrvIdx >= 0 && targetSrvIdx !== state.activeX8rrIndex) {
+                switchX8rrMirror(targetSrvIdx);
+            }
+        }
+    }
+
     function switchX8rrMirror(index) {
         if (!state.x8rrStreams || !state.x8rrStreams[index]) return;
         state.activeX8rrIndex = index;
@@ -995,6 +1124,9 @@
                 hlsInstance.off(window.Hls.Events.MANIFEST_PARSED, onParsed);
                 hideLoader();
                 renderQualityMenu();
+                if (state.isAnime) {
+                    applyAnimeAudioLang(state.animeLang, false);
+                }
                 if (resumePos > 0) {
                     try { elements.nativeVideo.currentTime = resumePos; } catch {}
                 }
@@ -1087,7 +1219,15 @@
                     hlsInstance.on(window.Hls.Events.MANIFEST_PARSED, () => {
                         hideLoader();
                         renderQualityMenu();
+                        if (state.isAnime) {
+                            applyAnimeAudioLang(state.animeLang, false);
+                        }
                         elements.nativeVideo.play().catch(() => {});
+                    });
+                    hlsInstance.on(window.Hls.Events.AUDIO_TRACKS_UPDATED, () => {
+                        if (state.isAnime) {
+                            applyAnimeAudioLang(state.animeLang, false);
+                        }
                     });
                     hlsInstance.on(window.Hls.Events.LEVEL_SWITCHED, () => {
                         renderQualityMenu();
@@ -1195,6 +1335,12 @@
                     state.title = data.title || data.original_title || `Movie (${state.tmdbId})`;
                     elements.mediaTitle.textContent = state.title;
                     document.title = `${state.title} — Milkbox Player`;
+
+                    const isAnimeGenre = Array.isArray(data.genres) && data.genres.some(g => g.id === 16);
+                    const isJapan = data.original_language === 'ja' || (Array.isArray(data.production_countries) && data.production_countries.some(c => c.iso_3166_1 === 'JP'));
+                    if (isAnimeGenre && isJapan) {
+                        state.isAnime = true;
+                    }
                 }
             } else if (state.type === 'tv' && state.tmdbId) {
                 elements.mediaBadge.textContent = `S${state.season} : E${state.episode}`;
@@ -1210,7 +1356,12 @@
                     elements.mediaTitle.textContent = `${state.title} · S${state.season}:E${state.episode}`;
                     document.title = `${state.title} S${state.season}:E${state.episode} — Milkbox Player`;
 
-                    
+                    const isAnimeGenre = Array.isArray(data.genres) && data.genres.some(g => g.id === 16);
+                    const isJapan = data.original_language === 'ja' || (Array.isArray(data.origin_country) && data.origin_country.includes('JP')) || (Array.isArray(data.production_countries) && data.production_countries.some(c => c.iso_3166_1 === 'JP'));
+                    if (isAnimeGenre && isJapan) {
+                        state.isAnime = true;
+                    }
+
                     if (Array.isArray(data.seasons)) {
                         elements.seasonSelect.innerHTML = data.seasons
                             .filter(s => s.season_number > 0)
@@ -1218,10 +1369,10 @@
                             .join('');
                     }
 
-                    
                     fetchSeasonEpisodes(state.season);
                 }
             } else if (state.type === 'anime' && state.anilistId) {
+                state.isAnime = true;
                 elements.mediaBadge.textContent = `Episode ${state.episode}`;
                 elements.prevEpBtn.style.display = state.episode > 1 ? 'flex' : 'none';
                 elements.nextEpBtn.style.display = 'flex';
@@ -1238,6 +1389,11 @@
                     const count = data.episodes || 24;
                     renderAnimeEpisodes(count);
                 }
+            }
+
+            if (state.isAnime && elements.animeAudioToggle) {
+                elements.animeAudioToggle.style.display = 'inline-flex';
+                applyAnimeAudioLang(state.animeLang, false);
             }
         } catch (e) {
             console.warn('[Milkbox Player] Metadata fetch notice:', e);
@@ -1434,7 +1590,14 @@
                     }
                     state.currentTime = data.time;
                     elements.timeCur.textContent = formatTime(state.currentTime);
+                } else if (data.action === 'setAnimeLang' && data.lang) {
+                    applyAnimeAudioLang(data.lang, false);
                 }
+                return;
+            }
+
+            if (data && (data.type === 'mb:setAnimeLang' || data.type === 'setAnimeLang') && data.lang) {
+                applyAnimeAudioLang(data.lang, false);
                 return;
             }
 
@@ -1506,6 +1669,20 @@
     }
 
     
+    if (elements.audioSubBtn) {
+        elements.audioSubBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyAnimeAudioLang('sub', true);
+        });
+    }
+
+    if (elements.audioDubBtn) {
+        elements.audioDubBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            applyAnimeAudioLang('dub', true);
+        });
+    }
+
     elements.prevEpBtn.addEventListener('click', () => {
         if (state.episode > 1) goToEpisode(state.season, state.episode - 1);
     });
