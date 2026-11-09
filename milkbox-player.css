@@ -901,7 +901,10 @@
     position: absolute;
     bottom: calc(100% + 10px);
     right: 0;
-    width: 250px;
+    width: 275px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: rgba(14, 11, 20, 0.96);
     border: 1px solid rgba(255, 46, 99, 0.35);
     border-radius: 12px;
@@ -914,6 +917,24 @@
     flex-direction: column;
     gap: 12px;
     animation: milkboxMenuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.milkbox-player-settings-menu::-webkit-scrollbar {
+    width: 5px;
+}
+.milkbox-player-settings-menu::-webkit-scrollbar-track {
+    background: transparent;
+}
+.milkbox-player-settings-menu::-webkit-scrollbar-thumb {
+    background: rgba(255, 46, 99, 0.3);
+    border-radius: 4px;
+}
+
+.milkbox-scramjet-section {
+    padding: 8px 10px;
+    background: rgba(255, 46, 99, 0.05);
+    border: 1px solid rgba(255, 46, 99, 0.2);
+    border-radius: 8px;
 }
 
 .milkbox-player-settings-menu[hidden] {
