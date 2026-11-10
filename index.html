@@ -1307,28 +1307,9 @@
                     <h3 class="player-header-title" id="playerHeaderTitle">Loading...</h3>
                 </div>
                 <div class="server-selector" id="serverSelector">
-                    <span class="server-selector-label">
-                        <span class="material-symbols-outlined server-selector-label-icon">tune</span>
-                        <span>Playback:</span>
-                    </span>
-                    <div class="server-select-wrap milkbox-custom-dropdown" id="serverSelectDropdown">
-                        <button class="milkbox-custom-dropdown-trigger server-dropdown-trigger" id="serverDropdownTrigger" type="button" aria-haspopup="listbox" aria-expanded="false" title="Select Playback Server">
-                            <span class="material-symbols-outlined milkbox-custom-dropdown-icon">dns</span>
-                            <span class="milkbox-custom-dropdown-val" id="serverDropdownVal">Milkbox Player (Direct Stream / Ad-Free HLS)</span>
-                            <span class="material-symbols-outlined milkbox-custom-dropdown-arrow">expand_more</span>
-                        </button>
-                        <div class="milkbox-custom-dropdown-menu server-custom-dropdown-menu" id="serverDropdownMenu" hidden>
-                            <div class="milkbox-custom-dropdown-header">
-                                <span class="material-symbols-outlined" style="font-size:14px; color:#ff6b8b;">stream</span>
-                                <span>Playback Server</span>
-                            </div>
-                            <div class="milkbox-custom-dropdown-search-wrap">
-                                <span class="material-symbols-outlined" style="font-size:14px; opacity:0.6;">search</span>
-                                <input class="milkbox-custom-dropdown-search" id="serverDropdownSearch" type="search" placeholder="Search servers…" autocomplete="off" spellcheck="false">
-                            </div>
-                            <div class="milkbox-custom-dropdown-list" id="serverDropdownList" role="listbox"></div>
-                        </div>
-                        <select id="serverSelect" class="server-dropdown" hidden tabindex="-1" aria-hidden="true">
+                    <span class="server-selector-label">Playback:</span>
+                    <div class="server-select-wrap">
+                        <select id="serverSelect" class="server-dropdown">
                             <option value="auto">Auto (Smart Fallback)</option>
                             <option value="scramjet">Scramjet (Proxy: VidSrc → CineSRC → VidLink)</option>
                             <option value="x8rrmovies">Milkbox Player (Direct Stream / Ad-Free HLS)</option>
