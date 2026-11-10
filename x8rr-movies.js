@@ -1822,7 +1822,13 @@ async function handleX8rrSubtitlesApi(req, res, requestPath, query) {
     }
 
     try {
-        const subtitles = await fetchSubtitles(type, tmdbId, season, episode, imdbId);
+        let subtitles = await fetchSubtitles(type, tmdbId, season, episode, imdbId);
+        const sourceFilter = (query.get('source') || query.get('provider') || '').toLowerCase().trim();
+        if (sourceFilter === 'wyzie') {
+            subtitles = subtitles.filter(s => (s.source || '').toLowerCase() === 'wyzie');
+        } else if (sourceFilter === 'opensubtitles' || sourceFilter === 'open') {
+            subtitles = subtitles.filter(s => (s.source || '').toLowerCase() === 'opensubtitles');
+        }
         res.writeHead(200, {
             'Content-Type': 'application/json; charset=utf-8',
             'Cache-Control': 'public, max-age=600'
@@ -1927,6 +1933,8 @@ module.exports = {
     isAlive,
     checkStreams,
     fetchSubtitles,
+    fetchWyzieSubtitles,
+    fetchOpenSubtitles,
     srtToVtt,
     handleX8rrProxy,
     handleX8rrVttProxy,
