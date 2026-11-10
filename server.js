@@ -1386,8 +1386,14 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             return true;
         }
 
+        if (targetUrl.startsWith('/milkbox-embed') || targetUrl.includes('server=x8rrmovies')) {
+            res.writeHead(302, { 'Location': targetUrl });
+            res.end();
+            return true;
+        }
+
         try {
-            const parsed = new URL(targetUrl);
+            const parsed = new URL(targetUrl, 'http://localhost:3000');
             if (!['http:', 'https:'].includes(parsed.protocol)) {
                 throw new Error('Invalid URL protocol');
             }
@@ -1417,12 +1423,6 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             if (parsed.searchParams.has('e')) episode = parseInt(parsed.searchParams.get('e'), 10) || episode;
             if (parsed.searchParams.has('episode')) episode = parseInt(parsed.searchParams.get('episode'), 10) || episode;
             if (parsed.searchParams.has('id') && !mediaId) mediaId = parsed.searchParams.get('id');
-
-            if (targetUrl.startsWith('/milkbox-embed') || targetUrl.includes('server=x8rrmovies')) {
-                res.writeHead(302, { 'Location': targetUrl });
-                res.end();
-                return true;
-            }
 
             const idForMirrors = mediaId || '550';
             const mirrors = {
