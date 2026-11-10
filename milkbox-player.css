@@ -1998,4 +1998,23 @@
     margin-top: 4px;
 }
 
+/* Mobile Viewport Fullscreen for Milkbox Player */
+.milkbox-player.milkbox-mobile-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    width: 100dvw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 9999999 !important;
+    border-radius: 0 !important;
+    background: #000 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+}
+
 

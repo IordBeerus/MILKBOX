@@ -4253,27 +4253,21 @@ body.player-active .musify-bottom-player {
 .player-fullscreen-btn {
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    height: 34px;
-    padding: 0 12px;
-    border-radius: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    color: #ffffff;
+    gap: 6px;
+    padding: 7px 13px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff;
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    box-sizing: border-box;
-    flex-shrink: 0;
 }
 .player-fullscreen-btn:hover {
-    background: rgba(255, 46, 99, 0.16);
-    border-color: rgba(255, 46, 99, 0.45);
-    color: #ffffff;
-    box-shadow: 0 0 14px rgba(255, 46, 99, 0.3);
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.3);
     transform: translateY(-1px);
 }
 .player-placeholder {
@@ -4292,305 +4286,89 @@ body.player-active .musify-bottom-player {
 .server-selector {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 12px;
-    background: rgba(14, 11, 20, 0.85);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    padding: 7px 10px;
-    border-radius: 12px;
-    border: 1px solid rgba(255, 46, 99, 0.24);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    position: relative;
-    z-index: 50;
-    flex-wrap: wrap;
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
+    gap: 12px;
+    margin-bottom: 14px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.06), 0 0 0 1px rgba(255,255,255,0.02);
 }
 .server-selector:hover {
-    border-color: rgba(255, 46, 99, 0.45);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 46, 99, 0.15);
+    border-color: rgba(255,182,216,0.14);
+    background: linear-gradient(135deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+    box-shadow: 0 8px 28px rgba(0,0,0,0.26), inset 0 1px 0 rgba(255,255,255,0.07);
 }
 .server-selector-label {
     font-size: 11px;
     font-weight: 800;
-    color: #ff85a2;
-    letter-spacing: 0.8px;
+    color: #c9c9d0;
+    letter-spacing: 0.7px;
     text-transform: uppercase;
     white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 0 4px;
-    user-select: none;
+    opacity: 0.95;
 }
-.server-selector-label .server-selector-label-icon {
-    font-size: 15px;
-    color: #ff2e63;
-    filter: drop-shadow(0 0 6px rgba(255, 46, 99, 0.6));
-}
+.server-selector-label svg { filter: drop-shadow(0 1px 4px rgba(255,182,216,0.35)); }
 .server-select-wrap {
-    flex: 1 1 auto;
-    min-width: 0;
+    flex-grow: 1;
     position: relative;
-    display: flex;
-    align-items: center;
 }
 .server-select-wrap::after {
-    display: none !important;
-}
-
-/* Milkbox-style Server Dropdown Trigger */
-.server-dropdown-trigger {
-    width: 100%;
-    height: 34px;
-    padding: 0 12px;
-    border-radius: 8px;
-    background: rgba(22, 17, 30, 0.85);
-    border: 1px solid rgba(255, 46, 99, 0.32);
-    color: #ffffff;
-    font-size: 12.5px;
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    box-sizing: border-box;
-    outline: none;
-    text-align: left;
-}
-.server-dropdown-trigger:hover,
-.server-select-wrap.is-open .server-dropdown-trigger {
-    background: rgba(255, 46, 99, 0.18);
-    border-color: #ff2e63;
-    box-shadow: 0 0 16px rgba(255, 46, 99, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-}
-.server-dropdown-trigger .milkbox-custom-dropdown-icon {
-    font-size: 16px !important;
-    color: #ff85a2;
-    flex-shrink: 0;
-    filter: drop-shadow(0 0 4px rgba(255, 46, 99, 0.5));
-}
-.server-dropdown-trigger .milkbox-custom-dropdown-val {
-    flex: 1 1 auto;
-    min-width: 0;
-    max-width: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    color: #ffffff;
-    font-weight: 600;
-    letter-spacing: 0.2px;
-}
-.server-dropdown-trigger .milkbox-custom-dropdown-arrow {
-    font-size: 18px !important;
-    color: #ff85a2;
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), color 0.18s ease;
-    flex-shrink: 0;
-}
-.server-select-wrap.is-open .server-dropdown-trigger .milkbox-custom-dropdown-arrow {
-    transform: rotate(180deg);
-    color: #ff2e63;
-}
-
-/* Milkbox-style Server Popover Dropdown Menu */
-.server-custom-dropdown-menu {
+    content: '';
     position: absolute;
-    top: calc(100% + 6px);
-    bottom: auto;
-    left: 0;
-    right: auto;
-    min-width: 320px;
-    max-width: 440px;
-    width: max-content;
-    background: rgba(12, 9, 18, 0.98);
-    border: 1px solid rgba(255, 46, 99, 0.4);
-    border-radius: 12px;
-    padding: 8px 6px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.95), 0 0 25px rgba(255, 46, 99, 0.22);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    animation: milkboxMenuPop 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-    box-sizing: border-box;
+    right: 12px;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ffb6d8' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 16px;
+    transform: translateY(-50%);
+    transition: transform 0.25s cubic-bezier(0.2,0.8,0.2,1), opacity 0.2s;
+    opacity: 0.9;
 }
-@media (max-width: 640px) {
-    .server-custom-dropdown-menu {
-        left: 0;
-        right: 0;
-        min-width: 0;
-        max-width: calc(100vw - 28px);
-        width: 100%;
-    }
-}
-.server-custom-dropdown-menu .milkbox-custom-dropdown-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
-    color: #ff85a2;
-    padding: 4px 8px 6px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-.server-custom-dropdown-menu .milkbox-custom-dropdown-list {
-    max-height: 290px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding-right: 3px;
-}
-.server-custom-dropdown-menu .milkbox-custom-dropdown-list::-webkit-scrollbar {
-    width: 5px;
-}
-.server-custom-dropdown-menu .milkbox-custom-dropdown-list::-webkit-scrollbar-thumb {
-    background: rgba(255, 46, 99, 0.45);
-    border-radius: 10px;
-}
-.server-custom-dropdown-menu .milkbox-custom-dropdown-list::-webkit-scrollbar-thumb:hover {
-    background: #ff2e63;
-}
-
-/* Category Headers in Dropdown List */
-.server-dropdown-cat-title {
-    font-size: 10px;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    color: #ff85a2;
-    padding: 6px 10px 4px;
-    margin-top: 4px;
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-.server-dropdown-cat-title:first-child {
-    border-top: none;
-    margin-top: 0;
-}
-
-/* Server Dropdown Items */
-.server-dropdown-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    width: 100%;
-    padding: 7px 10px;
-    border-radius: 8px;
-    background: transparent;
-    border: 1px solid transparent;
-    color: rgba(255, 255, 255, 0.88);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    text-align: left;
-    transition: all 0.15s ease;
-    box-sizing: border-box;
-}
-.server-dropdown-item:hover {
-    background: rgba(255, 46, 99, 0.18);
-    border-color: rgba(255, 46, 99, 0.35);
-    color: #ffffff;
-    transform: translateX(2px);
-}
-.server-dropdown-item.is-selected {
-    background: rgba(255, 46, 99, 0.24);
-    border-color: #ff2e63;
-    color: #ff85a2;
-    font-weight: 700;
-    box-shadow: 0 0 12px rgba(255, 46, 99, 0.25);
-}
-.server-dropdown-item-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    flex: 1;
-}
-.server-dropdown-item-icon {
-    font-size: 14px;
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.server-dropdown-item-text {
-    min-width: 0;
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-.server-dropdown-item-name {
-    color: #fff;
-    font-weight: 600;
-}
-.server-dropdown-item.is-selected .server-dropdown-item-name {
-    color: #ff85a2;
-}
-.server-dropdown-item-tag {
-    font-size: 9px;
-    font-weight: 800;
-    text-transform: uppercase;
-    padding: 1px 6px;
-    border-radius: 6px;
-    letter-spacing: 0.3px;
-    background: rgba(255, 46, 99, 0.2);
-    border: 1px solid rgba(255, 46, 99, 0.35);
-    color: #ffb6d8;
-    margin-left: 6px;
-    flex-shrink: 0;
-}
-.server-dropdown-item-tag.tag-primary {
-    background: linear-gradient(135deg, rgba(255, 46, 99, 0.3), rgba(255, 107, 139, 0.3));
-    border-color: #ff2e63;
-    color: #ffffff;
-    box-shadow: 0 0 8px rgba(255, 46, 99, 0.3);
-}
-.server-dropdown-item-tag.tag-anime {
-    background: rgba(168, 85, 247, 0.2);
-    border-color: rgba(168, 85, 247, 0.4);
-    color: #d8b4fe;
-}
-.server-dropdown-item-check {
-    font-size: 16px !important;
-    color: #ff2e63;
-    opacity: 0;
-    flex-shrink: 0;
-    transition: opacity 0.15s ease;
-}
-.server-dropdown-item.is-selected .server-dropdown-item-check {
+.server-select-wrap:has(.server-dropdown:focus)::after {
+    transform: translateY(-50%) rotate(180deg);
     opacity: 1;
 }
-
-/* Native select fallback styling (when not hidden) */
 .server-dropdown {
     width: 100%;
     background: linear-gradient(135deg, rgba(18,18,22,0.96), rgba(28,28,32,0.96));
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 46, 99, 0.3);
+    border: 1px solid rgba(255,255,255,0.08);
     color: #fff;
-    padding: 8px 12px;
-    border-radius: 8px;
+    padding: 11px 14px;
+    border-radius: 11px;
     font-size: 13px;
     font-weight: 600;
     letter-spacing: 0.2px;
     cursor: pointer;
     outline: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.24);
+    transition: all 0.28s cubic-bezier(0.2,0.8,0.2,1);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
+    padding-right: 40px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.server-dropdown:hover {
+    border-color: rgba(255,182,216,0.22);
+    background: rgba(22,22,28,0.98);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.28);
+    transform: translateY(-1px);
+}
+.server-dropdown:focus {
+    border-color: var(--mb-accent, #ff2e63);
+    box-shadow: 0 0 0 3px rgba(255, 46, 99, 0.22), 0 8px 24px rgba(0,0,0,0.32);
+    background: rgba(22,22,28,1);
 }
 select,
 .server-dropdown,
@@ -4625,58 +4403,124 @@ select,
 .server-dropdown::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 8px; }
 .server-dropdown::-webkit-scrollbar-track { background: transparent; }
 
-/* AdGuard Server Badge — Milkbox button styling */
 .adguard-server-badge {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 7px;
-    height: 34px;
-    padding: 0 12px;
-    border-radius: 8px;
+    padding: 7px 13px;
+    border-radius: 10px;
     background: rgba(74, 222, 128, 0.12);
-    border: 1px solid rgba(74, 222, 128, 0.38);
+    border: 1px solid rgba(74, 222, 128, 0.35);
     color: #4ade80;
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.3px;
     cursor: pointer;
     white-space: nowrap;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     user-select: none;
     flex-shrink: 0;
-    box-shadow: 0 2px 8px rgba(74, 222, 128, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    box-sizing: border-box;
+    box-shadow: 0 2px 8px rgba(74, 222, 128, 0.12);
 }
 .adguard-server-badge:hover {
     background: rgba(74, 222, 128, 0.22);
-    border-color: #4ade80;
+    border-color: rgba(74, 222, 128, 0.6);
     transform: translateY(-1px);
-    box-shadow: 0 0 14px rgba(74, 222, 128, 0.35);
+    box-shadow: 0 4px 14px rgba(74, 222, 128, 0.25);
 }
 .adguard-server-badge.disabled {
     background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.15);
     color: #9a9aa0;
     box-shadow: none;
-}
-.adguard-server-badge.disabled:hover {
-    background: rgba(255, 46, 99, 0.12);
-    border-color: rgba(255, 46, 99, 0.35);
-    color: #fff;
-    box-shadow: 0 0 12px rgba(255, 46, 99, 0.25);
 }
 .adguard-server-badge .adguard-server-counter {
     background: rgba(74, 222, 128, 0.25);
     color: #fff;
     padding: 1px 7px;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 10px;
     font-weight: 800;
 }
 .adguard-server-badge.disabled .adguard-server-counter {
     background: rgba(255, 255, 255, 0.1);
     color: #888;
+}
+
+/* Mobile Fullscreen & Viewport-filling fallback */
+body.player-is-mobile-fullscreen {
+    overflow: hidden !important;
+    position: fixed !important;
+    width: 100% !important;
+    height: 100% !important;
+}
+.player-container.player-mobile-fullscreen,
+.anime-player-wrap.player-mobile-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    width: 100dvw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    aspect-ratio: unset !important;
+    z-index: 9999999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: #000 !important;
+}
+.player-container.player-mobile-fullscreen #playerFrame,
+.player-container.player-mobile-fullscreen #playerFrame iframe,
+.player-container.player-mobile-fullscreen #playerFrame video,
+.anime-player-wrap.player-mobile-fullscreen iframe,
+.anime-player-wrap.player-mobile-fullscreen video {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    width: 100dvw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+/* Floating Exit Fullscreen Button for mobile */
+.mobile-fs-exit-btn {
+    position: fixed !important;
+    top: max(14px, env(safe-area-inset-top, 14px)) !important;
+    right: max(14px, env(safe-area-inset-right, 14px)) !important;
+    z-index: 10000000 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 14px !important;
+    border-radius: 9999px !important;
+    background: rgba(14, 11, 20, 0.9) !important;
+    border: 1px solid rgba(255, 46, 99, 0.55) !important;
+    color: #ffffff !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    font-family: inherit !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.85), 0 0 14px rgba(255, 46, 99, 0.35) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+.mobile-fs-exit-btn:hover,
+.mobile-fs-exit-btn:active {
+    background: rgba(255, 46, 99, 0.35) !important;
+    border-color: #ff2e63 !important;
+    transform: scale(1.05) !important;
 }
 .anime-ctrl.anime-ctrl-adguard {
     border-color: rgba(74, 222, 128, 0.35);
@@ -12138,31 +11982,26 @@ body[data-theme="sakura"] .seasonal-decorations img {
 
 /* Player Header Watch Party Button */
 .player-watch-party-btn {
-    height: 34px;
-    padding: 0 12px;
-    border-radius: 8px;
-    background: rgba(255, 46, 99, 0.16);
+    background: rgba(255, 46, 99, 0.18);
     border: 1px solid rgba(255, 46, 99, 0.4);
     color: #ffffff;
+    border-radius: 8px;
+    padding: 6px 12px;
     font-size: 12px;
     font-weight: 700;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
+    gap: 6px;
     cursor: pointer;
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: all 0.2s ease;
     font-family: inherit;
     white-space: nowrap;
-    box-shadow: 0 2px 8px rgba(255, 46, 99, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    box-sizing: border-box;
-    flex-shrink: 0;
 }
 
 .player-watch-party-btn:hover {
-    background: rgba(255, 46, 99, 0.28);
+    background: rgba(255, 46, 99, 0.32);
     border-color: #ff2e63;
-    box-shadow: 0 0 14px rgba(255, 46, 99, 0.45);
-    transform: translateY(-1px);
+    box-shadow: 0 0 12px rgba(255, 46, 99, 0.4);
 }
 
 .party-pulse-dot {

@@ -2063,17 +2063,59 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
     speed.addEventListener('change', () => { video.playbackRate = Number(speed.value); });
     fullscreenButton.addEventListener('click', async () => {
         try {
-            if (document.fullscreenElement) await document.exitFullscreen();
-            else await player.requestFullscreen();
+            if (document.fullscreenElement || document.webkitFullscreenElement) {
+                if (document.exitFullscreen) await document.exitFullscreen();
+                else if (document.webkitExitFullscreen) await document.webkitExitFullscreen();
+                return;
+            }
+            if (player.classList.contains('milkbox-mobile-fullscreen')) {
+                player.classList.remove('milkbox-mobile-fullscreen');
+                document.body.classList.remove('player-is-mobile-fullscreen');
+                fullscreenButton.querySelector('span').textContent = 'fullscreen';
+                fullscreenButton.setAttribute('aria-label', 'Fullscreen');
+                try { if (screen.orientation?.unlock) screen.orientation.unlock(); } catch (_) {}
+                return;
+            }
+            const req = player.requestFullscreen || player.webkitRequestFullscreen || player.mozRequestFullScreen || player.msRequestFullscreen;
+            if (req) {
+                try {
+                    await req.call(player);
+                    return;
+                } catch (_) {}
+            }
+            if (typeof video.webkitEnterFullscreen === 'function') {
+                try {
+                    video.webkitEnterFullscreen();
+                    return;
+                } catch (_) {}
+            }
+            player.classList.add('milkbox-mobile-fullscreen');
+            document.body.classList.add('player-is-mobile-fullscreen');
+            fullscreenButton.querySelector('span').textContent = 'fullscreen_exit';
+            fullscreenButton.setAttribute('aria-label', 'Exit fullscreen');
+            try { if (screen.orientation?.lock) screen.orientation.lock('landscape').catch(() => {}); } catch (_) {}
         } catch {
-            showPlaybackError('Fullscreen is not available in this browser.');
+            if (typeof video.webkitEnterFullscreen === 'function') {
+                try { video.webkitEnterFullscreen(); return; } catch {}
+            }
+            player.classList.toggle('milkbox-mobile-fullscreen');
+            document.body.classList.toggle('player-is-mobile-fullscreen');
+            const isFs = player.classList.contains('milkbox-mobile-fullscreen');
+            fullscreenButton.querySelector('span').textContent = isFs ? 'fullscreen_exit' : 'fullscreen';
+            fullscreenButton.setAttribute('aria-label', isFs ? 'Exit fullscreen' : 'Enter fullscreen');
         }
     });
-    player.addEventListener('fullscreenchange', () => {
-        const fullscreen = document.fullscreenElement === player;
+    const handleFsChange = () => {
+        const fullscreen = document.fullscreenElement === player || document.webkitFullscreenElement === player;
+        if (!fullscreen) {
+            player.classList.remove('milkbox-mobile-fullscreen');
+            document.body.classList.remove('player-is-mobile-fullscreen');
+        }
         fullscreenButton.querySelector('span').textContent = fullscreen ? 'fullscreen_exit' : 'fullscreen';
         fullscreenButton.setAttribute('aria-label', fullscreen ? 'Exit fullscreen' : 'Enter fullscreen');
-    });
+    };
+    player.addEventListener('fullscreenchange', handleFsChange);
+    player.addEventListener('webkitfullscreenchange', handleFsChange);
     pictureInPictureButton.addEventListener('click', async () => {
         if (!document.pictureInPictureEnabled || !video.requestPictureInPicture) return;
         try {
