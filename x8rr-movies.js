@@ -1501,9 +1501,13 @@ function fixSubtitleMojibake(text) {
     return repaired;
 }
 
+const WYZIE_API_KEY = process.env.WYZIE_API_KEY || 'wyzie-qxi9crir8zxz49kzmqbpyvpc4baicxlo';
+
 function srtToVtt(srtText) {
     if (!srtText || typeof srtText !== 'string') return 'WEBVTT\n\n';
-    const cleanText = fixSubtitleMojibake(srtText);
+    let cleanText = fixSubtitleMojibake(srtText);
+    // Strip promotional watermark cues (e.g. Wyzie free tier promo, opensubtitles ads)
+    cleanText = cleanText.replace(/\d+\s*\r?\n\d{2}:\d{2}:\d{2}[,\.]\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}[,\.]\d{3}\s*\r?\n(?:[^\r\n]*\r?\n)*?.*?(?:sub\.wyzie\.io|wyzie\.io|opensubtitles)[^\r\n]*(?:\r?\n)*/gi, '');
     if (cleanText.trim().startsWith('WEBVTT')) return cleanText;
     let vtt = cleanText
         .replace(/^\uFEFF/, '')
@@ -1512,6 +1516,133 @@ function srtToVtt(srtText) {
     vtt = vtt.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');
     vtt = vtt.replace(/(\d{2}:\d{2}),(\d{3})/g, '00:$1.$2');
     return 'WEBVTT\n\n' + vtt.trim() + '\n';
+}
+
+async function fetchWyzieSubtitles(type, tmdbId, season = 1, episode = 1, imdbId = '') {
+    if (!WYZIE_API_KEY) return [];
+    const isTV = type === 'tv';
+    const se = season || 1;
+    const ep = episode || 1;
+    const subs = [];
+
+    // Query candidates: try TMDB ID first, then IMDb ID
+    const idCandidates = [];
+    if (tmdbId) idCandidates.push(String(tmdbId));
+    if (imdbId && imdbId.startsWith('tt') && !idCandidates.includes(imdbId)) {
+        idCandidates.push(imdbId);
+    }
+
+    for (const targetId of idCandidates) {
+        try {
+            const params = new URLSearchParams({
+                id: targetId,
+                key: WYZIE_API_KEY
+            });
+            if (isTV) {
+                params.set('season', String(se));
+                params.set('episode', String(ep));
+            }
+            const wyzieUrl = `https://sub.wyzie.io/search?${params.toString()}`;
+            const res = await fetch(wyzieUrl, {
+                headers: { 'User-Agent': UA, Accept: 'application/json' },
+                signal: AbortSignal.timeout(8000)
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data) && data.length > 0) {
+                    const seenLangCounts = {};
+                    for (const s of data) {
+                        if (!s || !s.url) continue;
+                        const rawLang = String(s.language || s.display || 'en').toLowerCase().trim();
+                        const baseLabel = s.display || LANGUAGE_LABELS[rawLang] || rawLang.toUpperCase();
+                        const count = (seenLangCounts[rawLang] || 0) + 1;
+                        seenLangCounts[rawLang] = count;
+
+                        let label = baseLabel;
+                        if (s.isHearingImpaired) {
+                            label += ' [SDH]';
+                        }
+                        if (s.release && s.release !== s.media) {
+                            label += ` (${s.release})`;
+                        } else if (count > 1) {
+                            label += ` (${count})`;
+                        }
+
+                        subs.push({
+                            id: `wyzie-${s.id || count}`,
+                            lang: rawLang.slice(0, 2),
+                            langCode: rawLang,
+                            label,
+                            url: s.url,
+                            vttUrl: `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(s.url)}`,
+                            source: 'Wyzie',
+                            flagUrl: s.flagUrl || '',
+                            isHearingImpaired: !!s.isHearingImpaired,
+                            downloadCount: s.downloadCount || 0
+                        });
+                    }
+                    if (subs.length > 0) break;
+                }
+            }
+        } catch (e) {
+            console.warn('[x8rr/movies] Wyzie subtitle fetch notice:', e.message);
+        }
+    }
+
+    return subs;
+}
+
+async function fetchOpenSubtitles(type, imdbId, season = 1, episode = 1) {
+    if (!imdbId) return [];
+    const isTV = type === 'tv';
+    const se = season || 1;
+    const ep = episode || 1;
+    const subs = [];
+
+    try {
+        const stremioUrl = isTV
+            ? `https://opensubtitles-v3.strem.io/subtitles/series/${encodeURIComponent(imdbId)}:${encodeURIComponent(se)}:${encodeURIComponent(ep)}.json`
+            : `https://opensubtitles-v3.strem.io/subtitles/movie/${encodeURIComponent(imdbId)}.json`;
+
+        const res = await fetch(stremioUrl, {
+            headers: { 'User-Agent': UA, Accept: 'application/json' },
+            signal: AbortSignal.timeout(7000)
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            const rawSubs = Array.isArray(data?.subtitles) ? data.subtitles : [];
+            const seenLangCounts = {};
+
+            for (const s of rawSubs) {
+                if (!s || !s.url) continue;
+                const rawLang = String(s.lang || 'eng').toLowerCase();
+                const baseLabel = LANGUAGE_LABELS[rawLang] || rawLang.toUpperCase();
+                const count = (seenLangCounts[rawLang] || 0) + 1;
+                seenLangCounts[rawLang] = count;
+
+                let label = baseLabel;
+                if (count > 1) {
+                    label = `${baseLabel} (${count})`;
+                }
+
+                subs.push({
+                    id: s.id ? `sub-${s.id}` : `sub-${rawLang}-${count}`,
+                    lang: rawLang.slice(0, 2),
+                    langCode: rawLang,
+                    label,
+                    url: s.url,
+                    vttUrl: `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(s.url)}`,
+                    source: 'OpenSubtitles'
+                });
+            }
+        }
+    } catch (e) {
+        console.warn('[x8rr/movies] OpenSubtitles fetch notice:', e.message);
+    }
+
+    return subs;
 }
 
 async function fetchSubtitles(type, tmdbId, season = 1, episode = 1, explicitImdbId = '') {
@@ -1530,53 +1661,31 @@ async function fetchSubtitles(type, tmdbId, season = 1, episode = 1, explicitImd
         imdbId = await getImdbId(type, tmdbId);
     }
 
-    if (!imdbId) return [];
+    // Query both OpenSubtitles and Wyzie (as alt / multi-source provider)
+    const [openSubResult, wyzieResult] = await Promise.allSettled([
+        fetchOpenSubtitles(type, imdbId, se, ep),
+        fetchWyzieSubtitles(type, tmdbId, se, ep, imdbId)
+    ]);
+
+    const openSubs = openSubResult.status === 'fulfilled' ? openSubResult.value : [];
+    const wyzieSubs = wyzieResult.status === 'fulfilled' ? wyzieResult.value : [];
 
     const subtitles = [];
     const seenUrls = new Set();
-    const seenLangCounts = {};
 
-    try {
-        const stremioUrl = isTV
-            ? `https://opensubtitles-v3.strem.io/subtitles/series/${encodeURIComponent(imdbId)}:${encodeURIComponent(se)}:${encodeURIComponent(ep)}.json`
-            : `https://opensubtitles-v3.strem.io/subtitles/movie/${encodeURIComponent(imdbId)}.json`;
-
-        const res = await fetch(stremioUrl, {
-            headers: { 'User-Agent': UA, Accept: 'application/json' },
-            signal: AbortSignal.timeout(7000)
-        });
-
-        if (res.ok) {
-            const data = await res.json();
-            const rawSubs = Array.isArray(data?.subtitles) ? data.subtitles : [];
-
-            for (const s of rawSubs) {
-                if (!s || !s.url || seenUrls.has(s.url)) continue;
-                seenUrls.add(s.url);
-
-                const rawLang = String(s.lang || 'eng').toLowerCase();
-                const baseLabel = LANGUAGE_LABELS[rawLang] || rawLang.toUpperCase();
-                const count = (seenLangCounts[rawLang] || 0) + 1;
-                seenLangCounts[rawLang] = count;
-
-                let label = baseLabel;
-                if (count > 1) {
-                    label = `${baseLabel} (${count})`;
-                }
-
-                subtitles.push({
-                    id: s.id ? `sub-${s.id}` : `sub-${rawLang}-${count}`,
-                    lang: rawLang.slice(0, 2),
-                    langCode: rawLang,
-                    label,
-                    url: s.url,
-                    vttUrl: `/api/x8rr/subtitles/vtt?url=${encodeURIComponent(s.url)}`,
-                    source: 'OpenSubtitles'
-                });
-            }
+    // Prioritize OpenSubtitles, seamlessly enriched by Wyzie alt subtitles
+    for (const sub of openSubs) {
+        if (!seenUrls.has(sub.url)) {
+            seenUrls.add(sub.url);
+            subtitles.push(sub);
         }
-    } catch (e) {
-        console.warn('[x8rr/movies] Subtitle fetch notice:', e.message);
+    }
+
+    for (const sub of wyzieSubs) {
+        if (!seenUrls.has(sub.url)) {
+            seenUrls.add(sub.url);
+            subtitles.push(sub);
+        }
     }
 
     if (subtitles.length > 0) {
