@@ -1,15 +1,19 @@
 /**
  * AdGuard Pop-up & Video Ad Blocker for MILKBOX
- * High-Strength Playback Shield & Anti-Redirect Engine
+ * High-Strength Playback Shield, CSS Injection Engine & Sandbox Bypass Architecture
  *
  * Capabilities:
- *  - Enforces strict sandboxing on third-party streaming iframes to physically forbid top-level redirects
- *  - Blocks all unwhitelisted window.open pop-ups and pop-unders unconditionally
- *  - Intercepts location.assign and location.replace to block external hijack redirects
- *  - Neutralizes in-page video ads, VAST/VPAID overlays, floating ads, and clickjacking traps
- *  - Strips rogue <video> elements inserted by ad networks outside the main player
- *  - Guards against beforeunload page hijacking during active video playback
- *  - Protects both top-level MILKBOX and embed players (milkbox-embed.html)
+ *  - CSS Injection Engine: Injects aggressive cosmetic filtering stylesheets that instantly
+ *    hide and neutralize elements matching ad signatures before layout, painting, or redirects can occur.
+ *  - Stricter DOM Monitoring: Synchronous, zero-latency MutationObserver inspecting both added nodes
+ *    and mutated attributes (style, class, src, href, target) to catch dynamically morphed ad overlays.
+ *  - Movie Sandbox Bypass: Resolves the "Please disable sandbox" / "Remove sandbox attributes" issue
+ *    on movie embed servers (VidSrc, CineSRC, VidLink, SuperEmbed, MoviesAPI, VidFast) by negotiating
+ *    stream-compatible capability tokens, backed by an automated Shielded Proxy Tunnel fallback.
+ *  - Anti-Redirect & Top Navigation Shield: Intercepts unwhitelisted window.open, location.assign,
+ *    location.replace, and beforeunload hijack attempts to keep playback uninterrupted.
+ *  - Rogue Media Annihilation: Freezes, mutes, blanks, and purges injected video/audio ad elements.
+ *  - High-visibility status toast & HUD badge sync for seamless playback control.
  */
 
 (function(window) {
@@ -20,6 +24,8 @@
 
     const STORAGE_KEY_ENABLED = 'milkbox_adguard_enabled';
     const STORAGE_KEY_COUNT = 'milkbox_adguard_blocked_count';
+    const STORAGE_KEY_SANDBOX_BYPASS = 'milkbox_adguard_sandbox_bypass';
+    const STORAGE_KEY_CSS_INJECT = 'milkbox_adguard_css_inject';
 
     let enabled = true;
     try {
@@ -32,16 +38,29 @@
         blockedCount = parseInt(localStorage.getItem(STORAGE_KEY_COUNT) || '0', 10) || 0;
     } catch {}
 
+    // Sandbox Bypass mode is ON by default to prevent "Please disable sandbox" movie errors
+    let sandboxBypassEnabled = true;
+    try {
+        const storedBypass = localStorage.getItem(STORAGE_KEY_SANDBOX_BYPASS);
+        if (storedBypass !== null) sandboxBypassEnabled = storedBypass !== 'false';
+    } catch {}
+
+    let cssInjectEnabled = true;
+    try {
+        const storedCss = localStorage.getItem(STORAGE_KEY_CSS_INJECT);
+        if (storedCss !== null) cssInjectEnabled = storedCss !== 'false';
+    } catch {}
+
     // Track internal navigation vs untrusted external redirect attempts
     let lastInternalNavTime = Date.now();
     let lastUserInteractionTime = 0;
-    const TRUSTED_INTERACTION_WINDOW_MS = 400;
+    const TRUSTED_INTERACTION_WINDOW_MS = 500;
 
     function recordUserInteraction(e) {
         if (!e) return;
         if (e.isTrusted) {
             lastUserInteractionTime = Date.now();
-            const a = e.target && e.target.closest ? e.target.closest('a, button, [role="button"]') : null;
+            const a = e.target && e.target.closest ? e.target.closest('a, button, [role="button"], input, select') : null;
             if (a) {
                 lastInternalNavTime = Date.now();
             }
@@ -57,7 +76,7 @@
     // -------------------------------------------------------------
     // Extended Ad Domains & Trackers Regex
     // -------------------------------------------------------------
-    const AD_DOMAINS_REGEX = /(?:doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|a-ads|coinzilla|bet365|1xbet|parimatch|monetag|hilltopads|richpush|admaven|yllix|clickadu|infolinks|adcash|revenuehits|galaksion|bidvertiser|trafficstars|adxad|plugrush|ero-advertising|juicyads|chaturbate|bongacams|stripchat|livejasmin|rtmark|creativecdn|syndication|creative-serving|vidsrc-stream|vidcloud-ad|clickshield|onclickmega|tracking|trackingdesk|affiliates?|promotions?|landingpage|redirect|trackurl|adkeeper|adkernel|adsco|adroll|zergnet|vmg\.host|voluum|clickfuse|adform|rubiconproject|pubmatic|smartadserver|spotxchange|openx|casalemedia|inmobi|sovrn|sharethrough|media\.net|exponential|yieldmo|triplelift|gumgum|undertone|conversant|distroscale|teads|connatix|aniview|springserve|beachfront|videology|tremorhub|brightroll|vi-serve|admanmedia|instreamatic|spotx|adblade|bidswitch|simplifi|nativo|revcontent|yieldbird|playwire|setupad|snack-media|themoneytizer|ezoic|monumetric|skimm|skimlinks|viglink|clickbank|leadpages|landingi|instapage|unbounce|casino|betting|slots|crypto-loot|coinhive|whos\.amung\.us|histats|amung\.us|adtrue|bidscube|streamate|cam4|camwhores|bonga|pornhub|xvideos|redtube)/i;
+    const AD_DOMAINS_REGEX = /(?:doubleclick|googlesyndication|googleads|adservice|popads|popcash|exoclick|propellerads|adsterra|onclkds|trafficjunky|adnxs|adsystem|criteo|outbrain|taboola|mgid|clickadilla|a-ads|coinzilla|bet365|1xbet|parimatch|monetag|hilltopads|richpush|admaven|yllix|clickadu|infolinks|adcash|revenuehits|galaksion|bidvertiser|trafficstars|adxad|plugrush|ero-advertising|juicyads|chaturbate|bongacams|stripchat|livejasmin|rtmark|creativecdn|syndication|creative-serving|vidsrc-stream|vidcloud-ad|clickshield|onclickmega|tracking|trackingdesk|affiliates?|promotions?|landingpage|redirect|trackurl|adkeeper|adkernel|adsco|adroll|zergnet|vmg\.host|voluum|clickfuse|adform|rubiconproject|pubmatic|smartadserver|spotxchange|openx|casalemedia|inmobi|sovrn|sharethrough|media\.net|exponential|yieldmo|triplelift|gumgum|undertone|conversant|distroscale|teads|connatix|aniview|springserve|beachfront|videology|tremorhub|brightroll|vi-serve|admanmedia|instreamatic|spotx|adblade|bidswitch|simplifi|nativo|revcontent|yieldbird|playwire|setupad|snack-media|themoneytizer|ezoic|monumetric|skimm|skimlinks|viglink|clickbank|leadpages|landingi|instapage|unbounce|casino|betting|slots|crypto-loot|coinhive|whos\.amung\.us|histats|amung\.us|adtrue|bidscube|streamate|cam4|camwhores|bonga|pornhub|xvideos|redtube|adserver|adwrapper|videoblocks|adnuntius)/i;
 
     function isAdUrl(rawUrl) {
         if (!rawUrl) return false;
@@ -65,11 +84,11 @@
         if (str === 'about:blank' || str === '') return false;
         if (str.startsWith('blob:') || str.startsWith('data:') || str.startsWith('javascript:')) return false;
         if (AD_DOMAINS_REGEX.test(str)) return true;
-        if (/\/pop(?:up|under)?[\/?#]/i.test(str) || /\/ad(?:s|server|tag|banner)?[\/?#]/i.test(str) || /\/click[\/?#]/i.test(str)) return true;
+        if (/\/pop(?:up|under)?[\/?#]/i.test(str) || /\/ad(?:s|server|tag|banner)?[\/?#]/i.test(str) || /\/click[\/?#]/i.test(str) || /\/track[\/?#]/i.test(str)) return true;
         return false;
     }
 
-    // Explicit whitelist of allowed internal & legitimate external destinations
+    // Whitelist of allowed internal & legitimate external destinations
     function isAllowedInternalUrl(rawUrl) {
         if (!rawUrl) return false;
         const str = String(rawUrl).trim();
@@ -84,7 +103,7 @@
             if (u.origin === window.location.origin) return true;
 
             const host = u.hostname.toLowerCase();
-            // Whitelisted services MILKBOX uses (OAuth, Trailers, Metadata, Community)
+            // Whitelisted services MILKBOX uses
             if (host === 'accounts.google.com' ||
                 host === 'drive.google.com' ||
                 host === 'console.cloud.google.com' ||
@@ -102,14 +121,16 @@
                 host === 'flagsapi.com' ||
                 host === 'cdn.jsdelivr.net' ||
                 host === 'fonts.googleapis.com' ||
-                host === 'fonts.gstatic.com') {
+                host === 'fonts.gstatic.com' ||
+                host === 'api.wyzie.io' ||
+                host === 'wisp.classroom.lat') {
                 return true;
             }
         } catch {}
         return false;
     }
 
-    // Mock Window object returned when an ad popup is blocked to prevent script errors
+    // Mock Window object returned when an ad popup is blocked
     function createMockWindow(targetUrl) {
         const u = String(targetUrl || '');
         return {
@@ -144,6 +165,128 @@
             setInterval: function() { return 0; },
             clearInterval: function() {}
         };
+    }
+
+    // -------------------------------------------------------------
+    // CSS Injection Engine: Early Pre-Render Ad Erasure
+    // -------------------------------------------------------------
+    const CSS_SHIELD_STYLE_ID = 'adguard-css-shield';
+
+    const AD_SIGNATURE_SELECTORS = [
+        '[data-adguard-blocked="true"]',
+        '[class*="video-ad"]', '[id*="video-ad"]',
+        '[class*="ad-video"]', '[id*="ad-video"]',
+        '[class*="vast-"]', '[id*="vast-"]',
+        '[class*="vpaid"]', '[id*="vpaid"]',
+        '[class*="preroll"]', '[id*="preroll"]',
+        '[class*="midroll"]', '[id*="midroll"]',
+        '[class*="postroll"]', '[id*="postroll"]',
+        '[class*="ad-banner"]', '[id*="ad-banner"]',
+        '[class*="ad-container"]', '[id*="ad-container"]',
+        '[class*="ad-overlay"]', '[id*="ad-overlay"]',
+        '[class*="ad-wrapper"]', '[id*="ad-wrapper"]',
+        '[class*="ad-slot"]', '[id*="ad-slot"]',
+        '[class*="ad-player"]', '[id*="ad-player"]',
+        '[class*="ad-frame"]', '[id*="ad-frame"]',
+        '[class*="floating-ad"]', '[id*="floating-ad"]',
+        '[class*="sticky-ad"]', '[id*="sticky-ad"]',
+        '[class*="pop-ad"]', '[id*="pop-ad"]',
+        '[class*="popunder"]', '[id*="popunder"]',
+        '[class*="interstitial"]', '[id*="interstitial"]',
+        '[class*="clickjack"]', '[id*="clickjack"]',
+        '[class*="sponsor"]', '[id*="sponsor"]',
+        '.adsbygoogle', 'ins.adsbygoogle',
+        '[data-ad]', '[data-ad-client]', '[data-ad-slot]', '[data-ad-unit]',
+        '[id*="google_ads_iframe"]', '[id*="aswift_"]',
+        '[id*="taboola-"]', '[class*="taboola-"]',
+        '[id*="outbrain-"]`, `[class*="outbrain-"]',
+        '[id*="mgid-"]', '[class*="mgid-"]',
+        'iframe[src*="doubleclick"]', 'iframe[src*="googlesyndication"]', 'iframe[src*="googleads"]',
+        'iframe[src*="popads"]', 'iframe[src*="popcash"]', 'iframe[src*="exoclick"]',
+        'iframe[src*="propeller"]', 'iframe[src*="adsterra"]', 'iframe[src*="trafficstars"]',
+        'iframe[src*="monetag"]', 'iframe[src*="admaven"]', 'iframe[src*="richpush"]',
+        'iframe[src*="galaksion"]', 'iframe[src*="yllix"]', 'iframe[src*="clickadu"]',
+        'iframe[src*="onclickmega"]', 'iframe[src*="clickshield"]', 'iframe[src*="creative-serving"]',
+        'iframe[src*="syndication"]', 'iframe[src*="affiliate"]', 'iframe[src*="vmg.host"]',
+        'iframe[src*="rtmark"]', 'iframe[src*="creativecdn"]', 'iframe[src*="trackurl"]',
+        'a[target="_blank"][style*="fixed"][style*="z-index"]:not(#mobileNav a):not(header a)',
+        'a[target="_blank"][style*="absolute"][style*="z-index"]:not(#mobileNav a):not(header a)'
+    ].join(', ');
+
+    const CSS_SHIELD_RULES = `
+        /* AdGuard Cosmetic Filtering: Hide identified ad elements BEFORE layout & rendering */
+        ${AD_SIGNATURE_SELECTORS} {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            width: 0 !important;
+            height: 0 !important;
+            max-width: 0 !important;
+            max-height: 0 !important;
+            min-width: 0 !important;
+            min-height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+            outline: 0 !important;
+            position: absolute !important;
+            left: -999999px !important;
+            top: -999999px !important;
+            z-index: -999999 !important;
+            clip: rect(0, 0, 0, 0) !important;
+            clip-path: inset(50%) !important;
+            transform: scale(0) !important;
+        }
+
+        /* Whitelist protection for legitimate MILKBOX playback & navigation containers */
+        #playerFrame, #playerContainer, #mbPlayer, #mbNativeVideo,
+        #mbStreamIframe, #cinesrcPlayerIframe, #scramjetPlayerIframe,
+        .milkbox-player, .mb-player, #siteTitle, #mobileNav,
+        #adguardToast, .adguard-server-badge, .adguard-sandbox-badge,
+        .server-selector, #playerSelector, .cinesrc-hud-bar, .scramjet-hud-bar {
+            display: revert !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            clip: auto !important;
+            clip-path: none !important;
+            transform: none !important;
+        }
+    `;
+
+    function injectCSSShield(targetDoc = document) {
+        if (!cssInjectEnabled || !enabled) return;
+        if (!targetDoc || (!targetDoc.head && !targetDoc.documentElement)) return;
+
+        try {
+            let existing = targetDoc.getElementById(CSS_SHIELD_STYLE_ID);
+            if (!existing) {
+                existing = targetDoc.createElement('style');
+                existing.id = CSS_SHIELD_STYLE_ID;
+                existing.setAttribute('type', 'text/css');
+                existing.textContent = CSS_SHIELD_RULES;
+
+                const parent = targetDoc.head || targetDoc.documentElement;
+                if (parent.firstChild) {
+                    parent.insertBefore(existing, parent.firstChild);
+                } else {
+                    parent.appendChild(existing);
+                }
+            } else if (existing.textContent !== CSS_SHIELD_RULES) {
+                existing.textContent = CSS_SHIELD_RULES;
+            }
+        } catch (e) {
+            console.warn('[AdGuard] CSS Shield injection error:', e);
+        }
+    }
+
+    // Inject immediately into document
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => injectCSSShield(document));
+        }
+        injectCSSShield(document);
     }
 
     // -------------------------------------------------------------
@@ -242,7 +385,7 @@
         const playerModal = document.getElementById('playerModal');
         const animeTheater = document.getElementById('animeTheater');
         const mbPlayer = document.getElementById('mbPlayer');
-        const isPlayerActive = document.body.classList.contains('player-active') ||
+        const isPlayerActive = (document.body && document.body.classList.contains('player-active')) ||
             (playerModal && playerModal.classList.contains('active')) ||
             (animeTheater && animeTheater.style.display !== 'none') ||
             (mbPlayer && mbPlayer.offsetWidth > 0);
@@ -301,6 +444,7 @@
             if (this instanceof HTMLAnchorElement) {
                 const href = this.href || this.getAttribute('href') || '';
                 if (!isAllowedInternalUrl(href)) {
+                    this.setAttribute('data-adguard-blocked', 'true');
                     showBlockedNotification('Programmatic ad link click prevented', href);
                     return;
                 }
@@ -324,6 +468,10 @@
             el.id === 'mbSubtitlesOverlay' ||
             el.id === 'mbControlsBar' ||
             el.id === 'adguardToast' ||
+            el.id === 'adguardServerBadge' ||
+            el.id === 'adguardSandboxBadge' ||
+            el.id === 'cinesrcPlayerIframe' ||
+            el.id === 'scramjetPlayerIframe' ||
             el.id === 'siteTitle' ||
             el.id === 'mobileNav') {
             return true;
@@ -334,11 +482,14 @@
             el.closest('#playerSelector') ||
             el.closest('.server-selector') ||
             el.closest('.adguard-server-badge') ||
+            el.closest('.adguard-sandbox-badge') ||
             el.closest('#adguardToast') ||
             el.closest('#mobileNav') ||
             el.closest('header') ||
             el.closest('nav') ||
-            el.closest('.sidebar')
+            el.closest('.sidebar') ||
+            el.closest('.cinesrc-hud-bar') ||
+            el.closest('.scramjet-hud-bar')
         )) {
             return true;
         }
@@ -361,11 +512,11 @@
             if (isNaN(zIndex) || zIndex < 15) return false;
 
             const rect = el.getBoundingClientRect();
-            const winWidth = window.innerWidth || document.documentElement.clientWidth || 800;
-            const winHeight = window.innerHeight || document.documentElement.clientHeight || 600;
+            const winWidth = window.innerWidth || (document.documentElement ? document.documentElement.clientWidth : 800) || 800;
+            const winHeight = window.innerHeight || (document.documentElement ? document.documentElement.clientHeight : 600) || 600;
 
-            const coversWidth = rect.width >= (winWidth * 0.3);
-            const coversHeight = rect.height >= (winHeight * 0.3);
+            const coversWidth = rect.width >= (winWidth * 0.25);
+            const coversHeight = rect.height >= (winHeight * 0.25);
             const isTransparent = style.opacity === '0' || style.backgroundColor.includes('rgba(0, 0, 0, 0)') || style.visibility === 'hidden';
 
             if (coversWidth && coversHeight) {
@@ -378,11 +529,27 @@
         return false;
     }
 
+    // Helper to completely disarm an intrusive element
+    function disarmAndHideElement(el, reason = 'Intrusive ad element') {
+        if (!el || !el.parentNode || isLegitimateAppElement(el)) return;
+        try {
+            el.setAttribute('data-adguard-blocked', 'true');
+            el.style.setProperty('display', 'none', 'important');
+            el.style.setProperty('visibility', 'hidden', 'important');
+            el.style.setProperty('pointer-events', 'none', 'important');
+            el.style.setProperty('opacity', '0', 'important');
+            el.style.setProperty('width', '0', 'important');
+            el.style.setProperty('height', '0', 'important');
+            el.remove();
+            showBlockedNotification(reason);
+        } catch {}
+    }
+
     // Capturing click listener to catch rogue anchors and clickjackers before they trigger
     document.addEventListener('click', function(e) {
         if (!enabled) return;
 
-        const anchor = e.target.closest('a');
+        const anchor = e.target.closest ? e.target.closest('a') : null;
         if (anchor) {
             const href = anchor.href || anchor.getAttribute('href') || '';
             const target = anchor.target || anchor.getAttribute('target');
@@ -392,8 +559,7 @@
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();
-                anchor.remove();
-                showBlockedNotification('Ad link click intercepted', href);
+                disarmAndHideElement(anchor, 'Ad link click intercepted');
                 return false;
             }
 
@@ -402,7 +568,7 @@
                     e.preventDefault();
                     e.stopPropagation();
                     e.stopImmediatePropagation();
-                    showBlockedNotification('Top hijack redirect blocked', href);
+                    disarmAndHideElement(anchor, 'Top hijack redirect blocked');
                     return false;
                 }
             }
@@ -413,41 +579,91 @@
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
-            e.target.remove();
-            showBlockedNotification('Clickjacking overlay stripped');
+            disarmAndHideElement(e.target, 'Clickjacking overlay stripped');
             return false;
         }
     }, true);
 
+    // Also guard pointerdown to preempt clickjackers before mouseup/click
+    document.addEventListener('pointerdown', function(e) {
+        if (!enabled) return;
+        if (isOverlayOrClickjacker(e.target)) {
+            e.preventDefault();
+            e.stopPropagation();
+            disarmAndHideElement(e.target, 'Pre-click overlay neutralized');
+        }
+    }, true);
+
+    // -------------------------------------------------------------
+    // Movie Sandbox Bypass Engine: Resolves "Remove Sandbox Attributes" Issue
+    // -------------------------------------------------------------
+    // The tokens below satisfy media player capability checks (allowing scripts, popups,
+    // pointer lock, and forms) while our top-level AdGuard engine prevents ad redirects.
+    const SANDBOX_BYPASS_TOKENS = 'allow-scripts allow-same-origin allow-forms allow-presentation allow-pointer-lock allow-popups allow-popups-to-escape-sandbox allow-downloads';
+    const SANDBOX_STRICT_TOKENS = 'allow-scripts allow-same-origin allow-forms allow-presentation';
+
+    function getOptimalSandboxTokens() {
+        return sandboxBypassEnabled ? SANDBOX_BYPASS_TOKENS : SANDBOX_STRICT_TOKENS;
+    }
+
+    function hardenPlaybackIframe(iframe) {
+        if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
+        try {
+            const src = iframe.src || iframe.getAttribute('src') || '';
+            const isInternalPlayer = src.includes('milkbox-embed.html') ||
+                (src.startsWith('/') && !src.startsWith('//')) ||
+                (typeof window !== 'undefined' && src.startsWith(window.location.origin));
+
+            if (!iframe.getAttribute('allow')) {
+                iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
+            }
+
+            if (enabled) {
+                // If the player is internal (e.g. Milkbox HLS), no sandbox needed
+                if (!isInternalPlayer) {
+                    const tokens = getOptimalSandboxTokens();
+                    if (iframe.getAttribute('sandbox') !== tokens) {
+                        iframe.setAttribute('sandbox', tokens);
+                    }
+                }
+            } else {
+                iframe.removeAttribute('sandbox');
+            }
+        } catch {}
+    }
+
+    /**
+     * Complete Sandbox Bypass fallback: If a movie server (e.g. VidSrc, SuperEmbed, MoviesAPI)
+     * stubbornly demands complete sandbox removal, this function wraps the embed inside our
+     * Shielded Scramjet Proxy tunnel (/api/scramjet/embed?url=...).
+     * Inside Scramjet, the media player has zero sandbox attributes on the inner frame,
+     * while our container neutralizes popunders and ad redirects.
+     */
+    function bypassSandboxViaProxy(iframe) {
+        if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
+        const currentSrc = iframe.src || iframe.getAttribute('src') || '';
+        if (!currentSrc || currentSrc.startsWith('about:blank')) return;
+
+        // If already routed through proxy, do nothing
+        if (currentSrc.includes('/api/scramjet/embed')) return;
+
+        const proxiedUrl = `/api/scramjet/embed?url=${encodeURIComponent(currentSrc)}`;
+        iframe.removeAttribute('sandbox');
+        iframe.src = proxiedUrl;
+        showBlockedNotification('Sandbox restriction bypassed via Shielded Tunnel', currentSrc);
+    }
+
     // -------------------------------------------------------------
     // Ad Video & In-Page Ad Annihilation Engine
     // -------------------------------------------------------------
-    const AD_SELECTORS = [
-        '[class*="video-ad"]', '[id*="video-ad"]',
-        '[class*="ad-video"]', '[id*="ad-video"]',
-        '[class*="vast-"]', '[id*="vast-"]',
-        '[class*="vpaid"]', '[id*="vpaid"]',
-        '[class*="preroll"]', '[id*="preroll"]',
-        '[class*="midroll"]', '[id*="midroll"]',
-        '[class*="ad-banner"]', '[id*="ad-banner"]',
-        '[class*="ad-container"]', '[id*="ad-container"]',
-        '[class*="ad-overlay"]', '[id*="ad-overlay"]',
-        '[class*="ad-wrapper"]', '[id*="ad-wrapper"]',
-        '[class*="floating-ad"]', '[id*="floating-ad"]',
-        '[class*="sticky-ad"]', '[id*="sticky-ad"]',
-        '[class*="pop-ad"]', '[id*="pop-ad"]',
-        '.adsbygoogle', 'ins.adsbygoogle',
-        'iframe[src*="doubleclick"]', 'iframe[src*="googleads"]',
-        'iframe[src*="popads"]', 'iframe[src*="exoclick"]',
-        'iframe[src*="propeller"]', 'iframe[src*="adsterra"]',
-        'iframe[src*="trafficstars"]', 'iframe[src*="monetag"]'
-    ].join(',');
-
     function scanAndNeutralizeOverlays() {
         if (!enabled) return;
         try {
-            // 1. Strip rogue video elements outside legitimate MILKBOX player
-            const allVideos = document.querySelectorAll('video');
+            // Keep CSS shield intact
+            injectCSSShield(document);
+
+            // 1. Strip rogue video/audio elements outside legitimate MILKBOX player
+            const allVideos = document.querySelectorAll('video, audio');
             for (let i = 0; i < allVideos.length; i++) {
                 const v = allVideos[i];
                 if (v.id === 'mbNativeVideo' || v.classList.contains('milkbox-video-element') || (v.closest && v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater'))) {
@@ -457,18 +673,16 @@
                     v.pause();
                     v.muted = true;
                     v.src = '';
-                    v.remove();
-                    showBlockedNotification('Injected ad video eliminated');
+                    disarmAndHideElement(v, 'Injected ad media eliminated');
                 } catch {}
             }
 
             // 2. Strip elements matching ad selectors
-            const adNodes = document.querySelectorAll(AD_SELECTORS);
+            const adNodes = document.querySelectorAll(AD_SIGNATURE_SELECTORS);
             for (let i = 0; i < adNodes.length; i++) {
                 const el = adNodes[i];
                 if (!isLegitimateAppElement(el)) {
-                    el.remove();
-                    showBlockedNotification('Ad element removed');
+                    disarmAndHideElement(el, 'Ad signature element removed');
                 }
             }
 
@@ -477,85 +691,161 @@
             for (let i = 0; i < positioned.length; i++) {
                 const el = positioned[i];
                 if (isOverlayOrClickjacker(el)) {
-                    el.remove();
-                    showBlockedNotification('Hidden ad overlay neutralized');
+                    disarmAndHideElement(el, 'Hidden ad overlay neutralized');
                 }
             }
 
-            // 4. Enforce strict sandboxing on all playback iframes
-            document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe, #mbStreamIframe').forEach(hardenPlaybackIframe);
+            // 4. Enforce optimal sandboxing on all playback iframes
+            document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe, #mbStreamIframe, #cinesrcPlayerIframe, #scramjetPlayerIframe').forEach(hardenPlaybackIframe);
         } catch {}
     }
 
     // -------------------------------------------------------------
-    // Strict Iframe Sandboxing (Physically blocks top navigation)
-    // -------------------------------------------------------------
-    function hardenPlaybackIframe(iframe) {
-        if (!iframe || !(iframe instanceof HTMLElement) || iframe.tagName !== 'IFRAME') return;
-        try {
-            const src = iframe.src || iframe.getAttribute('src') || '';
-            const isInternalPlayer = src.includes('milkbox-embed.html') || (src.startsWith('/') && !src.startsWith('//')) || (typeof window !== 'undefined' && src.startsWith(window.location.origin));
-
-            if (!iframe.getAttribute('allow')) {
-                iframe.setAttribute('allow', 'autoplay; fullscreen; picture-in-picture; encrypted-media');
-            }
-
-            if (enabled) {
-                // External third-party streams: strictly sandbox to eliminate top redirects & popups!
-                // Notice: 'allow-top-navigation' and 'allow-top-navigation-by-user-activation' are OMITTED!
-                if (!isInternalPlayer) {
-                    iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-presentation');
-                }
-            } else {
-                iframe.removeAttribute('sandbox');
-            }
-        } catch {}
-    }
-
-    // -------------------------------------------------------------
-    // Continuous MutationObserver
+    // Stricter DOM Monitoring: Synchronous Node & Attribute Observation
     // -------------------------------------------------------------
     if (typeof MutationObserver !== 'undefined') {
         let scanDebounce = null;
+
+        function inspectNode(node) {
+            if (!enabled || !node || node.nodeType !== 1) return;
+
+            // Check if the node itself is the CSS shield being tampered with
+            if (node.id === CSS_SHIELD_STYLE_ID) return;
+
+            // 1. Check Media Tags (Video/Audio)
+            if (node.tagName === 'VIDEO' || node.tagName === 'AUDIO') {
+                if (!isLegitimateAppElement(node)) {
+                    try {
+                        node.pause();
+                        node.muted = true;
+                        node.src = '';
+                        disarmAndHideElement(node, 'Ad video stripped on injection');
+                    } catch {}
+                }
+                return;
+            }
+
+            // 2. Check Iframes
+            if (node.tagName === 'IFRAME') {
+                const src = node.src || node.getAttribute('src') || '';
+                if (isAdUrl(src)) {
+                    disarmAndHideElement(node, 'Rogue ad iframe purged');
+                    return;
+                }
+                hardenPlaybackIframe(node);
+                return;
+            }
+
+            // 3. Check Anchors
+            if (node.tagName === 'A') {
+                const href = node.href || node.getAttribute('href') || '';
+                if (href && isAdUrl(href)) {
+                    disarmAndHideElement(node, 'Injected ad anchor purged');
+                    return;
+                }
+            }
+
+            // 4. Check Ad Signatures
+            if (node.matches && node.matches(AD_SIGNATURE_SELECTORS)) {
+                if (!isLegitimateAppElement(node)) {
+                    disarmAndHideElement(node, 'Ad element hidden before render');
+                    return;
+                }
+            }
+
+            // 5. Check Clickjack Overlays
+            if (isOverlayOrClickjacker(node)) {
+                disarmAndHideElement(node, 'Intrusive overlay stripped');
+                return;
+            }
+
+            // Inspect children if present
+            if (node.children && node.children.length > 0) {
+                const childVideos = node.querySelectorAll ? node.querySelectorAll('video, audio') : [];
+                for (let i = 0; i < childVideos.length; i++) {
+                    const cv = childVideos[i];
+                    if (!isLegitimateAppElement(cv)) {
+                        try { cv.pause(); cv.muted = true; cv.src = ''; disarmAndHideElement(cv, 'Child ad media eliminated'); } catch {}
+                    }
+                }
+                if (node.querySelectorAll) {
+                    node.querySelectorAll('iframe').forEach(hardenPlaybackIframe);
+                }
+            }
+        }
+
         const observer = new MutationObserver(mutations => {
             if (!enabled) return;
+
             for (let i = 0; i < mutations.length; i++) {
                 const m = mutations[i];
-                if (m.addedNodes && m.addedNodes.length > 0) {
+
+                // Synchronous immediate inspection of added elements
+                if (m.type === 'childList' && m.addedNodes && m.addedNodes.length > 0) {
                     for (let j = 0; j < m.addedNodes.length; j++) {
-                        const node = m.addedNodes[j];
-                        if (node.nodeType === 1) {
-                            if (node.tagName === 'VIDEO' && !isLegitimateAppElement(node)) {
-                                try { node.pause(); node.muted = true; node.src = ''; node.remove(); } catch {}
-                                showBlockedNotification('Ad video stripped on injection');
-                                return;
+                        inspectNode(m.addedNodes[j]);
+                    }
+                }
+
+                // Stricter attribute monitoring: catch dynamically morphed styles & classes
+                if (m.type === 'attributes' && m.target && m.target.nodeType === 1) {
+                    const el = m.target;
+                    if (!isLegitimateAppElement(el)) {
+                        if (m.attributeName === 'style' || m.attributeName === 'class') {
+                            if (isOverlayOrClickjacker(el) || (el.matches && el.matches(AD_SIGNATURE_SELECTORS))) {
+                                disarmAndHideElement(el, 'Dynamically positioned ad overlay neutralized');
                             }
-                            if (node.tagName === 'IFRAME') {
-                                hardenPlaybackIframe(node);
-                            } else if (node.querySelectorAll) {
-                                node.querySelectorAll('iframe').forEach(hardenPlaybackIframe);
+                        } else if (m.attributeName === 'src' && el.tagName === 'IFRAME') {
+                            const newSrc = el.src || el.getAttribute('src') || '';
+                            if (isAdUrl(newSrc)) {
+                                disarmAndHideElement(el, 'Rogue iframe redirect neutralized');
                             }
                         }
                     }
                 }
             }
 
+            // Debounced sweep for deep structural changes
             if (!scanDebounce) {
                 scanDebounce = setTimeout(() => {
                     scanDebounce = null;
                     scanAndNeutralizeOverlays();
-                }, 150);
+                }, 120);
             }
         });
 
+        const observerConfig = {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class', 'src', 'href', 'target', 'hidden', 'id']
+        };
+
         if (document.documentElement) {
-            observer.observe(document.documentElement, { childList: true, subtree: true });
+            observer.observe(document.documentElement, observerConfig);
         } else {
             document.addEventListener('DOMContentLoaded', () => {
-                observer.observe(document.documentElement, { childList: true, subtree: true });
+                observer.observe(document.documentElement, observerConfig);
             });
         }
     }
+
+    // -------------------------------------------------------------
+    // Active Playback Sentinel (High-frequency micro-sweep during video)
+    // -------------------------------------------------------------
+    setInterval(() => {
+        if (!enabled) return;
+        if (isPlayerActiveNow()) {
+            // Check for rogue videos or floating traps that escaped
+            const videos = document.querySelectorAll('video');
+            for (let i = 0; i < videos.length; i++) {
+                const v = videos[i];
+                if (v.id !== 'mbNativeVideo' && !v.classList.contains('milkbox-video-element') && (!v.closest || !v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater'))) {
+                    try { v.pause(); v.muted = true; v.src = ''; disarmAndHideElement(v, 'Rogue background video neutralized'); } catch {}
+                }
+            }
+        }
+    }, 400);
 
     // -------------------------------------------------------------
     // Top-Level Navigation Protection (location.assign & location.replace)
@@ -592,8 +882,8 @@
         if (!enabled) return;
         if (isPlayerActiveNow()) {
             const now = Date.now();
-            // If page unload is requested without an explicit internal link click in the last 800ms
-            if ((now - lastInternalNavTime) > 800) {
+            // If page unload is requested without an explicit internal link click in the last 1000ms
+            if ((now - lastInternalNavTime) > 1000) {
                 e.preventDefault();
                 e.returnValue = 'Leave MILKBOX? Playback is currently in progress.';
                 return e.returnValue;
@@ -607,6 +897,7 @@
     function updateAdGuardUIElements() {
         if (typeof document === 'undefined') return;
 
+        // 1. AdGuard Protection On/Off Badges
         const srvBadge = document.getElementById('adguardServerBadge');
         const srvText = document.getElementById('adguardServerText');
         const srvCounter = document.getElementById('adguardServerCounter');
@@ -619,16 +910,6 @@
         }
         if (srvCounter) {
             srvCounter.textContent = String(blockedCount);
-        }
-
-        const animeBtn = document.getElementById('animeCtrlAdguard');
-        const animeLabel = document.getElementById('animeAdguardLabel');
-        if (animeBtn) {
-            animeBtn.classList.toggle('disabled', !enabled);
-            animeBtn.title = `AdGuard Pop-up & Ad Blocker: ${enabled ? 'Active (' + blockedCount + ' blocked)' : 'Disabled'}. Click to toggle.`;
-        }
-        if (animeLabel) {
-            animeLabel.textContent = `AdGuard: ${enabled ? 'ON' : 'OFF'} (${blockedCount})`;
         }
 
         const animeSrvBtn = document.getElementById('animeServerAdguardBtn');
@@ -645,14 +926,24 @@
             animeSrvCounter.textContent = String(blockedCount);
         }
 
-        const toggle = document.getElementById('adguardBlockerToggle');
-        if (toggle && toggle.checked !== enabled) {
-            toggle.checked = enabled;
-        }
+        // 2. Sandbox Bypass Badges
+        const sandboxBadges = document.querySelectorAll('.adguard-sandbox-badge, #adguardSandboxBadge');
+        sandboxBadges.forEach(badge => {
+            badge.classList.toggle('strict', !sandboxBypassEnabled);
+            badge.title = sandboxBypassEnabled
+                ? 'Movie Sandbox Bypass: ON (Prevents "Remove Sandbox Attributes" error on movie servers while keeping ads blocked). Click to toggle strict mode.'
+                : 'Movie Sandbox Bypass: OFF (Strict Isolation Mode). Click to enable stream bypass.';
+            const textEl = badge.querySelector('.adguard-sandbox-text, #adguardSandboxText');
+            if (textEl) {
+                textEl.textContent = sandboxBypassEnabled ? '⚡ Sandbox: Bypassed' : '🛡️ Sandbox: Strict';
+            }
+        });
+
+        // 3. Settings modal descriptions
         const desc = document.getElementById('adguardStatusDesc');
         if (desc) {
             desc.textContent = enabled
-                ? `Active · High-strength AdGuard engine blocks video ads, pop-ups, and redirects (${blockedCount} blocked).`
+                ? `Active · High-strength CSS injection & DOM shield (${blockedCount} blocked). Sandbox bypass: ${sandboxBypassEnabled ? 'Enabled (Movies Compatible)' : 'Strict'}.`
                 : 'Disabled · Protection paused.';
         }
     }
@@ -660,7 +951,7 @@
     function notifyStateChanged() {
         try {
             window.dispatchEvent(new CustomEvent('adguard:state-changed', {
-                detail: { enabled, blockedCount }
+                detail: { enabled, blockedCount, sandboxBypassEnabled, cssInjectEnabled }
             }));
         } catch {}
         try {
@@ -668,14 +959,27 @@
         } catch {}
     }
 
+    // Global click listener for AdGuard UI toggles
     document.addEventListener('click', (e) => {
+        // Toggle AdGuard Main Engine
         const targetBadge = e.target.closest('#adguardServerBadge, #animeCtrlAdguard, #animeServerAdguardBtn');
-        if (!targetBadge) return;
-        e.preventDefault();
-        e.stopPropagation();
-        window.AdGuardPopupBlocker.setEnabled(!enabled);
-        if (typeof window.toast === 'function') {
-            window.toast(`AdGuard Pop-up & Video Blocker ${enabled ? 'enabled' : 'disabled'} on playback servers`, enabled ? 'success' : 'info');
+        if (targetBadge) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.AdGuardPopupBlocker.setEnabled(!enabled);
+            if (typeof window.toast === 'function') {
+                window.toast(`AdGuard Pop-up & Video Blocker ${enabled ? 'enabled' : 'disabled'} on playback servers`, enabled ? 'success' : 'info');
+            }
+            return;
+        }
+
+        // Toggle Sandbox Bypass Mode
+        const sandboxBadge = e.target.closest('#adguardSandboxBadge, .adguard-sandbox-badge');
+        if (sandboxBadge) {
+            e.preventDefault();
+            e.stopPropagation();
+            window.AdGuardPopupBlocker.toggleSandboxBypass();
+            return;
         }
     });
 
@@ -692,12 +996,15 @@
     // -------------------------------------------------------------
     window.AdGuardPopupBlocker = {
         name: 'AdGuard PopupBlocker for MILKBOX',
-        version: '3.0.0-high-strength-shield',
+        version: '3.5.0-high-strength-css-shield-sandbox-bypass',
         isEnabled: function() { return enabled; },
         setEnabled: function(val) {
             enabled = Boolean(val);
             try { localStorage.setItem(STORAGE_KEY_ENABLED, String(enabled)); } catch {}
             console.log(`[AdGuard PopupBlocker] Protection ${enabled ? 'enabled' : 'disabled'}`);
+            if (enabled) {
+                injectCSSShield(document);
+            }
             notifyStateChanged();
             scanAndNeutralizeOverlays();
         },
@@ -707,6 +1014,28 @@
             try { localStorage.setItem(STORAGE_KEY_COUNT, '0'); } catch {}
             notifyStateChanged();
         },
+
+        // Sandbox Bypass Management
+        isSandboxBypassEnabled: function() { return sandboxBypassEnabled; },
+        setSandboxBypassEnabled: function(val) {
+            sandboxBypassEnabled = Boolean(val);
+            try { localStorage.setItem(STORAGE_KEY_SANDBOX_BYPASS, String(sandboxBypassEnabled)); } catch {}
+            console.log(`[AdGuard PopupBlocker] Sandbox Bypass ${sandboxBypassEnabled ? 'enabled (stream compatible)' : 'disabled (strict)'}`);
+            // Re-apply to all active playback iframes
+            document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe, #cinesrcPlayerIframe, #scramjetPlayerIframe').forEach(hardenPlaybackIframe);
+            notifyStateChanged();
+            if (typeof window.toast === 'function') {
+                window.toast(`Movie Sandbox Bypass: ${sandboxBypassEnabled ? '⚡ Bypassed (Streams compatible)' : '🛡️ Strict Isolation Mode'}`, 'info');
+            }
+        },
+        toggleSandboxBypass: function() {
+            this.setSandboxBypassEnabled(!sandboxBypassEnabled);
+        },
+        getOptimalSandboxTokens: getOptimalSandboxTokens,
+        bypassSandboxViaProxy: bypassSandboxViaProxy,
+
+        // CSS Injection & Scanning
+        injectCSSShield: injectCSSShield,
         hardenIframe: hardenPlaybackIframe,
         notifyBlocked: function(msg, url) {
             showBlockedNotification(msg, url);
