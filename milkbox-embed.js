@@ -232,7 +232,15 @@
         switch (server) {
             case 'scramjet': {
                 const isProxy = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_mode')) !== 'direct';
-                const mirror = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_source')) || 'vidsrc';
+                let mirror = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_source')) || 'x8rrmovies';
+                if (mirror === 'vidstuck' || mirror === 'vixsrc') mirror = 'x8rrmovies';
+
+                if (mirror === 'x8rrmovies' || mirror === 'milkbox') {
+                    return type === 'tv'
+                        ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(id)}&season=${encodeURIComponent(season || 1)}&episode=${encodeURIComponent(episode || 1)}&server=x8rrmovies&autoplay=true`
+                        : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(id)}&server=x8rrmovies&autoplay=true`;
+                }
+
                 let directUrl;
                 if (mirror === 'cinesrc') {
                     directUrl = type === 'tv'
@@ -242,6 +250,18 @@
                     directUrl = type === 'tv'
                         ? `https://vidlink.pro/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?primaryColor=${accent}&autoplay=true`
                         : `https://vidlink.pro/movie/${encodeURIComponent(id)}?primaryColor=${accent}&autoplay=true`;
+                } else if (mirror === 'vidnest') {
+                    directUrl = type === 'tv'
+                        ? `https://vidnest.fun/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`
+                        : `https://vidnest.fun/movie/${encodeURIComponent(id)}`;
+                } else if (mirror === 'pstream') {
+                    directUrl = type === 'tv'
+                        ? `https://embed.pstream.cfd/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`
+                        : `https://embed.pstream.cfd/movie/${encodeURIComponent(id)}`;
+                } else if (mirror === 'vidfast' || mirror === 'vidfastvc') {
+                    directUrl = type === 'tv'
+                        ? `https://vidfast.vc/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}?autoPlay=true&nextButton=true&theme=${accent}`
+                        : `https://vidfast.vc/movie/${encodeURIComponent(id)}?autoPlay=true&theme=${accent}`;
                 } else {
                     directUrl = type === 'tv'
                         ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(id)}/${encodeURIComponent(season || 1)}/${encodeURIComponent(episode || 1)}`

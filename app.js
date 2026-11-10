@@ -4779,8 +4779,12 @@ function makePlaybackIframe(url, extraAttrs = '') {
 
 const SCRAMJET_WISP_URL = 'wss://wisp.classroom.lat/';
 window._scramjetWispGateway = SCRAMJET_WISP_URL;
-window._scramjetActiveSource = 'vidsrc';
-window._scramjetProxyMode = 'direct'; 
+window._scramjetActiveSource = (typeof localStorage !== 'undefined' && localStorage.getItem('milkbox_scramjet_source')) || 'x8rrmovies';
+if (window._scramjetActiveSource === 'vidstuck' || window._scramjetActiveSource === 'vixsrc' || window._scramjetActiveSource === 'vidfastvc') {
+    window._scramjetActiveSource = 'x8rrmovies';
+    try { localStorage.setItem('milkbox_scramjet_source', 'x8rrmovies'); } catch {}
+}
+window._scramjetProxyMode = 'proxy'; 
 window._scramjetContext = null;
 
 try {
@@ -4799,16 +4803,13 @@ window.addEventListener('message', function(ev) {
 });
 
 const MILKBOX_SCRAMJET_SERVERS = [
-    { id: 'vidstuck', name: 'VidStuck', icon: '⚡' },
+    { id: 'x8rrmovies', name: 'Milkbox HLS', icon: '🍿' },
     { id: 'vidlink', name: 'VidLink', icon: '💎' },
-    { id: 'vidnest', name: 'VidNest', icon: '🪺' },
-    { id: 'vixsrc', name: 'VixSrc', icon: '🦊' },
-    { id: 'vidfastvc', name: 'VidFast', icon: '⚡' },
-    { id: 'vidzee', name: 'VidZee', icon: '🪐' },
-    { id: 'pstream', name: 'P-Stream', icon: '🚀' },
     { id: 'cinesrc', name: 'CineSRC', icon: '🎬' },
     { id: 'vidsrc', name: 'VidSrc', icon: '📺' },
-    { id: 'x8rrmovies', name: 'Milkbox HLS', icon: '🍿' }
+    { id: 'vidnest', name: 'VidNest', icon: '🪺' },
+    { id: 'pstream', name: 'P-Stream', icon: '🚀' },
+    { id: 'vidfast', name: 'VidFast', icon: '⚡' }
 ];
 
 function getScramjetSourceUrl(sourceKey, mode = window._scramjetProxyMode) {
@@ -4822,52 +4823,37 @@ function getScramjetSourceUrl(sourceKey, mode = window._scramjetProxyMode) {
 
     let directUrl;
     switch (sourceKey) {
-        case 'vidstuck':
+        case 'x8rrmovies':
+        case 'milkbox':
             directUrl = type === 'tv'
-                ? `https://vidstuck.cc/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=${accent}&autoplay=true`
-                : `https://vidstuck.cc/embed/movie/${encodeURIComponent(tmdbId)}?color=${accent}&autoplay=true`;
+                ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
+                : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
             break;
         case 'vidlink':
             directUrl = type === 'tv'
                 ? `https://vidlink.pro/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?primaryColor=${accent}&autoplay=true`
                 : `https://vidlink.pro/movie/${encodeURIComponent(tmdbId)}?primaryColor=${accent}&autoplay=true`;
             break;
+        case 'cinesrc':
+            directUrl = type === 'tv'
+                ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
+                : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
+            break;
         case 'vidnest':
             directUrl = type === 'tv'
                 ? `https://vidnest.fun/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
                 : `https://vidnest.fun/movie/${encodeURIComponent(tmdbId)}`;
-            break;
-        case 'vixsrc':
-            directUrl = type === 'tv'
-                ? `https://vixsrc.to/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
-                : `https://vixsrc.to/movie/${encodeURIComponent(tmdbId)}`;
-            break;
-        case 'vidfastvc':
-        case 'vidfast':
-            directUrl = type === 'tv'
-                ? `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
-                : `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=${accent}`;
-            break;
-        case 'vidzee':
-            directUrl = type === 'tv'
-                ? `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
-                : `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(tmdbId)}`;
             break;
         case 'pstream':
             directUrl = type === 'tv'
                 ? `https://embed.pstream.cfd/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}`
                 : `https://embed.pstream.cfd/movie/${encodeURIComponent(tmdbId)}`;
             break;
-        case 'cinesrc':
+        case 'vidfast':
+        case 'vidfastvc':
             directUrl = type === 'tv'
-                ? `https://cinesrc.st/embed/tv/${encodeURIComponent(tmdbId)}?s=${encodeURIComponent(se)}&e=${encodeURIComponent(ep)}`
-                : `https://cinesrc.st/embed/movie/${encodeURIComponent(tmdbId)}`;
-            break;
-        case 'x8rrmovies':
-        case 'milkbox':
-            directUrl = type === 'tv'
-                ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(tmdbId)}&season=${encodeURIComponent(se)}&episode=${encodeURIComponent(ep)}&server=x8rrmovies&autoplay=true`
-                : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(tmdbId)}&server=x8rrmovies&autoplay=true`;
+                ? `https://vidfast.vc/tv/${encodeURIComponent(tmdbId)}/${encodeURIComponent(se)}/${encodeURIComponent(ep)}?autoPlay=true&nextButton=true&theme=${accent}`
+                : `https://vidfast.vc/movie/${encodeURIComponent(tmdbId)}?autoPlay=true&theme=${accent}`;
             break;
         case 'vidsrc':
         default:
@@ -4959,13 +4945,13 @@ function scramjetIframe(tmdbId, type, season, episode) {
         type,
         season: se,
         episode: ep,
-        active: window._scramjetActiveSource || 'vidstuck',
+        active: window._scramjetActiveSource || 'x8rrmovies',
         wisp: SCRAMJET_WISP_URL
     };
 
-    const initialSource = window._scramjetActiveSource || 'vidstuck';
+    const initialSource = window._scramjetActiveSource || 'x8rrmovies';
     const initialUrl = getScramjetSourceUrl(initialSource, window._scramjetProxyMode);
-    const initialSrv = MILKBOX_SCRAMJET_SERVERS.find(s => s.id === initialSource) || { name: initialSource, icon: '🍿' };
+    const initialSrv = MILKBOX_SCRAMJET_SERVERS.find(s => s.id === initialSource) || MILKBOX_SCRAMJET_SERVERS[0];
 
     const isProxy = window._scramjetProxyMode === 'proxy';
 

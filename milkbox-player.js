@@ -640,16 +640,13 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                                 </div>
                                 <div style="font-size:10px; font-weight:700; color:#ffb6d8; margin:6px 0 3px;">Milkbox Streaming Servers:</div>
                                 <div class="milkbox-settings-pills-row milkbox-scramjet-source-pills" style="grid-template-columns: repeat(2, 1fr); gap: 4px;">
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidstuck" type="button" title="VidStuck (vidstuck.cc)">⚡ VidStuck</button>
+                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-src="x8rrmovies" type="button" title="Milkbox Player (HLS Proxied)">🍿 Milkbox HLS</button>
                                     <button class="milkbox-settings-pill-btn" data-scramjet-src="vidlink" type="button" title="VidLink (vidlink.pro)">💎 VidLink</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidnest" type="button" title="VidNest (vidnest.fun)">🪺 VidNest</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vixsrc" type="button" title="VixSrc (vixsrc.to)">🦊 VixSrc</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidfastvc" type="button" title="VidFast (vidfast.vc)">⚡ VidFast</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidzee" type="button" title="VidZee (player.vidzee.wtf)">🪐 VidZee</button>
-                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="pstream" type="button" title="P-Stream (embed.pstream.cfd)">🚀 P-Stream</button>
                                     <button class="milkbox-settings-pill-btn" data-scramjet-src="cinesrc" type="button" title="CineSRC (cinesrc.st)">🎬 CineSRC</button>
                                     <button class="milkbox-settings-pill-btn" data-scramjet-src="vidsrc" type="button" title="VidSrc (vidsrc.pm)">📺 VidSrc</button>
-                                    <button class="milkbox-settings-pill-btn is-active" data-scramjet-src="x8rrmovies" type="button" title="Milkbox Player (HLS)">🍿 Milkbox HLS</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidnest" type="button" title="VidNest (vidnest.fun)">🪺 VidNest</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="pstream" type="button" title="P-Stream (embed.pstream.cfd)">🚀 P-Stream</button>
+                                    <button class="milkbox-settings-pill-btn" data-scramjet-src="vidfast" type="button" title="VidFast (vidfast.vc)">⚡ VidFast</button>
                                 </div>
                                 <div style="display:flex; gap:6px; margin-top:6px;">
                                     <button class="milkbox-settings-action-btn milkbox-scramjet-switch-btn" type="button" style="justify-content:center; gap:6px; background:rgba(255,46,99,0.18); border-color:rgba(255,46,99,0.4); color:#ffb6d8; font-weight:700;">
@@ -1465,16 +1462,14 @@ function _milkboxCreateNativePlayer(container, sourceUrl, titleText, subtitleTex
                 b.classList.toggle('is-active', b === btn);
             });
             const SERVER_NAMES = {
-                vidstuck: 'VidStuck',
+                x8rrmovies: 'Milkbox Player (HLS)',
                 vidlink: 'VidLink',
-                vidnest: 'VidNest',
-                vixsrc: 'VixSrc',
-                vidfastvc: 'VidFast',
-                vidzee: 'VidZee',
-                pstream: 'P-Stream',
                 cinesrc: 'CineSRC',
                 vidsrc: 'VidSrc',
-                x8rrmovies: 'Milkbox Player (HLS)'
+                vidnest: 'VidNest',
+                pstream: 'P-Stream',
+                vidfast: 'VidFast',
+                vidfastvc: 'VidFast'
             };
             const label = SERVER_NAMES[src] || src;
             const toastFn = typeof window.toast === 'function' ? window.toast : (typeof toast === 'function' ? toast : null);

@@ -1418,38 +1418,35 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             if (parsed.searchParams.has('episode')) episode = parseInt(parsed.searchParams.get('episode'), 10) || episode;
             if (parsed.searchParams.has('id') && !mediaId) mediaId = parsed.searchParams.get('id');
 
+            if (targetUrl.startsWith('/milkbox-embed') || targetUrl.includes('server=x8rrmovies')) {
+                res.writeHead(302, { 'Location': targetUrl });
+                res.end();
+                return true;
+            }
+
             const idForMirrors = mediaId || '550';
             const mirrors = {
-                vidstuck: mediaType === 'tv'
-                    ? `https://vidstuck.cc/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?nextEpisode=true&autoplayNextEpisode=true&episodeSelector=true&color=ff2e63&autoplay=true`
-                    : `https://vidstuck.cc/embed/movie/${encodeURIComponent(idForMirrors)}?color=ff2e63&autoplay=true`,
+                x8rrmovies: mediaType === 'tv'
+                    ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${season}&episode=${episode}&server=x8rrmovies&autoplay=true`
+                    : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(idForMirrors)}&server=x8rrmovies&autoplay=true`,
                 vidlink: mediaType === 'tv'
                     ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?primaryColor=ff2e63&autoplay=true`
                     : `https://vidlink.pro/movie/${encodeURIComponent(idForMirrors)}?primaryColor=ff2e63&autoplay=true`,
-                vidnest: mediaType === 'tv'
-                    ? `https://vidnest.fun/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
-                    : `https://vidnest.fun/movie/${encodeURIComponent(idForMirrors)}`,
-                vixsrc: mediaType === 'tv'
-                    ? `https://vixsrc.to/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
-                    : `https://vixsrc.to/movie/${encodeURIComponent(idForMirrors)}`,
-                vidfastvc: mediaType === 'tv'
-                    ? `https://vidfast.vc/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?autoPlay=true&nextButton=true&theme=ff2e63`
-                    : `https://vidfast.vc/movie/${encodeURIComponent(idForMirrors)}?autoPlay=true&theme=ff2e63`,
-                vidzee: mediaType === 'tv'
-                    ? `https://player.vidzee.wtf/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
-                    : `https://player.vidzee.wtf/embed/movie/${encodeURIComponent(idForMirrors)}`,
-                pstream: mediaType === 'tv'
-                    ? `https://embed.pstream.cfd/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
-                    : `https://embed.pstream.cfd/movie/${encodeURIComponent(idForMirrors)}`,
                 cinesrc: mediaType === 'tv'
                     ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
                     : `https://cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 vidsrc: mediaType === 'tv'
                     ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
                     : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
-                hls: mediaType === 'tv'
-                    ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${season}&episode=${episode}&server=x8rrmovies&autoplay=true`
-                    : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(idForMirrors)}&server=x8rrmovies&autoplay=true`
+                vidnest: mediaType === 'tv'
+                    ? `https://vidnest.fun/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://vidnest.fun/movie/${encodeURIComponent(idForMirrors)}`,
+                pstream: mediaType === 'tv'
+                    ? `https://embed.pstream.cfd/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    : `https://embed.pstream.cfd/movie/${encodeURIComponent(idForMirrors)}`,
+                vidfast: mediaType === 'tv'
+                    ? `https://vidfast.vc/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?autoPlay=true&nextButton=true&theme=ff2e63`
+                    : `https://vidfast.vc/movie/${encodeURIComponent(idForMirrors)}?autoPlay=true&theme=ff2e63`
             };
 
             const escapedTargetUrl = targetUrl
@@ -1464,7 +1461,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="referrer" content="no-referrer">
+    <meta name="referrer" content="origin-when-cross-origin">
     <title>Scramjet Shielded Proxy Player</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1506,8 +1503,8 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             justify-content: center;
             background: #09090e;
             z-index: 20;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-            pointer-events: auto;
+            transition: opacity 0.25s ease, visibility 0.25s ease;
+            pointer-events: none;
         }
         .scramjet-overlay.loaded {
             opacity: 0;
@@ -1590,20 +1587,17 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 src="${escapedTargetUrl}"
                 allowfullscreen
                 allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                referrerpolicy="no-referrer"></iframe>
+                referrerpolicy="origin-when-cross-origin"></iframe>
 
         <div class="scramjet-quick-bar" id="scramjetQuickBar">
-            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Milkbox:</span>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidstuck')">⚡ VidStuck</button>
+            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Scramjet:</span>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('x8rrmovies')">🍿 Milkbox HLS</button>
             <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidlink')">💎 VidLink</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidnest')">🪺 VidNest</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vixsrc')">🦊 VixSrc</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidfastvc')">⚡ VidFast</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidzee')">🪐 VidZee</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('pstream')">🚀 P-Stream</button>
             <button class="scramjet-quick-btn" type="button" onclick="loadMirror('cinesrc')">🎬 CineSRC</button>
             <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidsrc')">📺 VidSrc</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('hls')">🍿 Milkbox HLS</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidnest')">🪺 VidNest</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('pstream')">🚀 P-Stream</button>
+            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidfast')">⚡ VidFast</button>
         </div>
     </div>
 
@@ -1624,20 +1618,21 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             var statusText = document.getElementById('scramjetStatusText');
 
             function hideOverlay() {
-                if (overlay && !overlay.classList.contains('loaded')) {
+                if (overlay) {
                     overlay.classList.add('loaded');
+                    overlay.style.pointerEvents = 'none';
                     setTimeout(function() {
                         if (overlay) overlay.style.display = 'none';
-                    }, 350);
+                    }, 250);
                 }
             }
 
             if (ifr) {
                 ifr.addEventListener('load', function() {
-                    setTimeout(hideOverlay, 300);
+                    setTimeout(hideOverlay, 150);
                 });
-                setTimeout(hideOverlay, 1500);
             }
+            setTimeout(hideOverlay, 600);
 
             var mirrors = ${JSON.stringify(mirrors)};
 
@@ -1646,6 +1641,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 if (!url) return;
                 if (overlay) {
                     overlay.style.display = 'flex';
+                    overlay.style.pointerEvents = 'none';
                     overlay.classList.remove('loaded');
                     if (statusText) statusText.textContent = 'Switching to ' + key.toUpperCase() + ' mirror…';
                 }
@@ -1655,7 +1651,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 try {
                     window.parent.postMessage({ type: 'scramjet:switchSource', source: key }, '*');
                 } catch(e) {}
-                setTimeout(hideOverlay, 1500);
+                setTimeout(hideOverlay, 800);
             };
         })();
     </script>
