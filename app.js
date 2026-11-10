@@ -4768,8 +4768,12 @@ function toggleMyList(item, type) {
 
 // Play
 function makePlaybackIframe(url, extraAttrs = '') {
-    
-    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" ${extraAttrs}></iframe>`;
+    const isCloud = /vidmario|phantom|cinesrc|vidsrc|vidcore|videasy|vidy|pstream|multiembed|moviesapi|autoembed|yapgrid|embedflix|vidlink|vidspark|vidrock|vidflix|vidlux|vidsrcme|vidsrc\.in|vidsrc\.io|vsembed|2embed|embed\.su|vidfast|wfs\.lol|vidstuck|vidnest|vixsrc|vidzee|vidhawk|anixo|megavid|kisskh|smashystream|superembed|nontongo|miruro|megaplay|anikoto/i.test(url);
+    const isAdGuardOn = window.AdGuardPopupBlocker ? window.AdGuardPopupBlocker.isEnabled() : true;
+    const sandboxAttr = (isCloud && isAdGuardOn && !extraAttrs.includes('sandbox='))
+        ? 'sandbox="allow-scripts allow-same-origin allow-forms allow-presentation"'
+        : '';
+    return `<iframe src="${escapeHtml(url)}" width="100%" height="100%" style="border:0" frameborder="0" allowfullscreen allow="autoplay; fullscreen; picture-in-picture; encrypted-media" ${sandboxAttr} ${extraAttrs}></iframe>`;
 }
 
 
@@ -4890,7 +4894,9 @@ window.toggleScramjetProxyMode = function() {
     const newUrl = getScramjetSourceUrl(window._scramjetActiveSource, window._scramjetProxyMode);
 
     if (ifr) {
-        ifr.removeAttribute('sandbox');
+        if (window.AdGuardPopupBlocker) {
+            window.AdGuardPopupBlocker.hardenIframe(ifr);
+        }
         ifr.src = newUrl;
     }
 
@@ -4921,7 +4927,9 @@ window.switchScramjetSource = function(targetSource) {
     const url = getScramjetSourceUrl(targetSource);
 
     if (ifr) {
-        ifr.removeAttribute('sandbox');
+        if (window.AdGuardPopupBlocker) {
+            window.AdGuardPopupBlocker.hardenIframe(ifr);
+        }
         if (ifr.src !== url) {
             ifr.src = url;
         }

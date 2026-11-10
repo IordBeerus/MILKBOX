@@ -1128,6 +1128,7 @@
                                             elements.nativeVideo.style.display = 'none';
                                             elements.nativeVideo.pause();
                                             elements.iframe.style.display = 'block';
+                                            if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.hardenIframe(elements.iframe);
                                             elements.iframe.src = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
                                             hideLoader();
                                         }
@@ -1146,6 +1147,7 @@
                                         elements.nativeVideo.style.display = 'none';
                                         elements.nativeVideo.pause();
                                         elements.iframe.style.display = 'block';
+                                        if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.hardenIframe(elements.iframe);
                                         elements.iframe.src = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
                                         hideLoader();
                                     }
@@ -1171,17 +1173,20 @@
                 elements.nativeVideo.style.display = 'none';
                 elements.nativeVideo.pause();
                 elements.iframe.style.display = 'block';
+                if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.hardenIframe(elements.iframe);
                 elements.iframe.src = targetUrl;
             } else {
                 if (elements.qualityWrap) elements.qualityWrap.style.display = 'none';
                 const fallbackUrl = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
                 elements.iframe.style.display = 'block';
+                if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.hardenIframe(elements.iframe);
                 elements.iframe.src = fallbackUrl;
             }
         } catch {
             if (elements.qualityWrap) elements.qualityWrap.style.display = 'none';
             const fallbackUrl = buildStreamUrl(state.currentServer, state.type, id, state.season, state.episode);
             elements.iframe.style.display = 'block';
+            if (window.AdGuardPopupBlocker) window.AdGuardPopupBlocker.hardenIframe(elements.iframe);
             elements.iframe.src = fallbackUrl;
         }
 
