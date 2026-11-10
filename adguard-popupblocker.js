@@ -199,7 +199,7 @@
         '[data-ad]', '[data-ad-client]', '[data-ad-slot]', '[data-ad-unit]',
         '[id*="google_ads_iframe"]', '[id*="aswift_"]',
         '[id*="taboola-"]', '[class*="taboola-"]',
-        '[id*="outbrain-"]`, `[class*="outbrain-"]',
+        '[id*="outbrain-"]', '[class*="outbrain-"]',
         '[id*="mgid-"]', '[class*="mgid-"]',
         'iframe[src*="doubleclick"]', 'iframe[src*="googlesyndication"]', 'iframe[src*="googleads"]',
         'iframe[src*="popads"]', 'iframe[src*="popcash"]', 'iframe[src*="exoclick"]',
@@ -208,9 +208,7 @@
         'iframe[src*="galaksion"]', 'iframe[src*="yllix"]', 'iframe[src*="clickadu"]',
         'iframe[src*="onclickmega"]', 'iframe[src*="clickshield"]', 'iframe[src*="creative-serving"]',
         'iframe[src*="syndication"]', 'iframe[src*="affiliate"]', 'iframe[src*="vmg.host"]',
-        'iframe[src*="rtmark"]', 'iframe[src*="creativecdn"]', 'iframe[src*="trackurl"]',
-        'a[target="_blank"][style*="fixed"][style*="z-index"]:not(#mobileNav a):not(header a)',
-        'a[target="_blank"][style*="absolute"][style*="z-index"]:not(#mobileNav a):not(header a)'
+        'iframe[src*="rtmark"]', 'iframe[src*="creativecdn"]', 'iframe[src*="trackurl"]'
     ].join(', ');
 
     const CSS_SHIELD_RULES = `
@@ -529,6 +527,17 @@
         return false;
     }
 
+    // Safe matcher that never throws SyntaxError even on edge-case DOM elements
+    function matchesAdSelector(el) {
+        if (!el || !(el instanceof Element)) return false;
+        if (isLegitimateAppElement(el)) return false;
+        try {
+            return Boolean(el.matches && el.matches(AD_SIGNATURE_SELECTORS));
+        } catch {
+            return false;
+        }
+    }
+
     // Helper to completely disarm an intrusive element
     function disarmAndHideElement(el, reason = 'Intrusive ad element') {
         if (!el || !el.parentNode || isLegitimateAppElement(el)) return;
@@ -678,12 +687,16 @@
             }
 
             // 2. Strip elements matching ad selectors
-            const adNodes = document.querySelectorAll(AD_SIGNATURE_SELECTORS);
-            for (let i = 0; i < adNodes.length; i++) {
-                const el = adNodes[i];
-                if (!isLegitimateAppElement(el)) {
-                    disarmAndHideElement(el, 'Ad signature element removed');
+            try {
+                const adNodes = document.querySelectorAll(AD_SIGNATURE_SELECTORS);
+                for (let i = 0; i < adNodes.length; i++) {
+                    const el = adNodes[i];
+                    if (!isLegitimateAppElement(el)) {
+                        disarmAndHideElement(el, 'Ad signature element removed');
+                    }
                 }
+            } catch (e) {
+                console.warn('[AdGuard] querySelectorAll error:', e);
             }
 
             // 3. Strip suspicious floating overlays & clickjack anchors
@@ -746,11 +759,9 @@
             }
 
             // 4. Check Ad Signatures
-            if (node.matches && node.matches(AD_SIGNATURE_SELECTORS)) {
-                if (!isLegitimateAppElement(node)) {
-                    disarmAndHideElement(node, 'Ad element hidden before render');
-                    return;
-                }
+            if (matchesAdSelector(node)) {
+                disarmAndHideElement(node, 'Ad element hidden before render');
+                return;
             }
 
             // 5. Check Clickjack Overlays
@@ -792,7 +803,7 @@
                     const el = m.target;
                     if (!isLegitimateAppElement(el)) {
                         if (m.attributeName === 'style' || m.attributeName === 'class') {
-                            if (isOverlayOrClickjacker(el) || (el.matches && el.matches(AD_SIGNATURE_SELECTORS))) {
+                            if (isOverlayOrClickjacker(el) || matchesAdSelector(el)) {
                                 disarmAndHideElement(el, 'Dynamically positioned ad overlay neutralized');
                             }
                         } else if (m.attributeName === 'src' && el.tagName === 'IFRAME') {
