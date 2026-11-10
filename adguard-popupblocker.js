@@ -937,24 +937,21 @@
             animeSrvCounter.textContent = String(blockedCount);
         }
 
-        // 2. Sandbox Bypass Badges
-        const sandboxBadges = document.querySelectorAll('.adguard-sandbox-badge, #adguardSandboxBadge');
-        sandboxBadges.forEach(badge => {
-            badge.classList.toggle('strict', !sandboxBypassEnabled);
-            badge.title = sandboxBypassEnabled
-                ? 'Movie Sandbox Bypass: ON (Prevents "Remove Sandbox Attributes" error on movie servers while keeping ads blocked). Click to toggle strict mode.'
-                : 'Movie Sandbox Bypass: OFF (Strict Isolation Mode). Click to enable stream bypass.';
-            const textEl = badge.querySelector('.adguard-sandbox-text, #adguardSandboxText');
-            if (textEl) {
-                textEl.textContent = sandboxBypassEnabled ? '⚡ Sandbox: Bypassed' : '🛡️ Sandbox: Strict';
-            }
-        });
+        // 2. Settings modal toggles & descriptions
+        const blockerToggle = document.getElementById('adguardBlockerToggle');
+        if (blockerToggle && blockerToggle.checked !== enabled) {
+            blockerToggle.checked = enabled;
+        }
 
-        // 3. Settings modal descriptions
+        const bypassToggle = document.getElementById('adguardSandboxBypassToggle');
+        if (bypassToggle && bypassToggle.checked !== sandboxBypassEnabled) {
+            bypassToggle.checked = sandboxBypassEnabled;
+        }
+
         const desc = document.getElementById('adguardStatusDesc');
         if (desc) {
             desc.textContent = enabled
-                ? `Active · High-strength CSS injection & DOM shield (${blockedCount} blocked). Sandbox bypass: ${sandboxBypassEnabled ? 'Enabled (Movies Compatible)' : 'Strict'}.`
+                ? `Active · High-strength CSS injection & DOM shield (${blockedCount} blocked). Movie sandbox bypass: ${sandboxBypassEnabled ? 'Enabled (Streams Compatible)' : 'Strict Isolation'}.`
                 : 'Disabled · Protection paused.';
         }
     }
@@ -983,14 +980,15 @@
             }
             return;
         }
+    });
 
-        // Toggle Sandbox Bypass Mode
-        const sandboxBadge = e.target.closest('#adguardSandboxBadge, .adguard-sandbox-badge');
-        if (sandboxBadge) {
-            e.preventDefault();
-            e.stopPropagation();
-            window.AdGuardPopupBlocker.toggleSandboxBypass();
-            return;
+    // Listen for Settings modal switch changes
+    document.addEventListener('change', (e) => {
+        if (!e.target) return;
+        if (e.target.id === 'adguardSandboxBypassToggle') {
+            window.AdGuardPopupBlocker.setSandboxBypassEnabled(e.target.checked);
+        } else if (e.target.id === 'adguardBlockerToggle') {
+            window.AdGuardPopupBlocker.setEnabled(e.target.checked);
         }
     });
 
