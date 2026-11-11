@@ -1406,7 +1406,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
     }
 
     if (requestPath === '/api/scramjet/embed') {
-        const targetUrl = query.get('url');
+        const targetUrl = (query.get('url') || '').trim();
         if (!targetUrl) {
             res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
             res.end('<h1>Scramjet Proxy Error</h1><p>Missing "url" parameter.</p>');
@@ -1420,7 +1420,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
         }
 
         try {
-            const parsed = new URL(targetUrl, 'http://localhost:3000');
+            const parsed = new URL(targetUrl);
             if (!['http:', 'https:'].includes(parsed.protocol)) {
                 throw new Error('Invalid URL protocol');
             }
@@ -1438,41 +1438,41 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             if (tvMatch) {
                 mediaType = 'tv';
                 mediaId = tvMatch[1];
-                if (tvMatch[2]) season = parseInt(tvMatch[2], 10) || 1;
-                if (tvMatch[3]) episode = parseInt(tvMatch[3], 10) || 1;
+                if (tvMatch[2]) season = Math.max(1, parseInt(tvMatch[2], 10) || 1);
+                if (tvMatch[3]) episode = Math.max(1, parseInt(tvMatch[3], 10) || 1);
             } else if (movieMatch) {
                 mediaType = 'movie';
                 mediaId = movieMatch[1];
             }
 
-            if (parsed.searchParams.has('s')) season = parseInt(parsed.searchParams.get('s'), 10) || season;
-            if (parsed.searchParams.has('season')) season = parseInt(parsed.searchParams.get('season'), 10) || season;
-            if (parsed.searchParams.has('e')) episode = parseInt(parsed.searchParams.get('e'), 10) || episode;
-            if (parsed.searchParams.has('episode')) episode = parseInt(parsed.searchParams.get('episode'), 10) || episode;
+            if (parsed.searchParams.has('s')) season = Math.max(1, parseInt(parsed.searchParams.get('s'), 10) || 1);
+            if (parsed.searchParams.has('season')) season = Math.max(1, parseInt(parsed.searchParams.get('season'), 10) || 1);
+            if (parsed.searchParams.has('e')) episode = Math.max(1, parseInt(parsed.searchParams.get('e'), 10) || 1);
+            if (parsed.searchParams.has('episode')) episode = Math.max(1, parseInt(parsed.searchParams.get('episode'), 10) || 1);
             if (parsed.searchParams.has('id') && !mediaId) mediaId = parsed.searchParams.get('id');
 
-            const idForMirrors = mediaId || '550';
+            const idForMirrors = (mediaId || '550').replace(/[^a-zA-Z0-9_-]/g, '');
             const mirrors = {
                 x8rrmovies: mediaType === 'tv'
-                    ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${season}&episode=${episode}&server=x8rrmovies&autoplay=true`
+                    ? `/milkbox-embed.html?type=tv&id=${encodeURIComponent(idForMirrors)}&season=${encodeURIComponent(String(season))}&episode=${encodeURIComponent(String(episode))}&server=x8rrmovies&autoplay=true`
                     : `/milkbox-embed.html?type=movie&id=${encodeURIComponent(idForMirrors)}&server=x8rrmovies&autoplay=true`,
                 vidlink: mediaType === 'tv'
-                    ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?primaryColor=ff2e63&autoplay=true`
+                    ? `https://vidlink.pro/tv/${encodeURIComponent(idForMirrors)}/${encodeURIComponent(String(season))}/${encodeURIComponent(String(episode))}?primaryColor=ff2e63&autoplay=true`
                     : `https://vidlink.pro/movie/${encodeURIComponent(idForMirrors)}?primaryColor=ff2e63&autoplay=true`,
                 cinesrc: mediaType === 'tv'
-                    ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${season}&e=${episode}`
+                    ? `https://cinesrc.st/embed/tv/${encodeURIComponent(idForMirrors)}?s=${encodeURIComponent(String(season))}&e=${encodeURIComponent(String(episode))}`
                     : `https://cinesrc.st/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 vidsrc: mediaType === 'tv'
-                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    ? `https://vidsrc.pm/embed/tv/${encodeURIComponent(idForMirrors)}/${encodeURIComponent(String(season))}/${encodeURIComponent(String(episode))}`
                     : `https://vidsrc.pm/embed/movie/${encodeURIComponent(idForMirrors)}`,
                 vidnest: mediaType === 'tv'
-                    ? `https://vidnest.fun/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    ? `https://vidnest.fun/tv/${encodeURIComponent(idForMirrors)}/${encodeURIComponent(String(season))}/${encodeURIComponent(String(episode))}`
                     : `https://vidnest.fun/movie/${encodeURIComponent(idForMirrors)}`,
                 pstream: mediaType === 'tv'
-                    ? `https://embed.pstream.cfd/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}`
+                    ? `https://embed.pstream.cfd/tv/${encodeURIComponent(idForMirrors)}/${encodeURIComponent(String(season))}/${encodeURIComponent(String(episode))}`
                     : `https://embed.pstream.cfd/movie/${encodeURIComponent(idForMirrors)}`,
                 vidfast: mediaType === 'tv'
-                    ? `https://vidfast.vc/tv/${encodeURIComponent(idForMirrors)}/${season}/${episode}?autoPlay=true&nextButton=true&theme=ff2e63`
+                    ? `https://vidfast.vc/tv/${encodeURIComponent(idForMirrors)}/${encodeURIComponent(String(season))}/${encodeURIComponent(String(episode))}?autoPlay=true&nextButton=true&theme=ff2e63`
                     : `https://vidfast.vc/movie/${encodeURIComponent(idForMirrors)}?autoPlay=true&theme=ff2e63`
             };
 
@@ -1579,6 +1579,9 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             opacity: 0;
             transition: opacity 0.2s ease;
             pointer-events: auto;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 90vw;
         }
         .scramjet-container:hover .scramjet-quick-bar {
             opacity: 1;
@@ -1593,6 +1596,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             border-radius: 12px;
             cursor: pointer;
             transition: all 0.15s ease;
+            white-space: nowrap;
         }
         .scramjet-quick-btn:hover {
             background: #ff2e63;
@@ -1614,25 +1618,25 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 src="${escapedTargetUrl}"
                 allowfullscreen
                 allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
-                referrerpolicy="origin-when-cross-origin"></iframe>
+                referrerpolicy="origin-when-cross-origin"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock allow-presentation"></iframe>
 
         <div class="scramjet-quick-bar" id="scramjetQuickBar">
-            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Scramjet:</span>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('x8rrmovies')">🍿 Milkbox HLS</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidlink')">💎 VidLink</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('cinesrc')">🎬 CineSRC</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidsrc')">📺 VidSrc</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidnest')">🪺 VidNest</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('pstream')">🚀 P-Stream</button>
-            <button class="scramjet-quick-btn" type="button" onclick="loadMirror('vidfast')">⚡ VidFast</button>
+            <span style="font-size:10px;font-weight:800;color:#ff5e82;text-transform:uppercase;margin-right:2px;">⚡ Mirrors:</span>
+            <button class="scramjet-quick-btn" type="button" data-mirror="x8rrmovies">🍿 HLS</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="vidlink">💎 VidLink</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="cinesrc">🎬 CineSRC</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="vidsrc">📺 VidSrc</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="vidnest">🪺 VidNest</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="pstream">🚀 P-Stream</button>
+            <button class="scramjet-quick-btn" type="button" data-mirror="vidfast">⚡ VidFast</button>
         </div>
     </div>
 
     <script>
         (function() {
             try {
-                // Anti-Popunder & Sandbox Protection Shield
-                window.open = function() { console.log('[Scramjet Proxy] Blocked popup window'); return null; };
+                window.open = function() { return null; };
                 window.alert = function() {};
                 window.confirm = function() { return true; };
                 window.prompt = function() { return null; };
@@ -1643,6 +1647,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             var ifr = document.getElementById('scramjetTargetIframe');
             var overlay = document.getElementById('scramjetOverlay');
             var statusText = document.getElementById('scramjetStatusText');
+            var mirrors = ${JSON.stringify(mirrors)};
 
             function hideOverlay() {
                 if (overlay) {
@@ -1657,11 +1662,12 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             if (ifr) {
                 ifr.addEventListener('load', function() {
                     setTimeout(hideOverlay, 150);
-                });
+                }, { once: false });
+                ifr.addEventListener('error', function() {
+                    if (statusText) statusText.textContent = 'Failed to load source. Try another mirror.';
+                }, { once: false });
             }
-            setTimeout(hideOverlay, 600);
-
-            var mirrors = ${JSON.stringify(mirrors)};
+            setTimeout(hideOverlay, 1200);
 
             window.loadMirror = function(key) {
                 var url = mirrors[key];
@@ -1678,8 +1684,16 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 try {
                     window.parent.postMessage({ type: 'scramjet:switchSource', source: key }, '*');
                 } catch(e) {}
-                setTimeout(hideOverlay, 800);
+                setTimeout(hideOverlay, 1000);
             };
+
+            document.querySelectorAll('[data-mirror]').forEach(function(btn) {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var key = this.getAttribute('data-mirror');
+                    window.loadMirror(key);
+                });
+            });
         })();
     </script>
 </body>
@@ -1690,20 +1704,23 @@ async function handleScramjetProxy(req, res, requestPath, query) {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
                 'Permissions-Policy': 'autoplay=*, fullscreen=*, picture-in-picture=*',
-                'Cache-Control': 'public, max-age=120'
+                'Cache-Control': 'public, max-age=300',
+                'X-Content-Type-Options': 'nosniff',
+                'X-Frame-Options': 'SAMEORIGIN'
             });
             res.end(html);
             return true;
         } catch (err) {
             console.warn('[Scramjet Proxy] Error:', err.message);
-            res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
-            res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Scramjet Proxy Notice</title></head><body style="background:#09090e;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;"><div style="padding:24px;max-width:440px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,46,99,0.3);border-radius:12px;"><h3 style="margin:0 0 8px 0;color:#ff2e63;">Scramjet Proxy Connection Notice</h3><p style="margin:0;font-size:13px;color:#a0a0b0;">${err.message || 'Error initializing proxy'}</p></div></body></html>`);
+            const errorMsg = (err.message || 'Error initializing proxy').replace(/"/g, '&quot;');
+            res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+            res.end(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Scramjet Proxy Notice</title><style>body{background:#09090e;color:#fff;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center;}div{padding:24px;max-width:440px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,46,99,0.3);border-radius:12px;}h3{margin:0 0 8px 0;color:#ff2e63;}p{margin:0;font-size:13px;color:#a0a0b0;}</style></head><body><div><h3>⚠️ Scramjet Proxy Connection Notice</h3><p>${errorMsg}</p><p style="margin-top:12px;font-size:11px;color:#767680;">Try switching to another video source mirror using the buttons below the player.</p></div></body></html>`);
             return true;
         }
     }
 
     if (requestPath === '/api/scramjet/proxy') {
-        const targetUrl = query.get('url');
+        const targetUrl = (query.get('url') || '').trim();
         if (!targetUrl) {
             res.writeHead(400, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({ error: 'Missing url parameter' }));
@@ -1712,6 +1729,9 @@ async function handleScramjetProxy(req, res, requestPath, query) {
 
         try {
             const parsed = new URL(targetUrl);
+            if (!['http:', 'https:'].includes(parsed.protocol)) {
+                throw new Error('Invalid protocol');
+            }
             const upstream = await fetch(parsed.href, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
@@ -1731,7 +1751,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             res.end(Buffer.from(buf));
             return true;
         } catch (e) {
-            res.writeHead(502, { 'Content-Type': 'application/json' });
+            res.writeHead(502, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
             res.end(JSON.stringify({ error: 'Proxy fetch failed', message: e.message }));
             return true;
         }
