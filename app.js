@@ -1598,9 +1598,11 @@ function initCardLogoObserver() {
 
 function extractTmdbPath(url) {
     if (!url || typeof url !== 'string') return '';
-    const match = url.match(/\/t\/p\/[^\/]+(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
-        || url.match(/image\.tmdb\.org(\/[^\/\?#]+\.(jpg|jpeg|png|webp))/i)
-        || url.match(/(\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|webp))/i);
+    if (url.startsWith('data:') || url.startsWith('blob:')) return '';
+    if (/(?:siteicon|placeholder|default|favicon|logo|icon|avatar|cover|thumb|banner|provider-icons)/i.test(url)) return '';
+    const match = url.match(/\/t\/p\/[^\/]+(\/[a-zA-Z0-9_\-]{12,}\.(jpg|jpeg|png|webp))/i)
+        || url.match(/image\.tmdb\.org(\/[a-zA-Z0-9_\-]{12,}\.(jpg|jpeg|png|webp))/i)
+        || url.match(/^(\/[a-zA-Z0-9_\-]{12,}\.(jpg|jpeg|png|webp))$/i);
     return match ? match[1] : '';
 }
 window.extractTmdbPath = extractTmdbPath;
@@ -1706,7 +1708,7 @@ function createCard(item, type, isLandscape = true) {
 
         const logoHTML = safeLogo
             ? `<img class="card-movie-logo" src="${safeLogo}" alt="${safeTitle} Logo" loading="lazy" decoding="async" onerror="this.style.display='none'">`
-            : `<img class="card-movie-logo" src="" alt="${safeTitle} Logo" style="display:none" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
+            : '';
 
         card.innerHTML = `
             <div class="card-media">
@@ -1752,7 +1754,7 @@ function createCard(item, type, isLandscape = true) {
 
         const portraitLogoHTML = safeLogo
             ? `<img class="card-movie-logo card-movie-logo-portrait" src="${safeLogo}" alt="${safeTitle} Logo" loading="lazy" decoding="async" onerror="this.style.display='none'">`
-            : `<img class="card-movie-logo card-movie-logo-portrait" src="" alt="${safeTitle} Logo" style="display:none" loading="lazy" decoding="async" onerror="this.style.display='none'">`;
+            : '';
 
         card.innerHTML = `
             ${imgHTML}
@@ -2115,13 +2117,34 @@ async function fetchProviderLogos() {
     providerLogosFetched = true;
 }
 
+let _providerSliderIdleHandle = null;
+
 async function renderProviders() {
     const slider = document.getElementById('providerSlider');
     if (!slider) return;
+
+    if (_providerSliderIdleHandle) {
+        if (window.cancelIdleCallback) {
+            try { window.cancelIdleCallback(_providerSliderIdleHandle); } catch {}
+        } else {
+            try { window.clearTimeout(_providerSliderIdleHandle); } catch {}
+        }
+        _providerSliderIdleHandle = null;
+    }
+
     await loadLocalProviderIcons();
     if (!providerLogosFetched) {
         try { await fetchProviderLogos(); } catch {}
     }
+
+    const seenProviderIds = new Set();
+    const uniqueProviders = PROVIDERS.filter(p => {
+        const idStr = p && String(p.id || '');
+        if (!idStr || seenProviderIds.has(idStr)) return false;
+        seenProviderIds.add(idStr);
+        return true;
+    });
+
     const renderProviderMarkup = p => {
         const logo = LOCAL_PROVIDER_ICONS[p.id] || providerLogoMap[p.id];
         const logoUrl = logo
@@ -2129,8 +2152,8 @@ async function renderProviders() {
                 ? String(logo)
                 : `https://image.tmdb.org/t/p/w154${logo}`)
             : '';
-        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="68" height="68" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
-        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="68" height="68" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';">` : '';
+        const fallback = `<span class="provider-fallback" style="${logoUrl ? 'display:none;' : 'display:flex;'}font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
         return `
         <div class="provider-item ${activeProvider===p.id?'active':''}" data-provider="${escapeHtml(p.id)}" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}">
             <div class="provider-icon" style="background:${p.bg}">${img}${fallback}</div>
@@ -2138,34 +2161,37 @@ async function renderProviders() {
         </div>`;
     };
     const renderBatch = (container, start, end) => {
-        container.insertAdjacentHTML('beforeend', PROVIDERS.slice(start, end).map(renderProviderMarkup).join(''));
+        container.insertAdjacentHTML('beforeend', uniqueProviders.slice(start, end).map(renderProviderMarkup).join(''));
     };
     const renderLabels = container => {
         const labels = { prime: 'Amazon Prime<br>Video', peacock: 'Peacock<br>Premium', ytpremium: 'YouTube<br>Premium' };
         container.querySelectorAll('.provider-item').forEach(el => {
-            const prov = PROVIDERS.find(x=>x.id===el.dataset.provider);
+            const prov = uniqueProviders.find(x=>x.id===el.dataset.provider);
             if (prov && labels[prov.key]) el.querySelector('.provider-label').innerHTML = labels[prov.key];
         });
     };
-    const initialCount = Math.min(40, PROVIDERS.length);
+    const initialCount = Math.min(40, uniqueProviders.length);
     slider.innerHTML = '';
     renderBatch(slider, 0, initialCount);
     renderLabels(slider);
     let next = initialCount;
     const appendIdleBatch = () => {
-        if (next >= PROVIDERS.length) return;
-        const end = Math.min(next + 40, PROVIDERS.length);
+        if (next >= uniqueProviders.length) {
+            _providerSliderIdleHandle = null;
+            return;
+        }
+        const end = Math.min(next + 40, uniqueProviders.length);
         renderBatch(slider, next, end);
         renderLabels(slider);
         next = end;
-        if (next < PROVIDERS.length) {
-            if (window.requestIdleCallback) window.requestIdleCallback(appendIdleBatch, { timeout: 500 });
-            else window.setTimeout(appendIdleBatch, 100);
+        if (next < uniqueProviders.length) {
+            _providerSliderIdleHandle = window.requestIdleCallback ? window.requestIdleCallback(appendIdleBatch, { timeout: 500 }) : window.setTimeout(appendIdleBatch, 100);
+        } else {
+            _providerSliderIdleHandle = null;
         }
     };
-    if (next < PROVIDERS.length) {
-        if (window.requestIdleCallback) window.requestIdleCallback(appendIdleBatch, { timeout: 500 });
-        else window.setTimeout(appendIdleBatch, 100);
+    if (next < uniqueProviders.length) {
+        _providerSliderIdleHandle = window.requestIdleCallback ? window.requestIdleCallback(appendIdleBatch, { timeout: 500 }) : window.setTimeout(appendIdleBatch, 100);
     }
 }
 
@@ -2268,8 +2294,8 @@ async function renderProviderGrid() {
         const logoUrl = logo
             ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
             : '';
-        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="62" height="62" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onload="this.nextElementSibling.style.display='none'" onerror="this.style.display='none'">` : '';
-        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(p.label)}" width="62" height="62" loading="lazy" decoding="async" fetchpriority="low" referrerpolicy="no-referrer" onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';">` : '';
+        const fallback = `<span class="provider-fallback" style="${logoUrl ? 'display:none;' : 'display:flex;'}font-weight:900;font-size:18px;width:100%;height:100%;align-items:center;justify-content:center;background:${p.bg};color:${p.color}">${escapeHtml(p.short.slice(0, 3).toUpperCase())}</span>`;
 
         return `
         <div class="provider-item ${isActive ? 'active' : ''}" data-provider="${escapeHtml(p.id)}" style="--prov-accent:${meta.accent}; --prov-glow:${meta.glow};" title="${escapeHtml(p.label)}" aria-label="${escapeHtml(p.label)}" role="button" tabindex="0">
@@ -2310,9 +2336,9 @@ function updateProviderActiveSpotlight() {
         const logoUrl = logo
             ? (String(logo).startsWith('http') || String(logo).startsWith('assets/') ? String(logo) : `https://image.tmdb.org/t/p/w154${logo}`)
             : '';
-        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(prov.label)}" width="48" height="48" loading="lazy">` : '';
-        const fallback = `<span class="provider-fallback" style="display:flex;font-weight:900;font-size:16px;width:100%;height:100%;align-items:center;justify-content:center;background:${prov.bg};color:${prov.color}">${escapeHtml(prov.short.slice(0, 3).toUpperCase())}</span>`;
-        logoWrap.innerHTML = img || fallback;
+        const img = logoUrl ? `<img src="${escapeHtml(logoUrl)}" alt="${escapeHtml(prov.label)}" width="48" height="48" loading="lazy" onerror="this.style.display='none';const fb=this.nextElementSibling;if(fb)fb.style.display='flex';">` : '';
+        const fallback = `<span class="provider-fallback" style="${logoUrl ? 'display:none;' : 'display:flex;'}font-weight:900;font-size:16px;width:100%;height:100%;align-items:center;justify-content:center;background:${prov.bg};color:${prov.color}">${escapeHtml(prov.short.slice(0, 3).toUpperCase())}</span>`;
+        logoWrap.innerHTML = `${img}${fallback}`;
     }
 }
 
@@ -7745,11 +7771,21 @@ async function enrichLiveLogos(key) {
                 grid.querySelectorAll('.card').forEach(card => {
                     const it = card._itemRef;
                     if (it && it.logo) {
-                        const logoImg = card.querySelector('.card-movie-logo');
-                        if (logoImg && (!logoImg.src || logoImg.style.display === 'none')) {
-                            logoImg.src = it.logo;
-                            logoImg.style.display = 'block';
+                        let logoImg = card.querySelector('.card-movie-logo');
+                        if (!logoImg) {
+                            const media = card.querySelector('.card-media') || card;
+                            logoImg = document.createElement('img');
+                            logoImg.className = card.classList.contains('card-landscape') ? 'card-movie-logo' : 'card-movie-logo card-movie-logo-portrait';
+                            logoImg.alt = `${it.title || ''} Logo`;
+                            logoImg.loading = 'lazy';
+                            logoImg.decoding = 'async';
+                            logoImg.onerror = () => { logoImg.style.display = 'none'; };
+                            media.appendChild(logoImg);
                         }
+                        if (logoImg.src !== it.logo) {
+                            logoImg.src = it.logo;
+                        }
+                        logoImg.style.display = 'block';
                     }
                 });
             }
@@ -7783,11 +7819,21 @@ async function enrichSearchLogos(items) {
                     if (grid) {
                         const card = Array.from(grid.querySelectorAll('.card')).find(c => c._itemRef === m || c.dataset.id === m.id);
                         if (card) {
-                            const logoImg = card.querySelector('.card-movie-logo');
-                            if (logoImg) {
-                                logoImg.src = m.logo;
-                                logoImg.style.display = 'block';
+                            let logoImg = card.querySelector('.card-movie-logo');
+                            if (!logoImg) {
+                                const media = card.querySelector('.card-media') || card;
+                                logoImg = document.createElement('img');
+                                logoImg.className = card.classList.contains('card-landscape') ? 'card-movie-logo' : 'card-movie-logo card-movie-logo-portrait';
+                                logoImg.alt = `${m.title || ''} Logo`;
+                                logoImg.loading = 'lazy';
+                                logoImg.decoding = 'async';
+                                logoImg.onerror = () => { logoImg.style.display = 'none'; };
+                                media.appendChild(logoImg);
                             }
+                            if (logoImg.src !== m.logo) {
+                                logoImg.src = m.logo;
+                            }
+                            logoImg.style.display = 'block';
                         }
                     }
                 }
