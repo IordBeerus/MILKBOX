@@ -378,8 +378,19 @@ function titleSimilarity(t1, t2) {
     const a = t1.toLowerCase().replace(/[^a-z0-9]/g, '');
     const b = t2.toLowerCase().replace(/[^a-z0-9]/g, '');
     if (a === b) return 1.0;
-    if (a.startsWith(b) || b.startsWith(a)) return 0.8;
-    if (a.includes(b) || b.includes(a)) return 0.6;
+    if (a.startsWith(b) || b.startsWith(a)) {
+        const minLen = Math.min(a.length, b.length);
+        const maxLen = Math.max(a.length, b.length);
+        if (minLen >= 4 && (minLen / maxLen) >= 0.7) return 0.85;
+    }
+    // Only check substring inclusion if both titles are substantive (avoid false positive duplicates on short words like "it", "us", "in")
+    if (a.length >= 5 && b.length >= 5) {
+        if (a.includes(b) || b.includes(a)) {
+            const minLen = Math.min(a.length, b.length);
+            const maxLen = Math.max(a.length, b.length);
+            if ((minLen / maxLen) >= 0.6) return 0.7;
+        }
+    }
     return 0;
 }
 
@@ -429,27 +440,41 @@ async function proxyImageFallback(req, res, requestPath, query) {
         pathParam = '/' + pathParam;
     }
 
+    // Ignore generic icon/placeholder paths to prevent image collisions across movies
+    const isGenericPath = !pathParam || /siteicon|placeholder|default|favicon|logo|icon|avatar|cover|poster\.|backdrop\.|thumb\.|null|undefined/i.test(pathParam);
+    const isValidTmdbPath = !isGenericPath && /^\/[a-zA-Z0-9_\-]{12,}\.(jpg|jpeg|png|webp)$/i.test(pathParam);
+
     const isGenericTitle = !title || /^(movie|tv show|untitled|null|undefined|series|film|cinema)$/i.test(title);
 
-    if (isGenericTitle && !pathParam && !tmdbId) {
+    if (isGenericTitle && !isValidTmdbPath && !tmdbId) {
         return sendCustomSvg(res, title || 'Movie', year, isBackdrop);
     }
 
-    // Cache key specific to this exact title / item so titles never overwrite each other
+    // Cache key specific to this exact unique item so images NEVER duplicate or overwrite other titles
     const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    const cleanKey = (pathParam || (tmdbId ? `id_${tmdbId}` : '') || (cleanTitle ? `${cleanTitle}_${year}` : 'fallback'))
-        .replace(/[^a-z0-9_\-\.]/gi, '_');
-    const cacheKey = `${cleanKey}_${type}`;
+    let uniqueKey = '';
+    if (isValidTmdbPath) {
+        uniqueKey = `path_${pathParam.replace(/[^a-z0-9_\-\.]/gi, '_')}`;
+    } else if (tmdbId && /^[0-9]+$/.test(tmdbId)) {
+        uniqueKey = `tmdb_${tmdbId}`;
+    } else if (cleanTitle && cleanTitle.length > 1 && !isGenericTitle) {
+        uniqueKey = `title_${cleanTitle}_${year || 'noyear'}`;
+    }
 
-    const cached = fallbackImageCache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) {
-        res.writeHead(200, {
-            'Content-Type': cached.contentType || 'image/jpeg',
-            'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
-            'Access-Control-Allow-Origin': '*'
-        });
-        res.end(cached.buffer);
-        return true;
+    // NEVER store or retrieve from shared cache without a unique item key (prevents duplication)
+    const cacheKey = uniqueKey ? `${uniqueKey}_${type}` : null;
+
+    if (cacheKey) {
+        const cached = fallbackImageCache.get(cacheKey);
+        if (cached && Date.now() - cached.timestamp < 7 * 24 * 60 * 60 * 1000) {
+            res.writeHead(200, {
+                'Content-Type': cached.contentType || 'image/jpeg',
+                'Cache-Control': 'public, max-age=604800, stale-while-revalidate=86400',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(cached.buffer);
+            return true;
+        }
     }
 
     const tmdbCredential = process.env.TMDB_ACCESS_TOKEN || process.env.TMDB_API_KEY || 'eyJhbGciOiJIUzI1NiJ9.eyJhdWQiOiJkODIxZmZjZjFhMjQxOWFhMWZjZjY5MjMwMDZjZmNjNCIsIm5iZiI6MTc3NzU2MDc0My45NzMsInN1YiI6IjY5ZjM2Y2E3ZDZhZjA3Yjg2Zjg0MzA3MSIsInNjb3BlcyI6WyJhcGlfcmVhZCJdLCJ2ZXJzaW9uIjoxfQ._CFnVPW7SyxmHdzu3Uxee0LkMlGm4zdW2uCNFV2g9A8';
@@ -468,11 +493,13 @@ async function proxyImageFallback(req, res, requestPath, query) {
                 const arrayBuffer = await resp.arrayBuffer();
                 const buffer = Buffer.from(arrayBuffer);
                 if (buffer.length > 800) {
-                    if (fallbackImageCache.size >= 1000) {
-                        const firstKey = fallbackImageCache.keys().next().value;
-                        fallbackImageCache.delete(firstKey);
+                    if (cacheKey) {
+                        if (fallbackImageCache.size >= 1000) {
+                            const firstKey = fallbackImageCache.keys().next().value;
+                            fallbackImageCache.delete(firstKey);
+                        }
+                        fallbackImageCache.set(cacheKey, { buffer, contentType, timestamp: Date.now() });
                     }
-                    fallbackImageCache.set(cacheKey, { buffer, contentType, timestamp: Date.now() });
 
                     res.writeHead(200, {
                         'Content-Type': contentType,
@@ -488,7 +515,7 @@ async function proxyImageFallback(req, res, requestPath, query) {
     }
 
     // Step 1: Exact TMDB path if provided (guarantees the exact official image without network blocks)
-    if (pathParam && /^\/[a-zA-Z0-9_\-\.]+\.(jpg|jpeg|png|webp)$/i.test(pathParam)) {
+    if (isValidTmdbPath) {
         if (await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${pathParam}`)) return true;
     }
 
