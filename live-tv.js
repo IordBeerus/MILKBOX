@@ -76,64 +76,81 @@ async function loadLiveTvChannels() {
 function getCuratedLiveChannels() {
     // Curated list of known working free live TV channels
     return [
+        // YouTube Live Streams (Most Reliable)
         {
-            name: 'BBC News (UK)',
-            url: 'https://bbcnewshd.akamaized.net/hls/live/2014075/bbc_news_hd/master.m3u8',
-            logo: 'https://assets.bbc.com/bbcnewslabs/static/media/bbc-news-logo.png',
+            name: 'BBC News Live (YouTube)',
+            url: 'https://www.youtube.com/watch?v=9Auq9mYxFEE',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/BBC_News_2019.svg/1024px-BBC_News_2019.svg.png',
             category: 'News',
             country: 'United Kingdom',
             tvgId: 'BBCNews.uk'
         },
         {
-            name: 'Sky News (UK)',
-            url: 'https://skynews-prod-distz.akamaized.net:443/out/v1/3a9f2b9e22124b0db0c1b1f8e9b3f9d6/index.m3u8',
+            name: 'Sky News Live (YouTube)',
+            url: 'https://www.youtube.com/watch?v=sKa7dzI0Z18',
             logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1b/Sky_News_Logo.svg/1024px-Sky_News_Logo.svg.png',
             category: 'News',
             country: 'United Kingdom',
             tvgId: 'SkyNews.uk'
         },
         {
-            name: 'France 24 (Global)',
-            url: 'https://f24hls-i.akamaihd.net/hls/live/520495/f24_en@42949/master.m3u8',
+            name: 'NBC News (YouTube)',
+            url: 'https://www.youtube.com/watch?v=w_Ma8oiTqfs',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f1/NBC_News_logo.svg/1024px-NBC_News_logo.svg.png',
+            category: 'News',
+            country: 'United States',
+            tvgId: 'NBCNews.us'
+        },
+        {
+            name: 'CNBC Live (YouTube)',
+            url: 'https://www.youtube.com/watch?v=kEE7lR0TfGk',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/89/CNBC_logo.svg/1024px-CNBC_logo.svg.png',
+            category: 'News',
+            country: 'United States',
+            tvgId: 'CNBC.us'
+        },
+        {
+            name: 'CNN International (YouTube)',
+            url: 'https://www.youtube.com/watch?v=yPEbEsW5G3k',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/CNN_International_logo.svg/1024px-CNN_International_logo.svg.png',
+            category: 'News',
+            country: 'United States',
+            tvgId: 'CNN.us'
+        },
+        {
+            name: 'Fox News Live (YouTube)',
+            url: 'https://www.youtube.com/watch?v=XtvZiJZjSKI',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/67/Fox_News_Channel_logo.svg/1024px-Fox_News_Channel_logo.svg.png',
+            category: 'News',
+            country: 'United States',
+            tvgId: 'FoxNews.us'
+        },
+        {
+            name: 'France 24 Live (YouTube)',
+            url: 'https://www.youtube.com/watch?v=iWmkGkGPzP4',
             logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/France_24_logo.svg/1024px-France_24_logo.svg.png',
             category: 'News',
             country: 'France',
             tvgId: 'France24.fr'
         },
         {
-            name: 'DW News (Germany)',
-            url: 'https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8',
+            name: 'DW News (YouTube)',
+            url: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
             logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1f/DW-TV_logo_2012.svg/1024px-DW-TV_logo_2012.svg.png',
             category: 'News',
             country: 'Germany',
             tvgId: 'DWNews.de'
         },
         {
-            name: 'CGTN (China)',
-            url: 'https://live.cgtn.com/1000/prog_index.m3u8',
-            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/CGTN_logo.svg/1024px-CGTN_logo.svg.png',
+            name: 'Al Jazeera (YouTube)',
+            url: 'https://www.youtube.com/watch?v=gCNeDWCI0vo',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a9/Al_Jazeera_English_Logo.svg/1024px-Al_Jazeera_English_Logo.svg.png',
             category: 'News',
-            country: 'China',
-            tvgId: 'CGTN.cn'
+            country: 'Qatar',
+            tvgId: 'AlJazeera.qa'
         },
         {
-            name: 'NHK World (Japan)',
-            url: 'https://nhkworldtv-ojp.cdn.nhn.com/nhkworldtv/index.m3u8',
-            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9d/NHK_World_logo.svg/1024px-NHK_World_logo.svg.png',
-            category: 'News',
-            country: 'Japan',
-            tvgId: 'NHKWorld.jp'
-        },
-        {
-            name: 'TRT World (Turkey)',
-            url: 'https://trtcanlitv-live.medya.trt.com.tr/master_hd.m3u8',
-            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c5/TRT_World_Logo.svg/1024px-TRT_World_Logo.svg.png',
-            category: 'News',
-            country: 'Turkey',
-            tvgId: 'TRTWorld.tr'
-        },
-        {
-            name: 'Euronews (Europe)',
+            name: 'Euronews (YouTube)',
             url: 'https://www.youtube.com/watch?v=YqeSSz3KJqA',
             logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/5b/Euronews_logo.svg/1024px-Euronews_logo.svg.png',
             category: 'News',
@@ -141,20 +158,116 @@ function getCuratedLiveChannels() {
             tvgId: 'Euronews.eu'
         },
         {
-            name: 'TVP Info (Poland)',
-            url: 'https://tvpstream01.tvp.pl/tvpinfo/tvpinfo.m3u8',
-            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9d/TVP_Info_logo.svg/1024px-TVP_Info_logo.svg.png',
+            name: 'NDTV India (YouTube)',
+            url: 'https://www.youtube.com/watch?v=6cMlKKLGvkQ',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/fc/NDTV_24x7_Logo.svg/1024px-NDTV_24x7_Logo.svg.png',
             category: 'News',
-            country: 'Poland',
-            tvgId: 'TVPInfo.pl'
+            country: 'India',
+            tvgId: 'NDTVIndia.in'
         },
         {
-            name: 'RTVE 24h (Spain)',
-            url: 'https://rtvelivestream.akamaized.net/24h/24h_main_576.m3u8',
-            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/50/TVE_24h_logo.svg/800px-TVE_24h_logo.svg.png',
+            name: 'Times Now (YouTube)',
+            url: 'https://www.youtube.com/watch?v=0--5mM7YHHo',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/a/a0/Times_Now_logo.svg/1024px-Times_Now_logo.svg.png',
             category: 'News',
-            country: 'Spain',
-            tvgId: 'RTVE24h.es'
+            country: 'India',
+            tvgId: 'TimesNow.in'
+        },
+        {
+            name: 'NBA TV (YouTube)',
+            url: 'https://www.youtube.com/watch?v=DhvyW1TPT20',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/0/05/NBA_TV_logo.svg/1024px-NBA_TV_logo.svg.png',
+            category: 'Sports',
+            country: 'United States',
+            tvgId: 'NBATV.us'
+        },
+        {
+            name: 'ESPN News (YouTube)',
+            url: 'https://www.youtube.com/watch?v=XvPmIDEjbqA',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/43/ESPN_logo.svg/1024px-ESPN_logo.svg.png',
+            category: 'Sports',
+            country: 'United States',
+            tvgId: 'ESPNNews.us'
+        },
+        {
+            name: 'Sky Sports News (YouTube)',
+            url: 'https://www.youtube.com/watch?v=3R_0RrKfPOQ',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/Sky_Sports_News_logo.svg/1024px-Sky_Sports_News_logo.svg.png',
+            category: 'Sports',
+            country: 'United Kingdom',
+            tvgId: 'SkySportsNews.uk'
+        },
+        {
+            name: 'BBC Sport (YouTube)',
+            url: 'https://www.youtube.com/watch?v=Vn5s78y4sW4',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/3/39/BBC_Sport_logo.svg/1024px-BBC_Sport_logo.svg.png',
+            category: 'Sports',
+            country: 'United Kingdom',
+            tvgId: 'BBCSport.uk'
+        },
+        {
+            name: 'Cartoon Network (YouTube)',
+            url: 'https://www.youtube.com/watch?v=UCl6gJ-D2m4',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Cartoon_Network_2010_logo.svg/1024px-Cartoon_Network_2010_logo.svg.png',
+            category: 'Kids',
+            country: 'United States',
+            tvgId: 'CartoonNetwork.us'
+        },
+        {
+            name: 'Nickelodeon (YouTube)',
+            url: 'https://www.youtube.com/watch?v=iZzJhW-E8Pk',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/2a/Nickelodeon_logo_2009.svg/1024px-Nickelodeon_logo_2009.svg.png',
+            category: 'Kids',
+            country: 'United States',
+            tvgId: 'Nickelodeon.us'
+        },
+        {
+            name: 'Discovery Channel (YouTube)',
+            url: 'https://www.youtube.com/watch?v=aQ2gg6d8KH0',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/b5/Discovery_Channel_logo.svg/1024px-Discovery_Channel_logo.svg.png',
+            category: 'Documentary',
+            country: 'United States',
+            tvgId: 'Discovery.us'
+        },
+        {
+            name: 'National Geographic (YouTube)',
+            url: 'https://www.youtube.com/watch?v=ZjfOe8sL3vM',
+            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/88/National_Geographic_logo.svg/1024px-National_Geographic_logo.svg.png',
+            category: 'Documentary',
+            country: 'United States',
+            tvgId: 'NatGeo.us'
+        },
+        {
+            name: 'Music Box Ukraine (YouTube)',
+            url: 'https://www.youtube.com/watch?v=hFDcoX7s6FE',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/56/M1Music_Box_logo.svg/1024px-M1Music_Box_logo.svg.png',
+            category: 'Music',
+            country: 'Ukraine',
+            tvgId: 'MusicBox.ua'
+        },
+        {
+            name: 'Classica (YouTube)',
+            url: 'https://www.youtube.com/watch?v=dLWP9pGaGEE',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/5/5e/Classica_channel_logo.jpg',
+            category: 'Music',
+            country: 'United States',
+            tvgId: 'Classica.us'
+        },
+        {
+            name: 'Fashion TV (YouTube)',
+            url: 'https://www.youtube.com/watch?v=uYPY9_3EqZU',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/58/Fashion_TV_logo.svg/1024px-Fashion_TV_logo.svg.png',
+            category: 'Entertainment',
+            country: 'International',
+            tvgId: 'FashionTV.int'
+        },
+        {
+            name: 'HGTV (YouTube)',
+            url: 'https://www.youtube.com/watch?v=DZwQfm3dfWM',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/b8/HGTV_2010_logo.svg/1024px-HGTV_2010_logo.svg.png',
+            category: 'Entertainment',
+            country: 'United States',
+            tvgId: 'HGTV.us'
         }
     ];
 }
