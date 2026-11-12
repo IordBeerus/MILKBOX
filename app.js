@@ -3327,11 +3327,11 @@ function renderHomeDiscovery() {
     let sectionDesc = 'Dive into curated universes, themes & cinematic collections';
 
     if (currentSection === 'movies') {
-        pool = movies.filter(item => completeItem(item) && !isAnime(item));
+        pool = movies.filter(item => completeItem(item) && (!isAnime(item) || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
         sectionTitle = 'Explore Movie Genres';
         sectionDesc = 'Dive into curated movie universes, blockbuster themes & cinema collections';
     } else if (currentSection === 'tvshows') {
-        pool = tvShows.filter(item => completeItem(item) && !isAnime(item));
+        pool = tvShows.filter(item => completeItem(item) && (!isAnime(item) || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
         sectionTitle = 'Explore TV Genres';
         sectionDesc = 'Dive into binge-worthy drama series, comedy hits & television collections';
     } else if (currentSection === 'anime') {
@@ -3345,11 +3345,11 @@ function renderHomeDiscovery() {
         sectionDesc = 'Dive into action-packed shonen, fantasy realms, romance & anime themes';
     } else {
         if (homeFilter === 'movies') {
-            pool = movies.filter(item => completeItem(item) && !isAnime(item));
+            pool = movies.filter(item => completeItem(item) && (!isAnime(item) || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
             sectionTitle = 'Explore Movie Genres';
             sectionDesc = 'Dive into curated movie universes, blockbuster themes & cinema collections';
         } else if (homeFilter === 'tvshows') {
-            pool = tvShows.filter(item => completeItem(item) && !isAnime(item));
+            pool = tvShows.filter(item => completeItem(item) && (!isAnime(item) || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
             sectionTitle = 'Explore TV Genres';
             sectionDesc = 'Dive into binge-worthy drama series, comedy hits & television collections';
         } else if (homeFilter === 'anime') {
@@ -3362,7 +3362,7 @@ function renderHomeDiscovery() {
             sectionTitle = 'Explore Anime Genres';
             sectionDesc = 'Dive into action-packed shonen, fantasy realms, romance & anime themes';
         } else {
-            pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+            pool = [...movies, ...tvShows].filter(item => completeItem(item) && (!isAnime(item) || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
             sectionTitle = 'Explore by Genre';
             sectionDesc = 'Dive into curated universes, themes & cinematic collections';
         }
@@ -3696,7 +3696,7 @@ function loadGenreRow(genreKey) {
         pool = merged;
         suffix = ' Anime';
     } else {
-        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
+        pool = [...movies, ...tvShows].filter(m => completeItem(m) && (!isAnime(m) || norm === 'animation' || genArr(m.genre).some(g => String(g).toLowerCase() === 'animation')));
     }
 
     const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
@@ -3771,7 +3771,7 @@ function openGenreSpotlight(genreKey) {
         pool = merged;
         suffix = ' Anime';
     } else {
-        pool = [...movies, ...tvShows].filter(m => completeItem(m) && !isAnime(m));
+        pool = [...movies, ...tvShows].filter(m => completeItem(m) && (!isAnime(m) || norm === 'animation' || genArr(m.genre).some(g => String(g).toLowerCase() === 'animation')));
     }
 
     const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
@@ -3972,7 +3972,7 @@ document.getElementById('genreSpotlightTabs')?.addEventListener('click', (e) => 
         live.forEach(x => { const k = x.tmdbId || x.id; if (!seen.has(k)) { merged.push(x); seen.add(k); } });
         pool = merged;
     } else {
-        pool = [...movies, ...tvShows].filter(item => completeItem(item) && !isAnime(item));
+        pool = [...movies, ...tvShows].filter(item => completeItem(item) && (!isAnime(item) || norm === 'animation' || genArr(item.genre).some(g => String(g).toLowerCase() === 'animation')));
     }
     const genreItems = pool.filter(item => genArr(item.genre).some(g => (typeof normalizeGenreKey === 'function' ? normalizeGenreKey(g) : String(g).toLowerCase()) === norm));
     renderGenreSpotlightGrid(genreItems, _currentSpotlightFilter);
