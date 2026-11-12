@@ -336,19 +336,6 @@ function showLiveTvPlayer(channel) {
                         <p style="margin: 0; font-size: 12px; color: #666;">This may take 10-30 seconds</p>
                     </div>
                 </div>
-                <div id="liveTvPlayerError" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; text-align: center; padding: 20px; flex-direction: column; z-index: 100;">
-                    <div>
-                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
-                        <p style="margin: 0 0 8px 0; font-size: 18px;">Unable to play stream</p>
-                        <p style="margin: 0 0 24px 0; font-size: 12px; color: #888; line-height: 1.6;">
-                            The stream may be:<br/>
-                            • Geographically restricted<br/>
-                            • Temporarily offline<br/>
-                            • Requiring special access
-                        </p>
-                        <button id="retryLiveTvStream" style="background: #ff2e63; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">Try Another Channel</button>
-                    </div>
-                </div>
             </div>
         </div>
     `;
@@ -385,7 +372,6 @@ function showLiveTvPlayer(channel) {
 
     // Attempt to play the stream
     const video = document.getElementById('liveTvVideoPlayer');
-    const errorDiv = document.getElementById('liveTvPlayerError');
     const loadingDiv = document.getElementById('liveTvPlayerLoading');
     
     // Set timeout for stream connection
@@ -402,9 +388,18 @@ function showLiveTvPlayer(channel) {
     function showConnectionError(reason) {
         clearConnectionTimeout();
         console.error('Stream connection failed:', reason);
-        loadingDiv.style.display = 'none';
-        errorDiv.style.display = 'flex';
-        video.style.display = 'none';
+        
+        // Close the player after showing a brief message
+        setTimeout(() => {
+            const hlsPlayer = window.liveTvHlsInstance;
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                window.liveTvHlsInstance = null;
+            }
+            if (modal && modal.parentNode) {
+                modal.remove();
+            }
+        }, 2000);
     }
     
     if (channel.url) {
@@ -464,10 +459,7 @@ function showLiveTvPlayer(channel) {
                                     hls.recoverMediaError();
                                     return;
                             }
-                            clearConnectionTimeout();
-                            loadingDiv.style.display = 'none';
-                            errorDiv.style.display = 'flex';
-                            video.style.display = 'none';
+                            showConnectionError('HLS fatal error: ' + data.type);
                         }
                     });
                     
@@ -546,10 +538,7 @@ function showLiveTvPlayer(channel) {
             }
         } catch (error) {
             console.error('Error setting up playback:', error);
-            clearConnectionTimeout();
-            loadingDiv.style.display = 'none';
-            errorDiv.style.display = 'flex';
-            video.style.display = 'none';
+            showConnectionError('Error setting up playback: ' + error.message);
         }
     } else {
         console.error('No stream URL available for channel:', channel);
