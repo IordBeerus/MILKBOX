@@ -835,6 +835,22 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
     }
 
     try {
+        // Handle YouTube streams specially
+        if (streamUrl.includes('youtube.com') || streamUrl.includes('youtu.be')) {
+            // For YouTube, we need to redirect or handle differently
+            // For now, return an error indicating YouTube requires special handling
+            res.writeHead(200, { 
+                'Content-Type': 'application/json; charset=utf-8',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ 
+                error: 'YouTube streams require JavaScript player',
+                redirect: streamUrl,
+                type: 'youtube'
+            }));
+            return true;
+        }
+
         const url = new URL(streamUrl);
         
         // Add timeout to prevent hanging connections
@@ -842,12 +858,13 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
         const timeout = setTimeout(() => controller.abort(), 30000);
         
         const headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Referer': url.origin,
             'Origin': url.origin,
             'Accept': '*/*',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate'
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
         };
         
         const response = await fetch(streamUrl, { 

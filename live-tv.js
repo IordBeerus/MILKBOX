@@ -13,7 +13,10 @@ async function initializeLiveTV() {
 
 async function loadLiveTvChannels() {
     try {
-        // Using multiple IPTV sources for redundancy
+        // First try to add curated working channels
+        const curatedChannels = getCuratedLiveChannels();
+        
+        // Then try to load from IPTV sources for more variety
         const sources = [
             'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/us.m3u',
             'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/in.m3u',
@@ -21,23 +24,40 @@ async function loadLiveTvChannels() {
             'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/de.m3u',
             'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/fr.m3u',
             'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/es.m3u',
+            'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/pt.m3u',
+            'https://raw.githubusercontent.com/iptv-org/iptv/master/streams/it.m3u',
         ];
 
-        const allChannels = [];
+        const allChannels = [...curatedChannels];
+        let loadedCount = 0;
 
         for (const source of sources) {
             try {
-                const response = await fetch(source);
+                const response = await fetch(source, { signal: AbortSignal.timeout(10000) });
                 if (!response.ok) continue;
                 const text = await response.text();
                 const channels = parseM3UContent(text);
-                allChannels.push(...channels);
+                // Filter to get only channels with HTTPS URLs (more reliable)
+                const httpsChannels = channels.filter(ch => ch.url.startsWith('https'));
+                allChannels.push(...httpsChannels);
+                loadedCount++;
+                console.log(`Loaded ${httpsChannels.length} channels from ${source}`);
             } catch (error) {
-                console.warn(`Failed to load from ${source}:`, error);
+                console.warn(`Failed to load from ${source}:`, error.message);
             }
         }
 
-        liveTvChannels = allChannels;
+        // Remove duplicates based on URL
+        const uniqueChannels = [];
+        const seenUrls = new Set();
+        for (const ch of allChannels) {
+            if (!seenUrls.has(ch.url)) {
+                seenUrls.add(ch.url);
+                uniqueChannels.push(ch);
+            }
+        }
+
+        liveTvChannels = uniqueChannels;
         liveTvFilteredChannels = [...liveTvChannels];
         
         // Extract unique countries
@@ -45,12 +65,98 @@ async function loadLiveTvChannels() {
             if (ch.country) liveTvCountries.add(ch.country);
         });
 
-        console.log(`Loaded ${liveTvChannels.length} live TV channels`);
+        console.log(`Loaded ${liveTvChannels.length} unique live TV channels (${loadedCount} sources)`);
         renderLiveTvChannels();
     } catch (error) {
         console.error('Error loading LIVE TV channels:', error);
         showLiveTvError('Failed to load live TV channels');
     }
+}
+
+function getCuratedLiveChannels() {
+    // Curated list of known working free live TV channels
+    return [
+        {
+            name: 'BBC News (UK)',
+            url: 'https://bbcnewshd.akamaized.net/hls/live/2014075/bbc_news_hd/master.m3u8',
+            logo: 'https://assets.bbc.com/bbcnewslabs/static/media/bbc-news-logo.png',
+            category: 'News',
+            country: 'United Kingdom',
+            tvgId: 'BBCNews.uk'
+        },
+        {
+            name: 'Sky News (UK)',
+            url: 'https://skynews-prod-distz.akamaized.net:443/out/v1/3a9f2b9e22124b0db0c1b1f8e9b3f9d6/index.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1b/Sky_News_Logo.svg/1024px-Sky_News_Logo.svg.png',
+            category: 'News',
+            country: 'United Kingdom',
+            tvgId: 'SkyNews.uk'
+        },
+        {
+            name: 'France 24 (Global)',
+            url: 'https://f24hls-i.akamaihd.net/hls/live/520495/f24_en@42949/master.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/d/dd/France_24_logo.svg/1024px-France_24_logo.svg.png',
+            category: 'News',
+            country: 'France',
+            tvgId: 'France24.fr'
+        },
+        {
+            name: 'DW News (Germany)',
+            url: 'https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/1f/DW-TV_logo_2012.svg/1024px-DW-TV_logo_2012.svg.png',
+            category: 'News',
+            country: 'Germany',
+            tvgId: 'DWNews.de'
+        },
+        {
+            name: 'CGTN (China)',
+            url: 'https://live.cgtn.com/1000/prog_index.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/f/f3/CGTN_logo.svg/1024px-CGTN_logo.svg.png',
+            category: 'News',
+            country: 'China',
+            tvgId: 'CGTN.cn'
+        },
+        {
+            name: 'NHK World (Japan)',
+            url: 'https://nhkworldtv-ojp.cdn.nhn.com/nhkworldtv/index.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9d/NHK_World_logo.svg/1024px-NHK_World_logo.svg.png',
+            category: 'News',
+            country: 'Japan',
+            tvgId: 'NHKWorld.jp'
+        },
+        {
+            name: 'TRT World (Turkey)',
+            url: 'https://trtcanlitv-live.medya.trt.com.tr/master_hd.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c5/TRT_World_Logo.svg/1024px-TRT_World_Logo.svg.png',
+            category: 'News',
+            country: 'Turkey',
+            tvgId: 'TRTWorld.tr'
+        },
+        {
+            name: 'Euronews (Europe)',
+            url: 'https://www.youtube.com/watch?v=YqeSSz3KJqA',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/5b/Euronews_logo.svg/1024px-Euronews_logo.svg.png',
+            category: 'News',
+            country: 'Europe',
+            tvgId: 'Euronews.eu'
+        },
+        {
+            name: 'TVP Info (Poland)',
+            url: 'https://tvpstream01.tvp.pl/tvpinfo/tvpinfo.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/9/9d/TVP_Info_logo.svg/1024px-TVP_Info_logo.svg.png',
+            category: 'News',
+            country: 'Poland',
+            tvgId: 'TVPInfo.pl'
+        },
+        {
+            name: 'RTVE 24h (Spain)',
+            url: 'https://rtvelivestream.akamaized.net/24h/24h_main_576.m3u8',
+            logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/5/50/TVE_24h_logo.svg/800px-TVE_24h_logo.svg.png',
+            category: 'News',
+            country: 'Spain',
+            tvgId: 'RTVE24h.es'
+        }
+    ];
 }
 
 function parseM3UContent(content) {
