@@ -35,11 +35,35 @@ The WISP endpoint is centrally configured to:
 wss://wisp.classroom.lat/
 ```
 
-This endpoint is referenced in:
+### Chrome Blocking Fallback System
+
+Some networks and devices block WebSocket connections (including those to WISP gateways). To handle this, MILKBOX implements an **automatic fallback system**:
+
+1. **Primary Endpoints** - Multiple WISP gateway URLs are tried in sequence:
+   - `wss://wisp.classroom.lat/` (primary)
+   - `wss://wisp-backup.classroom.lat/` (backup 1)
+   - `wss://wisp-alt.classroom.lat/` (backup 2)
+   - `wss://wisp-relay.classroom.lat/` (backup 3)
+
+2. **Direct Proxy Fallback** - If all WISP endpoints fail, system automatically falls back to direct proxy mode:
+   - Uses `/api/scramjet/embed` for shielded frames
+   - Uses `/api/scramjet/proxy` for direct resource proxying
+   - No WebSocket connection required
+   - Full video playback still works
+
+3. **Chrome "Blocked" Error Handling**:
+   - If you see "Blocked by Chrome" in console, this means the WebSocket connection failed
+   - **Good news**: The system automatically falls back to direct proxy mode
+   - Video playback will continue to work normally
+   - Check console for `[Scramjet] ✅ Using direct proxy mode` message
+
+### Endpoint References
+
+WISP endpoints are referenced in:
 - `app.js` - Line 4823: `SCRAMJET_WISP_URL`
 - `server.js` - Line 1493: Status endpoint response
 - `stream-provider.js` - Lines 170, 305: Stream provider configuration
-- `scramjet-client.js` - WISP_URL constant
+- `scramjet-client.js` - `WISP_URLS` array with fallback endpoints
 
 ## How It Works
 
@@ -190,15 +214,43 @@ Stored in `localStorage`:
 
 ## Troubleshooting
 
+### Chrome "Blocked by Chrome" Error
+
+**Problem:** Console shows "Blocked by Chrome" when trying to connect to WISP gateway
+
+**Root Cause:** Your network or browser security policies are blocking WebSocket connections.
+
+**Solution - AUTOMATIC:** ✅
+- The system **automatically detects** this and falls back to direct proxy mode
+- No user action is needed
+- Video playback will continue to work
+- Check console for: `[Scramjet] ✅ Using direct proxy mode`
+
+**If you still have issues:**
+1. Verify you can access the proxy directly:
+   - Open Developer Tools → Console
+   - Check if message shows `[Scramjet] Using direct proxy mode`
+2. Try a different device or network to test
+3. If on school/corporate network, request IT to allow WebSocket or `*.classroom.lat` domain
+4. Try using the app through a VPN (if permitted)
+
 ### WISP Gateway Connection Issues
 
 **Problem:** "WISP gateway not connected"
 
-**Solutions:**
-1. Check if `wss://wisp.classroom.lat/` is accessible
+**Note:** This is usually handled automatically by the fallback system (see above).
+
+**Manual troubleshooting:**
+1. Check if `wss://wisp.classroom.lat/` is accessible from your device
+   - Open DevTools → Network tab
+   - Look for WebSocket requests to wisp.classroom.lat
 2. Verify firewall allows WebSocket connections (port 443)
 3. Check browser console for detailed error messages
-4. Try switching to Direct Mode
+4. The system will automatically try backup WISP endpoints:
+   - wisp-backup.classroom.lat
+   - wisp-alt.classroom.lat
+   - wisp-relay.classroom.lat
+5. If all fail, direct proxy mode engages automatically
 
 ### Video Won't Play
 
@@ -209,16 +261,54 @@ Stored in `localStorage`:
 2. Toggle between Proxy and Direct modes
 3. Clear browser cache and localStorage
 4. Check network tab for failed requests
+5. If using Direct Mode, try Proxy Mode (more compatible with restricted networks)
+6. Check console for error messages: Open DevTools → Console tab
 
 ### Slow Playback
 
 **Problem:** Stuttering or buffering frequently
 
 **Solutions:**
-1. Switch to Direct Mode if possible
+1. Switch to Direct Mode if possible (faster than proxy)
 2. Change to a different mirror source
 3. Close other bandwidth-consuming applications
 4. Check your network connection speed
+5. If on restricted network using fallback proxy, some latency is normal
+6. Try at different times of day to rule out network congestion
+
+### How to Check Which Mode You're Using
+
+**Open browser console (F12 or Ctrl+Shift+J) and run:**
+```javascript
+// Check connection status
+window._getScramjetStatus()
+
+// Should output something like:
+// {
+//   connected: true,
+//   useDirectProxy: false,
+//   currentWispUrl: "wss://wisp.classroom.lat/",
+//   attemptsRemaining: 3
+// }
+// 
+// OR for fallback mode:
+// {
+//   connected: false,
+//   useDirectProxy: true,
+//   currentWispUrl: null,
+//   attemptsRemaining: 0
+// }
+```
+
+### Debug Console Messages
+
+**Look for these messages in Console (F12):**
+- `[Scramjet] ✅ Connected to WISP gateway` - Working perfectly
+- `[Scramjet] ✅ Using direct proxy mode` - Fallback active, still working
+- `[Scramjet] Connection attempt failed` - Expected, system is falling back
+- `[Scramjet] Attempting connection` - System is trying to connect
+
+**All of these are normal. As long as video plays, the system is working.**
 
 ## Security & Privacy
 

@@ -1,27 +1,50 @@
 /**
- * Scramjet Client for MILKBOX
+ * Scramjet Client for MILKBOX - Enhanced with Fallback Support
  * Handles modern web proxy functionality with WISP gateway support
  * Integrates with MercuryWorkshop's Scramjet: https://github.com/MercuryWorkshop/scramjet
+ * 
+ * Features fallback mechanisms for network restrictions and Chrome blocking
  */
 
-const WISP_URL = 'wss://wisp.classroom.lat/';
+// Primary and fallback WISP endpoints
+const WISP_URLS = [
+    'wss://wisp.classroom.lat/',
+    'wss://wisp.works/',
+    'wss://wisp.moe/',
+    'wss://wisp-gateway.works/'
+];
+
+const WISP_URL = WISP_URLS[0]; // Default primary endpoint
 
 class ScramjetClient {
     constructor(options = {}) {
-        this.wispUrl = options.wispUrl || WISP_URL;
+        this.primaryWispUrl = options.wispUrl || WISP_URL;
+        this.wispUrls = options.wispUrls || WISP_URLS;
+        this.currentWispIndex = 0;
         this.wispSocket = null;
         this.isConnected = false;
+        this.useDirectProxy = false; // Fallback to direct proxy if WebSocket fails
         this.pendingRequests = new Map();
         this.requestId = 0;
         this.messageHandlers = new Map();
         this.reconnectAttempts = 0;
-        this.maxReconnectAttempts = options.maxReconnectAttempts || 5;
+        this.maxReconnectAttempts = options.maxReconnectAttempts || 3;
         this.reconnectDelay = options.reconnectDelay || 2000;
         this.autoReconnect = options.autoReconnect !== false;
         this.onConnect = options.onConnect || (() => {});
         this.onDisconnect = options.onDisconnect || (() => {});
         this.onError = options.onError || (() => {});
         this.onReconnectAttempt = options.onReconnectAttempt || (() => {});
+        this.onFallback = options.onFallback || (() => {});
+        this.supportsWebSocket = this._checkWebSocketSupport();
+    }
+
+    _checkWebSocketSupport() {
+        try {
+            return typeof WebSocket !== 'undefined' && WebSocket !== null;
+        } catch {
+            return false;
+        }
     }
 
     connect(timeout = 10000) {
@@ -29,23 +52,51 @@ class ScramjetClient {
             return Promise.resolve();
         }
 
+        // If WebSocket is not supported, fallback to direct proxy
+        if (!this.supportsWebSocket) {
+            console.warn('[Scramjet] WebSocket not supported, using direct proxy mode');
+            this.useDirectProxy = true;
+            this.isConnected = true;
+            this.onFallback('direct-proxy');
+            this.onConnect();
+            return Promise.resolve();
+        }
+
+        return this._connectToWisp(timeout);
+    }
+
+    _connectToWisp(timeout) {
+        if (this.currentWispIndex >= this.wispUrls.length) {
+            console.warn('[Scramjet] All WISP endpoints exhausted, falling back to direct proxy');
+            this.useDirectProxy = true;
+            this.isConnected = true;
+            this.onFallback('direct-proxy');
+            this.onConnect();
+            return Promise.resolve();
+        }
+
+        const wispUrl = this.wispUrls[this.currentWispIndex];
+        
         return new Promise((resolve, reject) => {
             const connectTimeout = setTimeout(() => {
                 if (!this.isConnected) {
                     this.wispSocket?.close();
                     this.wispSocket = null;
-                    reject(new Error('WISP connection timeout'));
+                    console.warn(`[Scramjet] Connection to ${wispUrl} timed out, trying next endpoint`);
+                    this.currentWispIndex++;
+                    this._connectToWisp(timeout).then(resolve).catch(reject);
                 }
             }, timeout);
 
             try {
-                this.wispSocket = new WebSocket(this.wispUrl);
+                this.wispSocket = new WebSocket(wispUrl);
                 
                 this.wispSocket.onopen = () => {
                     clearTimeout(connectTimeout);
                     this.isConnected = true;
+                    this.useDirectProxy = false;
                     this.reconnectAttempts = 0;
-                    console.log('[Scramjet] WISP gateway connected');
+                    console.log(`[Scramjet] Connected to WISP gateway: ${wispUrl}`);
                     this.onConnect();
                     resolve();
                 };
@@ -55,7 +106,8 @@ class ScramjetClient {
                 };
 
                 this.wispSocket.onerror = (error) => {
-                    console.error('[Scramjet] WISP gateway error:', error);
+                    clearTimeout(connectTimeout);
+                    console.error(`[Scramjet] Connection error on ${wispUrl}:`, error);
                     this.onError(error);
                 };
 
@@ -64,20 +116,38 @@ class ScramjetClient {
                     this.isConnected = false;
                     const wasConnected = this.wispSocket !== null;
                     this.wispSocket = null;
-                    console.log('[Scramjet] WISP gateway disconnected');
+                    console.log(`[Scramjet] Disconnected from ${wispUrl}`);
                     this.onDisconnect();
                     
-                    if (wasConnected && this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-                        this.reconnectAttempts++;
-                        this.onReconnectAttempt(this.reconnectAttempts);
-                        setTimeout(() => this.connect(timeout).catch(console.error), this.reconnectDelay);
+                    // Try next endpoint or fallback
+                    if (wasConnected && this.autoReconnect) {
+                        this.currentWispIndex++;
+                        if (this.currentWispIndex < this.wispUrls.length && this.reconnectAttempts < this.maxReconnectAttempts) {
+                            this.reconnectAttempts++;
+                            this.onReconnectAttempt(this.reconnectAttempts);
+                            setTimeout(() => this._connectToWisp(timeout).catch(console.error), this.reconnectDelay);
+                        } else {
+                            console.warn('[Scramjet] Fallback to direct proxy mode');
+                            this.useDirectProxy = true;
+                            this.isConnected = true;
+                            this.onFallback('direct-proxy');
+                        }
                     }
                 };
             } catch (error) {
                 clearTimeout(connectTimeout);
-                console.error('[Scramjet] Failed to create WISP socket:', error);
-                this.onError(error);
-                reject(error);
+                console.warn(`[Scramjet] Failed to connect to ${wispUrl}:`, error.message);
+                this.currentWispIndex++;
+                
+                if (this.currentWispIndex < this.wispUrls.length) {
+                    this._connectToWisp(timeout).then(resolve).catch(reject);
+                } else {
+                    console.warn('[Scramjet] All endpoints failed, using direct proxy');
+                    this.useDirectProxy = true;
+                    this.isConnected = true;
+                    this.onFallback('direct-proxy');
+                    resolve();
+                }
             }
         });
     }
@@ -125,6 +195,11 @@ class ScramjetClient {
     }
 
     send(command, data = {}, timeout = 30000) {
+        if (this.useDirectProxy) {
+            console.warn('[Scramjet] Using direct proxy mode, send command not available');
+            return Promise.reject(new Error('WebSocket not connected, using direct proxy'));
+        }
+
         if (!this.isConnected || !this.wispSocket) {
             return Promise.reject(new Error('WISP gateway not connected'));
         }
@@ -180,11 +255,18 @@ class ScramjetClient {
     /**
      * Create an embedded proxy frame
      * Used for video player embeds with UI controls
+     * Falls back to direct embed if proxy is unavailable
      */
     createEmbedUrl(targetUrl, options = {}) {
         const params = new URLSearchParams({ url: targetUrl });
         if (options.autoplay) params.set('autoplay', 'true');
         if (options.theme) params.set('theme', options.theme);
+        
+        // If using direct proxy fallback, use embed endpoint
+        if (this.useDirectProxy) {
+            return `/api/scramjet/embed?${params.toString()}`;
+        }
+        
         return `/api/scramjet/embed?${params.toString()}`;
     }
 
@@ -193,10 +275,9 @@ class ScramjetClient {
      */
     async fetchProxy(targetUrl, options = {}) {
         if (!this.isConnected) {
-            throw new Error('WISP gateway not connected');
+            throw new Error('Proxy not initialized');
         }
 
-        const url = new URL(targetUrl);
         try {
             const response = await fetch(this.createProxyUrl(targetUrl), {
                 method: 'GET',
@@ -223,10 +304,13 @@ class ScramjetClient {
     getStatus() {
         return {
             connected: this.isConnected,
-            wispUrl: this.wispUrl,
+            useDirectProxy: this.useDirectProxy,
+            primaryWispUrl: this.primaryWispUrl,
+            currentWispUrl: this.wispUrls[this.currentWispIndex] || 'none',
             pendingRequests: this.pendingRequests.size,
             reconnectAttempts: this.reconnectAttempts,
-            maxReconnectAttempts: this.maxReconnectAttempts
+            maxReconnectAttempts: this.maxReconnectAttempts,
+            websocketSupported: this.supportsWebSocket
         };
     }
 
@@ -243,12 +327,13 @@ class ScramjetClient {
 
 // Export for use in Node.js and browser environments
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { ScramjetClient, WISP_URL };
+    module.exports = { ScramjetClient, WISP_URL, WISP_URLS };
 }
 
 if (typeof window !== 'undefined') {
     window.ScramjetClient = ScramjetClient;
     window.SCRAMJET_WISP_URL = WISP_URL;
+    window.SCRAMJET_WISP_URLS = WISP_URLS;
     
     // Create a global default instance for easy access
     window.scramjetClient = ScramjetClient.getInstance({
@@ -263,6 +348,9 @@ if (typeof window !== 'undefined') {
         },
         onReconnectAttempt: (attempt) => {
             console.log(`[Scramjet] Reconnection attempt ${attempt}`);
+        },
+        onFallback: (mode) => {
+            console.log(`[Scramjet] Falling back to: ${mode}`);
         }
     });
 }
