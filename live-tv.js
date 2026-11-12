@@ -262,22 +262,25 @@ function createLiveTvCard(channel) {
         : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect fill="%23222" width="100" height="100"/%3E%3Ctext x="50" y="55" font-size="14" fill="%23666" text-anchor="middle" font-family="Arial"%3ETV%3C/text%3E%3C/svg%3E';
 
     card.innerHTML = `
-        <div class="card-media" style="position: relative; overflow: hidden; border-radius: 8px; background: #1a1a1a; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;">
+        <div class="card-media" style="position: relative; overflow: hidden; border-radius: 8px 8px 0 0; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;">
             <img src="${logo}" alt="${channel.name}" 
-                 style="width: 100%; height: 100%; object-fit: cover;" 
-                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23222%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 font-size=%2214%22 fill=%22%23666%22 text-anchor=%22middle%22 font-family=%22Arial%22%3ETV%3C/text%3E%3C/svg%3E'">
-            <div style="position: absolute; top: 8px; right: 8px; background: #ff2e63; color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: bold;">🔴 LIVE</div>
+                 style="width: 100%; height: 100%; object-fit: contain; padding: 12px; background: #0a0a0a;" 
+                 onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%231a1a1a%22 width=%22100%22 height=%22100%22/%3E%3Ccircle cx=%2250%22 cy=%2235%22 r=%2215%22 fill=%22%23ff2e63%22/%3E%3Crect x=%2230%22 y=%2255%22 width=%2240%22 height=%2230%22 fill=%22%23ff2e63%22 rx=%225%22/%3E%3C/svg%3E'">
+            <div style="position: absolute; top: 8px; right: 8px; background: #ff2e63; color: white; padding: 6px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(255, 46, 99, 0.4);">
+                <span style="font-size: 10px;">🔴</span> LIVE
+            </div>
         </div>
-        <div class="card-details" style="padding: 12px; min-height: 80px; display: flex; flex-direction: column; justify-content: space-between;">
+        <div class="card-details" style="padding: 12px; min-height: 80px; display: flex; flex-direction: column; justify-content: space-between; background: #0f0f0f; border-radius: 0 0 8px 8px;">
             <div>
-                <h3 style="margin: 0; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff;">
+                <h3 style="margin: 0; font-size: 14px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; letter-spacing: 0.3px;">
                     ${channel.name}
                 </h3>
-                <p style="margin: 4px 0 0 0; font-size: 12px; color: #aaa;">
-                    ${channel.category} • ${channel.country}
+                <p style="margin: 6px 0 0 0; font-size: 11px; color: #888; display: flex; gap: 6px; align-items: center;">
+                    <span style="color: #ff2e63;">●</span> ${channel.category}
+                    <span style="color: #666;">•</span> ${channel.country}
                 </p>
             </div>
-            <button class="btn-play-live" style="width: 100%; padding: 8px; background: #ff2e63; color: white; border: none; border-radius: 4px; font-weight: 600; font-size: 12px; cursor: pointer; margin-top: 8px;">
+            <button class="btn-play-live" style="width: 100%; padding: 10px; background: linear-gradient(135deg, #ff2e63 0%, #ff1449 100%); color: white; border: none; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer; margin-top: 8px; transition: all 0.2s; box-shadow: 0 4px 12px rgba(255, 46, 99, 0.3); text-transform: uppercase; letter-spacing: 0.5px;">
                 ▶ WATCH LIVE
             </button>
         </div>
