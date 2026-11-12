@@ -844,7 +844,10 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
         const headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
             'Referer': url.origin,
-            'Origin': url.origin
+            'Origin': url.origin,
+            'Accept': '*/*',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate'
         };
         
         const response = await fetch(streamUrl, { 
@@ -857,37 +860,67 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
         clearTimeout(timeout);
         
         if (!response.ok) {
+            console.warn(`Stream returned status ${response.status} for ${streamUrl}`);
             res.writeHead(response.status, { 'Content-Type': 'application/json; charset=utf-8' });
             res.end(JSON.stringify({ error: 'Stream unavailable', status: response.status }));
             return true;
         }
 
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
-        let body = await response.text();
         
-        // If it's an M3U8 file, rewrite relative URLs to be absolute via our proxy
-        if (contentType.includes('mpegurl') || contentType.includes('m3u')) {
-            const lines = body.split('\n');
-            body = lines.map(line => {
-                // Skip comments and empty lines
-                if (!line.trim() || line.startsWith('#')) {
-                    return line;
-                }
-                // If line is a URL, keep it; if relative path, convert to absolute
-                if (line.trim().startsWith('http')) {
-                    return line;
-                }
-                if (line.trim()) {
-                    // Relative URL - make it absolute relative to the original stream
-                    const absoluteUrl = new URL(line.trim(), streamUrl).href;
-                    // Now proxy it through our proxy
-                    return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
-                }
-                return line;
-            }).join('\n');
+        // Check if response is actually an error HTML page
+        if (contentType.includes('text/html')) {
+            const textContent = await response.text();
+            if (textContent.includes('<!DOCTYPE') || textContent.includes('<html') || textContent.includes('404') || textContent.includes('error') || textContent.length < 1000) {
+                console.warn(`Stream returned HTML error page for ${streamUrl}`);
+                res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+                res.end(JSON.stringify({ 
+                    error: 'Stream unavailable',
+                    details: 'The stream server returned an error page'
+                }));
+                return true;
+            }
         }
         
-        const contentLength = Buffer.byteLength(body);
+        let body;
+        let isTextContent = false;
+        
+        // If it's an M3U8 file or text-based content, process as text
+        if (contentType.includes('mpegurl') || contentType.includes('m3u') || contentType.includes('text')) {
+            isTextContent = true;
+            body = await response.text();
+            
+            // If it's an M3U8 file, rewrite relative URLs to be absolute via our proxy
+            if (contentType.includes('mpegurl') || contentType.includes('m3u')) {
+                const lines = body.split('\n');
+                body = lines.map(line => {
+                    // Skip comments and empty lines
+                    if (!line.trim() || line.startsWith('#')) {
+                        return line;
+                    }
+                    // If line is a URL, keep it; if relative path, convert to absolute
+                    if (line.trim().startsWith('http')) {
+                        return line;
+                    }
+                    if (line.trim() && !line.startsWith('http')) {
+                        // Relative URL - make it absolute relative to the original stream
+                        try {
+                            const absoluteUrl = new URL(line.trim(), streamUrl).href;
+                            // Now proxy it through our proxy
+                            return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
+                        } catch (e) {
+                            return line;
+                        }
+                    }
+                    return line;
+                }).join('\n');
+            }
+        } else {
+            // For binary content (video segments, TS files, etc.)
+            body = await response.arrayBuffer();
+        }
+        
+        const contentLength = isTextContent ? Buffer.byteLength(body) : body.byteLength;
         
         res.writeHead(200, {
             'Content-Type': contentType,
@@ -897,10 +930,15 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
             'Expires': '0',
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type'
+            'Access-Control-Allow-Headers': 'Content-Type, Range',
+            'Accept-Ranges': 'bytes'
         });
 
-        res.end(body);
+        if (isTextContent) {
+            res.end(body);
+        } else {
+            res.end(Buffer.from(body));
+        }
     } catch (error) {
         console.error('Live TV proxy error:', error.message);
         res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
