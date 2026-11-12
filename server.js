@@ -24,8 +24,6 @@ function loadEnvFile() {
 loadEnvFile();
 const defaultAppPort = Number(process.env.DEFAULT_APP_PORT) || 3000;
 let port = Number(process.env.PORT) || defaultAppPort;
-// Cloud Run sets PORT=8080 by default, which is reserved for the Nginx reverse proxy.
-// The internal Node dev server must always listen on port 3000.
 if (port === 8080 || port === Number(process.env.NGINX_PORT || 8080)) {
     port = defaultAppPort;
 }
