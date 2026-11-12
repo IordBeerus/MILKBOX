@@ -59,7 +59,10 @@ function parseM3UContent(content) {
     let currentInfo = null;
 
     for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
+        let line = lines[i].trim();
+        
+        // Remove carriage return characters
+        line = line.replace(/\r/g, '');
 
         if (line.startsWith('#EXTINF:')) {
             currentInfo = parseExtinfLine(line);
@@ -72,37 +75,35 @@ function parseM3UContent(content) {
         }
     }
 
-    return channels.filter(ch => ch.url && ch.name);
+    return channels.filter(ch => ch.url && ch.name && ch.url.startsWith('http'));
 }
 
 function parseExtinfLine(line) {
-    const match = line.match(/#EXTINF:.*?tvg-name="([^"]*)".*?tvg-logo="([^"]*)".*?group-title="([^"]*)"[^,]*,\s*(.*)/);
-    
-    if (match) {
-        return {
-            name: match[4] || 'Unknown',
-            logo: match[2] || null,
-            category: match[3] || 'Other',
-            country: extractCountry(line),
-            tvgName: match[1] || null,
-        };
-    }
+    // Extract tvg-id, tvg-logo, group-title, and channel name
+    const tvgIdMatch = line.match(/tvg-id="([^"]*)"/);
+    const tvgLogoMatch = line.match(/tvg-logo="([^"]*)"/);
+    const groupTitleMatch = line.match(/group-title="([^"]*)"/);
+    const nameMatch = line.match(/,\s*(.*)$/);
 
-    // Fallback parsing
-    const nameMatch = line.match(/,(.*)$/);
-    const logoMatch = line.match(/tvg-logo="([^"]*)"/);
-    const categoryMatch = line.match(/group-title="([^"]*)"/);
+    let name = nameMatch ? nameMatch[1].trim() : 'Unknown';
+    
+    // Remove (quality) suffix from name if present
+    name = name.replace(/\s*\(\d+[pk]\)\s*$/i, '').trim();
+
+    const category = groupTitleMatch ? groupTitleMatch[1] : 'Other';
+    const logo = tvgLogoMatch ? tvgLogoMatch[1] : null;
+    const tvgId = tvgIdMatch ? tvgIdMatch[1] : null;
 
     return {
-        name: nameMatch ? nameMatch[1].trim() : 'Unknown',
-        logo: logoMatch ? logoMatch[1] : null,
-        category: categoryMatch ? categoryMatch[1] : 'Other',
-        country: extractCountry(line),
-        tvgName: null,
+        name: name || 'Unknown',
+        logo: logo,
+        category: category,
+        country: extractCountry(tvgId || line),
+        tvgId: tvgId,
     };
 }
 
-function extractCountry(line) {
+function extractCountry(tvgIdOrLine) {
     const countryMap = {
         'us': 'United States',
         'in': 'India',
@@ -110,11 +111,58 @@ function extractCountry(line) {
         'de': 'Germany',
         'fr': 'France',
         'es': 'Spain',
+        'br': 'Brazil',
+        'it': 'Italy',
+        'ru': 'Russia',
+        'ua': 'Ukraine',
+        'pl': 'Poland',
+        'nl': 'Netherlands',
+        'be': 'Belgium',
+        'se': 'Sweden',
+        'no': 'Norway',
+        'dk': 'Denmark',
+        'fi': 'Finland',
+        'pt': 'Portugal',
+        'gr': 'Greece',
+        'cz': 'Czech Republic',
+        'hu': 'Hungary',
+        'ro': 'Romania',
+        'bg': 'Bulgaria',
+        'hr': 'Croatia',
+        'mx': 'Mexico',
+        'ar': 'Argentina',
+        'jp': 'Japan',
+        'kr': 'South Korea',
+        'cn': 'China',
+        'th': 'Thailand',
+        'vn': 'Vietnam',
+        'ph': 'Philippines',
+        'id': 'Indonesia',
+        'sg': 'Singapore',
+        'my': 'Malaysia',
+        'au': 'Australia',
+        'nz': 'New Zealand',
+        'za': 'South Africa',
+        'eg': 'Egypt',
+        'ae': 'United Arab Emirates',
+        'sa': 'Saudi Arabia',
+        'il': 'Israel',
     };
 
-    for (const [code, name] of Object.entries(countryMap)) {
-        if (line.toLowerCase().includes(code)) return name;
+    const text = tvgIdOrLine.toLowerCase();
+    
+    // Try to extract country code from tvg-id (format: Name.cc@region or Name.cc)
+    const tvgMatch = text.match(/\.([a-z]{2})[@\s]/);
+    if (tvgMatch) {
+        const code = tvgMatch[1];
+        if (countryMap[code]) return countryMap[code];
     }
+
+    // Fallback: search for known country codes in the text
+    for (const [code, name] of Object.entries(countryMap)) {
+        if (text.includes(`@${code}`) || text.includes(`.${code}`)) return name;
+    }
+    
     return 'International';
 }
 
@@ -220,7 +268,7 @@ function createLiveTvCard(channel) {
 }
 
 function playLiveChannel(channel) {
-    console.log('Playing live channel:', channel.name);
+    console.log('Playing live channel:', channel.name, channel.url);
     
     // Use the milkbox player or create a video player overlay
     const playerOverlay = document.getElementById('player-overlay');
@@ -277,6 +325,12 @@ function showLiveTvPlayer(channel) {
                        autoplay
                        crossorigin="anonymous">
                 </video>
+                <div id="liveTvPlayerLoading" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; flex-direction: column;">
+                    <div style="text-align: center;">
+                        <p style="margin: 0 0 16px 0; font-size: 18px;">⏳ Loading stream...</p>
+                        <p style="margin: 0; font-size: 12px; color: #666;">This may take a moment</p>
+                    </div>
+                </div>
                 <div id="liveTvPlayerError" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; text-align: center; padding: 20px; flex-direction: column;">
                     <div>
                         <p style="margin: 0 0 16px 0; font-size: 18px;">❌ Unable to play stream</p>
@@ -289,66 +343,108 @@ function showLiveTvPlayer(channel) {
     `;
 
     document.getElementById('closeLiveTvPlayer').addEventListener('click', () => {
+        const hlsPlayer = window.liveTvHlsInstance;
+        if (hlsPlayer) {
+            hlsPlayer.destroy();
+            window.liveTvHlsInstance = null;
+        }
         modal.remove();
     });
 
     // Retry button handler
     document.getElementById('retryLiveTvStream').addEventListener('click', () => {
+        const hlsPlayer = window.liveTvHlsInstance;
+        if (hlsPlayer) {
+            hlsPlayer.destroy();
+            window.liveTvHlsInstance = null;
+        }
         modal.remove();
     });
 
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) modal.remove();
+        if (e.target === modal) {
+            const hlsPlayer = window.liveTvHlsInstance;
+            if (hlsPlayer) {
+                hlsPlayer.destroy();
+                window.liveTvHlsInstance = null;
+            }
+            modal.remove();
+        }
     });
 
     // Attempt to play the stream
     const video = document.getElementById('liveTvVideoPlayer');
     const errorDiv = document.getElementById('liveTvPlayerError');
+    const loadingDiv = document.getElementById('liveTvPlayerLoading');
     
     if (channel.url) {
         try {
+            // Use proxy for all streams to handle CORS
+            const proxiedUrl = `/api/livetv/stream?url=${encodeURIComponent(channel.url)}`;
+            
             // Use HLS.js for HLS streams, direct for others
             if (channel.url.includes('.m3u8')) {
                 // HLS stream
                 if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                    // Destroy any existing player
+                    if (window.liveTvHlsInstance) {
+                        window.liveTvHlsInstance.destroy();
+                    }
+                    
                     const hls = new Hls({
                         debug: false,
                         enableWorker: true,
                         lowLatencyMode: true,
-                        emeEnabled: false
+                        emeEnabled: false,
+                        xhr: {
+                            headers: {
+                                'User-Agent': 'Mozilla/5.0'
+                            }
+                        }
                     });
                     
-                    hls.loadSource(channel.url);
+                    window.liveTvHlsInstance = hls;
+                    
+                    hls.loadSource(proxiedUrl);
                     hls.attachMedia(video);
                     
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        loadingDiv.style.display = 'none';
                         video.play().catch(e => {
                             console.warn('Auto-play blocked:', e);
                         });
                     });
                     
                     hls.on(Hls.Events.ERROR, (event, data) => {
+                        console.error('HLS error:', data);
                         if (data.fatal) {
-                            console.error('HLS Fatal Error:', data);
+                            loadingDiv.style.display = 'none';
                             errorDiv.style.display = 'flex';
                             video.style.display = 'none';
                         }
                     });
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     // Native HLS support (Safari)
-                    video.src = channel.url;
+                    video.src = proxiedUrl;
+                    video.onloadstart = () => loadingDiv.style.display = 'none';
+                    video.onerror = () => {
+                        errorDiv.style.display = 'flex';
+                        video.style.display = 'none';
+                    };
                     video.play().catch(e => {
                         console.warn('Playback error:', e);
                         errorDiv.style.display = 'flex';
                         video.style.display = 'none';
                     });
                 } else {
+                    loadingDiv.style.display = 'none';
                     errorDiv.style.display = 'flex';
                     video.style.display = 'none';
                 }
             } else {
                 // Direct stream (MP4, WebM, etc.)
-                video.src = channel.url;
+                video.src = proxiedUrl;
+                video.onloadstart = () => loadingDiv.style.display = 'none';
                 video.onerror = () => {
                     errorDiv.style.display = 'flex';
                     video.style.display = 'none';
@@ -361,6 +457,7 @@ function showLiveTvPlayer(channel) {
             }
         } catch (error) {
             console.error('Error setting up playback:', error);
+            loadingDiv.style.display = 'none';
             errorDiv.style.display = 'flex';
             video.style.display = 'none';
         }

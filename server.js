@@ -824,6 +824,73 @@ function proxyHealth(requestPath, res) {
     return true;
 }
 
+async function proxyLiveTvStream(req, res, requestPath, query) {
+    if (!requestPath.startsWith('/api/livetv/stream')) return false;
+    
+    const streamUrl = query.get('url');
+    if (!streamUrl) {
+        res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ error: 'Stream URL required' }));
+        return true;
+    }
+
+    try {
+        const url = new URL(streamUrl);
+        
+        // Add timeout to prevent hanging connections
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000);
+        
+        const headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Referer': url.origin,
+            'Origin': url.origin
+        };
+        
+        const response = await fetch(streamUrl, { 
+            headers,
+            redirect: 'follow',
+            signal: controller.signal,
+            timeout: 30000
+        });
+        
+        clearTimeout(timeout);
+        
+        if (!response.ok) {
+            res.writeHead(response.status, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({ error: 'Stream unavailable', status: response.status }));
+            return true;
+        }
+
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+        const contentLength = response.headers.get('content-length');
+        
+        res.writeHead(200, {
+            'Content-Type': contentType,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'Expires': '0',
+            'Access-Control-Allow-Origin': '*',
+            ...(contentLength ? { 'Content-Length': contentLength } : {})
+        });
+
+        // Stream the response body directly
+        const buffer = await response.arrayBuffer();
+        res.end(Buffer.from(buffer));
+    } catch (error) {
+        console.error('Live TV proxy error:', error.message);
+        res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+        res.end(JSON.stringify({ 
+            error: 'Stream proxy failed', 
+            message: error.message,
+            details: 'The live TV stream is either unavailable, geographically restricted, or requires special access'
+        }));
+    }
+    
+    return true;
+}
+
+
 // KissKH search / drama-detail proxy — lets the app resolve a real KissKH episode id
 // for ANY genre (drama, movie, K-show, BL, anime) so /kisskh/{id} plays the right title.
 async function proxyKissKh(req, res, requestPath, query) {
@@ -1862,6 +1929,7 @@ const server = http.createServer(async (req, res) => {
     if (requestPath.startsWith('/api/x8rr/stream') || requestPath.startsWith('/api/stream/movie/') || requestPath.startsWith('/api/stream/tv/') || requestPath === '/api/stream/scrape') {
         if (await handleX8rrStreamApi(req, res, requestPath, query)) return;
     }
+    if (await proxyLiveTvStream(req, res, requestPath, query)) return;
     if (await handleScramjetProxy(req, res, requestPath, query)) return;
     if (await resolvePlayback(req, res, requestPath, query)) return;
     if (await proxyTmdb(req, res, requestPath, query)) return;
