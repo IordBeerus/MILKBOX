@@ -2719,55 +2719,6 @@
     <script src="/musify-player.js?v=milkify-audio-info-20261011"></script>
     <script src="/gdrive-music.js?v=20261030-oauth-policy-v2"></script>
     <script src="/watch-party.js?v=20261026"></script>
-    <script src="/scramjet-client.js?v=20261112-wisp-gateway"></script>
     <script src="/app.js?v=20261110-adguard-css-sandbox-v4"></script>
-    <script>
-    // Initialize Scramjet with Chrome blocking fallback
-    (function() {
-        'use strict';
-        
-        // Wait for scramjetClient to be available
-        if (typeof window.scramjetClient === 'undefined') {
-            console.warn('[Scramjet] Client not loaded yet');
-            return;
-        }
-        
-        const client = window.scramjetClient;
-        
-        // Try to connect, but don't fail if network blocking occurs
-        const connectWithFallback = async () => {
-            try {
-                console.log('[Scramjet] Attempting connection...');
-                await client.connect(5000);
-                
-                const status = client.getStatus();
-                console.log('[Scramjet] Connection status:', status);
-                
-                if (status.useDirectProxy) {
-                    console.log('[Scramjet] ✅ Using direct proxy mode (WebSocket not available)');
-                } else if (status.connected) {
-                    console.log('[Scramjet] ✅ Connected to WISP gateway at:', status.currentWispUrl);
-                }
-            } catch (error) {
-                console.warn('[Scramjet] Connection attempt failed, will use direct proxy:', error.message);
-            }
-        };
-        
-        // Try connecting after a short delay to ensure DOM is ready
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', connectWithFallback);
-        } else {
-            setTimeout(connectWithFallback, 100);
-        }
-        
-        // Make status check available globally
-        window._getScramjetStatus = () => {
-            if (window.scramjetClient) {
-                return window.scramjetClient.getStatus();
-            }
-            return null;
-        };
-    })();
-    </script>
 </body>
 </html>
