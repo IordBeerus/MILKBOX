@@ -1622,11 +1622,24 @@ function handleCardImgError(img, fallbackPoster) {
         const card = img.closest('.card, .anime-cw-card, .movie-cw-card, .collection-card');
         const item = (card && card._itemRef) || (img._itemRef) || null;
         
-        let title = img.dataset.title || (item && (item.title || item.name)) || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
-        title = title.replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '').trim();
+        let rawTitle = (item && (item.title || item.name)) || img.dataset.title || (card && (card.dataset.title || card.getAttribute('title'))) || img.alt || '';
+        if (typeof rawTitle === 'string' && rawTitle.includes('&')) {
+            const txt = document.createElement('textarea');
+            txt.innerHTML = rawTitle;
+            rawTitle = txt.value;
+        }
+        let title = String(rawTitle || '')
+            .replace(/\[(?:dub|sub|hd|4k|1080p|720p)\]/gi, '')
+            .replace(/\((?:dub|sub|hd|4k|1080p|720p|movie|film|\d{4})\)/gi, '')
+            .replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '')
+            .replace(/\s+/g, ' ')
+            .trim();
 
-        const year = img.dataset.year || (item && item.year) || (card && card.dataset.year) || '';
-        const tmdbId = img.dataset.tmdbId || (item && (item.tmdbId || item.id)) || (card && card.dataset.tmdbId) || '';
+        const year = (item && item.year) || img.dataset.year || (card && card.dataset.year) || '';
+        let tmdbId = (item && (item.tmdbId || item.id)) || img.dataset.tmdbId || (card && card.dataset.tmdbId) || '';
+        if (typeof tmdbId === 'string') {
+            tmdbId = tmdbId.replace(/^[a-z_]+/i, '').trim();
+        }
         
         // Extract the exact TMDB path if it was originally an image.tmdb.org URL
         const tmdbPath = extractTmdbPath(img.dataset.origSrc) || extractTmdbPath(img.src) || extractTmdbPath(fallbackPoster);
@@ -1634,11 +1647,11 @@ function handleCardImgError(img, fallbackPoster) {
         const isBackdrop = img.classList.contains('card-backdrop-img') || img.classList.contains('hero-bg') || img.classList.contains('collection-backdrop');
         const effType = isBackdrop ? 'backdrop' : 'poster';
 
-        if ((title && title.length > 1 && title !== 'Untitled' && title !== 'Untitled Movie') || tmdbPath || tmdbId) {
+        if ((title && title.length > 0 && !/^(movie|tv show|untitled|null|undefined)$/i.test(title)) || tmdbPath || tmdbId) {
             const params = new URLSearchParams();
             if (title) params.set('title', title);
-            if (year) params.set('year', year);
-            if (tmdbId) params.set('tmdbId', tmdbId);
+            if (year) params.set('year', String(year));
+            if (tmdbId) params.set('tmdbId', String(tmdbId));
             if (tmdbPath) params.set('path', tmdbPath);
             params.set('type', effType);
 
@@ -4547,7 +4560,8 @@ function renderHeroItem(force = false) {
         probeImg.src = bgUrl;
         probeImg.onerror = () => {
             const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
-            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&tmdbId=${encodeURIComponent(featured.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
+            const rawId = String(featured.tmdbId || featured.id || '').replace(/^[a-z_]+/i, '').trim();
+            const fallbackHero = `/api/image-fallback?title=${encodeURIComponent(featured.title || '')}&year=${encodeURIComponent(featured.year || '')}&tmdbId=${encodeURIComponent(rawId)}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
             if (heroEl) heroEl.style.backgroundImage = `url("${fallbackHero}")`;
         };
     } else {
@@ -6967,7 +6981,8 @@ function showInfo(item, type) {
         probe.src = bgUrl;
         probe.onerror = () => {
             const tmdbP = typeof extractTmdbPath === 'function' ? extractTmdbPath(bgUrl) : '';
-            const fb = `/api/image-fallback?title=${encodeURIComponent(item.title || '')}&year=${encodeURIComponent(item.year || '')}&tmdbId=${encodeURIComponent(item.tmdbId || '')}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
+            const rawId = String(item.tmdbId || item.id || '').replace(/^[a-z_]+/i, '').trim();
+            const fb = `/api/image-fallback?title=${encodeURIComponent(item.title || '')}&year=${encodeURIComponent(item.year || '')}&tmdbId=${encodeURIComponent(rawId)}&path=${encodeURIComponent(tmdbP)}&type=backdrop`;
             if (backdrop) backdrop.style.backgroundImage = `url("${fb}")`;
         };
     } else {

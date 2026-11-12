@@ -373,25 +373,93 @@ async function proxyMangaPage(req, res, requestPath, query) {
 
 const fallbackImageCache = new Map();
 
-function titleSimilarity(t1, t2) {
-    if (!t1 || !t2) return 0;
-    const a = t1.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const b = t2.toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (a === b) return 1.0;
-    if (a.startsWith(b) || b.startsWith(a)) {
-        const minLen = Math.min(a.length, b.length);
-        const maxLen = Math.max(a.length, b.length);
-        if (minLen >= 4 && (minLen / maxLen) >= 0.7) return 0.85;
-    }
-    // Only check substring inclusion if both titles are substantive (avoid false positive duplicates on short words like "it", "us", "in")
-    if (a.length >= 5 && b.length >= 5) {
-        if (a.includes(b) || b.includes(a)) {
-            const minLen = Math.min(a.length, b.length);
-            const maxLen = Math.max(a.length, b.length);
-            if ((minLen / maxLen) >= 0.6) return 0.7;
+function decodeHtmlEntities(str) {
+    if (!str || typeof str !== 'string') return '';
+    return str
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#039;|&apos;|&#39;|&#x27;/g, "'")
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(code))
+        .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+}
+
+function cleanTitleForSearch(t) {
+    if (!t) return '';
+    return t
+        .replace(/\[(?:dub|sub|hd|4k|1080p|720p)\]/gi, '')
+        .replace(/\((?:dub|sub|hd|4k|1080p|720p|movie|film|\d{4})\)/gi, '')
+        .replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function cleanTokens(str) {
+    if (!str) return [];
+    const stopWords = new Set(['the', 'a', 'an', 'and', 'of', 'in', 'to', 'for', 'with', 'on', 'at', 'by', 'from', 'movie', 'film', 'part', 'volume', 'vol', 'edition']);
+    return str.toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .split(/\s+/)
+        .filter(t => t.length > 0 && !stopWords.has(t));
+}
+
+function titleSimilarity(query, candidate) {
+    if (!query || !candidate) return 0;
+    const qClean = query.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cClean = candidate.toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (qClean === cClean) return 1.0;
+
+    const qTokens = cleanTokens(query);
+    const cTokens = cleanTokens(candidate);
+    if (!qTokens.length || !cTokens.length) return 0;
+
+    // Single-word short titles must match exactly to prevent false matches (e.g. 'It' vs 'The Last of Us')
+    if (qTokens.length === 1 && cTokens.length > 1 && qClean.length <= 4) return 0;
+
+    const cSet = new Set(cTokens);
+    let matched = 0;
+    for (const qt of qTokens) {
+        if (cSet.has(qt)) {
+            matched++;
+        } else if (cTokens.some(ct => (ct.length >= 4 && qt.length >= 4 && (ct.startsWith(qt) || qt.startsWith(ct))))) {
+            matched += 0.8;
         }
     }
+
+    const queryCoverage = matched / qTokens.length;
+    const tokenOverlap = (2 * matched) / (qTokens.length + cTokens.length);
+
+    if (queryCoverage >= 0.9) return 0.95;
+    if (queryCoverage >= 0.75) return 0.85;
+    if (tokenOverlap >= 0.6) return 0.75;
+    if (queryCoverage >= 0.5 && tokenOverlap >= 0.4) return 0.6;
     return 0;
+}
+
+let _libraryIndex = null;
+function getLibraryIndex() {
+    if (_libraryIndex) return _libraryIndex;
+    _libraryIndex = { byId: new Map(), byTitle: new Map() };
+    try {
+        const libPath = path.join(__dirname, 'library.json');
+        if (fs.existsSync(libPath)) {
+            const data = JSON.parse(fs.readFileSync(libPath, 'utf8'));
+            const all = [...(data.movies || []), ...(data.tvshows || [])];
+            all.forEach(item => {
+                if (!item) return;
+                const rawId = String(item.tmdbId || item.id || '').trim();
+                const numId = rawId.replace(/^[a-z_]+/i, '');
+                if (numId) _libraryIndex.byId.set(numId, item);
+                if (rawId) _libraryIndex.byId.set(rawId, item);
+                const titleKey = (item.title || item.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+                if (titleKey && !_libraryIndex.byTitle.has(titleKey)) {
+                    _libraryIndex.byTitle.set(titleKey, item);
+                }
+            });
+        }
+    } catch (_) {}
+    return _libraryIndex;
 }
 
 function sendCustomSvg(res, title, year, isBackdrop) {
@@ -426,11 +494,11 @@ function sendCustomSvg(res, title, year, isBackdrop) {
 async function proxyImageFallback(req, res, requestPath, query) {
     if (requestPath !== '/api/image-fallback') return false;
 
-    const rawTitle = (query.get('title') || '').trim();
-    // Clean out noise words that might have been tacked on by UI
-    const title = rawTitle.replace(/\s+(Logo|Poster|Backdrop|Cover|Thumbnail)$/i, '').trim();
+    const rawTitle = decodeHtmlEntities((query.get('title') || '').trim());
+    const title = cleanTitleForSearch(rawTitle);
     const year = (query.get('year') || '').trim();
-    const tmdbId = (query.get('tmdbId') || '').trim();
+    let rawTmdbId = (query.get('tmdbId') || '').trim();
+    const cleanTmdbId = rawTmdbId.replace(/^[a-z_]+/i, '').trim();
     let pathParam = (query.get('path') || '').trim();
     const type = (query.get('type') || 'poster').toLowerCase();
     const isBackdrop = type === 'backdrop';
@@ -446,22 +514,21 @@ async function proxyImageFallback(req, res, requestPath, query) {
 
     const isGenericTitle = !title || /^(movie|tv show|untitled|null|undefined|series|film|cinema)$/i.test(title);
 
-    if (isGenericTitle && !isValidTmdbPath && !tmdbId) {
+    if (isGenericTitle && !isValidTmdbPath && !cleanTmdbId) {
         return sendCustomSvg(res, title || 'Movie', year, isBackdrop);
     }
 
     // Cache key specific to this exact unique item so images NEVER duplicate or overwrite other titles
-    const cleanTitle = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const cleanTitleKey = title.toLowerCase().replace(/[^a-z0-9]/g, '_');
     let uniqueKey = '';
     if (isValidTmdbPath) {
         uniqueKey = `path_${pathParam.replace(/[^a-z0-9_\-\.]/gi, '_')}`;
-    } else if (tmdbId && /^[0-9]+$/.test(tmdbId)) {
-        uniqueKey = `tmdb_${tmdbId}`;
-    } else if (cleanTitle && cleanTitle.length > 1 && !isGenericTitle) {
-        uniqueKey = `title_${cleanTitle}_${year || 'noyear'}`;
+    } else if (cleanTmdbId && /^[0-9]+$/.test(cleanTmdbId)) {
+        uniqueKey = `tmdb_${cleanTmdbId}`;
+    } else if (cleanTitleKey && cleanTitleKey.length > 1 && !isGenericTitle) {
+        uniqueKey = `title_${cleanTitleKey}_${year || 'noyear'}`;
     }
 
-    // NEVER store or retrieve from shared cache without a unique item key (prevents duplication)
     const cacheKey = uniqueKey ? `${uniqueKey}_${type}` : null;
 
     if (cacheKey) {
@@ -514,16 +581,29 @@ async function proxyImageFallback(req, res, requestPath, query) {
         return false;
     }
 
-    // Step 1: Exact TMDB path if provided (guarantees the exact official image without network blocks)
+    // Step 0: Fast Local Library lookup (24,000+ catalog titles indexed in memory)
+    const lib = getLibraryIndex();
+    const libItem = (cleanTmdbId && lib.byId.get(cleanTmdbId)) ||
+        (rawTmdbId && lib.byId.get(rawTmdbId)) ||
+        (title && lib.byTitle.get(title.toLowerCase().replace(/[^a-z0-9]/g, '')));
+
+    if (libItem) {
+        const targetImg = isBackdrop ? (libItem.backdrop || libItem.poster) : (libItem.poster || libItem.backdrop);
+        if (targetImg && /^https?:\/\//i.test(targetImg)) {
+            if (await tryFetchAndSend(targetImg)) return true;
+        }
+    }
+
+    // Step 1: Exact TMDB path if provided
     if (isValidTmdbPath) {
         if (await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${pathParam}`)) return true;
     }
 
     // Step 2: TMDB by ID
-    if (tmdbId && /^[0-9]+$/.test(tmdbId)) {
+    if (cleanTmdbId && /^[0-9]+$/.test(cleanTmdbId)) {
         for (const media of ['movie', 'tv']) {
             try {
-                const idUrl = `https://api.themoviedb.org/3/${media}/${tmdbId}`;
+                const idUrl = `https://api.themoviedb.org/3/${media}/${cleanTmdbId}`;
                 const resp = await fetch(idUrl, {
                     headers: { 'Authorization': `Bearer ${tmdbCredential}` },
                     signal: AbortSignal.timeout(3500)
@@ -537,34 +617,51 @@ async function proxyImageFallback(req, res, requestPath, query) {
         }
     }
 
-    // Step 3: TMDB Multi-Search by exact movie/show name and year
+    // Step 3: TMDB Search by Movie Title with smart scoring & matching
     if (title && !isGenericTitle) {
         try {
-            const sUrl = `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(title)}&language=en-US${year ? '&year=' + encodeURIComponent(year) : ''}`;
-            const resp = await fetch(sUrl, {
-                headers: { 'Authorization': `Bearer ${tmdbCredential}` },
-                signal: AbortSignal.timeout(3500)
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                const results = data.results || [];
-                const cleanT = title.toLowerCase().trim();
+            // First search movies endpoint for optimal movie title accuracy
+            const endpoints = [
+                `https://api.themoviedb.org/3/search/movie?query=${encodeURIComponent(title)}&language=en-US`,
+                `https://api.themoviedb.org/3/search/tv?query=${encodeURIComponent(title)}&language=en-US`,
+                `https://api.themoviedb.org/3/search/multi?query=${encodeURIComponent(title)}&language=en-US`
+            ];
 
-                // Score candidates by title similarity to ensure we only get the RIGHT title
-                const scored = results
-                    .map(r => {
-                        const rName = (r.title || r.name || '').toLowerCase().trim();
-                        const sim = titleSimilarity(cleanT, rName);
-                        const hasImg = Boolean(r.poster_path || r.backdrop_path);
-                        return { r, sim, hasImg, pop: r.popularity || 0 };
-                    })
-                    .filter(item => item.hasImg && item.sim >= 0.5)
-                    .sort((a, b) => b.sim - a.sim || b.pop - a.pop);
+            for (const endpoint of endpoints) {
+                const resp = await fetch(endpoint, {
+                    headers: { 'Authorization': `Bearer ${tmdbCredential}` },
+                    signal: AbortSignal.timeout(3500)
+                });
+                if (resp.ok) {
+                    const data = await resp.json();
+                    const results = data.results || [];
+                    if (!results.length) continue;
 
-                const bestMatch = scored[0]?.r;
-                if (bestMatch) {
-                    const p = isBackdrop ? (bestMatch.backdrop_path || bestMatch.poster_path) : (bestMatch.poster_path || bestMatch.backdrop_path);
-                    if (p && await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${p}`)) return true;
+                    const scored = results
+                        .map(r => {
+                            const rName = (r.title || r.name || r.original_title || r.original_name || '').toLowerCase().trim();
+                            const sim = titleSimilarity(title, rName);
+                            const hasImg = Boolean(r.poster_path || r.backdrop_path);
+                            const rYear = (r.release_date || r.first_air_date || '').slice(0, 4);
+                            let yearBonus = 0;
+                            if (year && rYear) {
+                                const diff = Math.abs(parseInt(year, 10) - parseInt(rYear, 10));
+                                if (diff === 0) yearBonus = 25;
+                                else if (diff <= 1) yearBonus = 15;
+                            }
+                            const pop = r.popularity || 0;
+                            const votes = r.vote_count || 0;
+                            const score = (sim * 100) + Math.min(pop * 2, 40) + (votes > 50 ? 25 : 0) + yearBonus;
+                            return { r, sim, score, hasImg };
+                        })
+                        .filter(item => item.hasImg && item.sim >= 0.5)
+                        .sort((a, b) => b.score - a.score);
+
+                    const bestMatch = scored[0]?.r;
+                    if (bestMatch) {
+                        const p = isBackdrop ? (bestMatch.backdrop_path || bestMatch.poster_path) : (bestMatch.poster_path || bestMatch.backdrop_path);
+                        if (p && await tryFetchAndSend(`https://image.tmdb.org/t/p/${imgSize}${p}`)) return true;
+                    }
                 }
             }
         } catch (_) {}
@@ -607,7 +704,7 @@ async function proxyImageFallback(req, res, requestPath, query) {
                 });
                 const data = await imgRes.json();
                 if (data && Array.isArray(data.results)) {
-                    for (const r of data.results.slice(0, 4)) {
+                    for (const r of data.results.slice(0, 5)) {
                         if (r.image && /^https?:\/\//i.test(r.image) && !/favicon|icon|avatar|blank|pixel/i.test(r.image)) {
                             if (await tryFetchAndSend(r.image)) return true;
                         }
