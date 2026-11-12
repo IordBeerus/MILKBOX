@@ -886,6 +886,8 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
         let body;
         let isTextContent = false;
         
+        console.log('Stream Content-Type:', contentType);
+        
         // If it's an M3U8 file or text-based content, process as text
         if (contentType.includes('mpegurl') || contentType.includes('m3u') || contentType.includes('text')) {
             isTextContent = true;
@@ -893,6 +895,7 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
             
             // If it's an M3U8 file, rewrite ALL URLs to be proxied through our server
             if (contentType.includes('mpegurl') || contentType.includes('m3u')) {
+                console.log('Rewriting M3U8 URLs...');
                 const lines = body.split('\n');
                 body = lines.map(line => {
                     // Skip comments and empty lines
@@ -913,10 +916,13 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
                         }
                         
                         // Now proxy it through our proxy
-                        return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
+                        const proxiedUrl = `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
+                        console.log(`  Rewriting: ${line.trim()} -> ${proxiedUrl}`);
+                        return proxiedUrl;
                     }
                     return line;
                 }).join('\n');
+                console.log('M3U8 rewriting complete');
             }
         } else {
             // For binary content (video segments, TS files, etc.)
