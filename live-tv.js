@@ -327,7 +327,7 @@ function renderLiveTvChannels() {
     statusDiv.style.display = 'none';
     grid.innerHTML = '';
 
-    liveTvFilteredChannels.slice(0, 50).forEach(channel => {
+    liveTvFilteredChannels.slice(0, 200).forEach(channel => {
         const card = createLiveTvCard(channel);
         grid.appendChild(card);
     });
@@ -376,6 +376,27 @@ function createLiveTvCard(channel) {
 function playLiveChannel(channel) {
     console.log('Playing live channel:', channel.name, channel.url);
     
+    // Check if it's a YouTube stream
+    if (channel.url.includes('youtube.com') || channel.url.includes('youtu.be')) {
+        // Extract video ID from YouTube URL
+        let videoId = '';
+        if (channel.url.includes('youtube.com/watch')) {
+            const match = channel.url.match(/v=([^&]*)/);
+            videoId = match ? match[1] : '';
+        } else if (channel.url.includes('youtu.be/')) {
+            const match = channel.url.match(/youtu\.be\/([^?]*)/);
+            videoId = match ? match[1] : '';
+        } else if (channel.url.includes('/live/')) {
+            const match = channel.url.match(/\/live\/([^?/]*)/);
+            videoId = match ? match[1] : '';
+        }
+        
+        if (videoId) {
+            showYouTubePlayer(channel, videoId);
+            return;
+        }
+    }
+    
     // Close any existing player
     const existingModal = document.getElementById('liveTvPlayerModal');
     if (existingModal) {
@@ -389,6 +410,66 @@ function playLiveChannel(channel) {
 
     // Create a simple player modal for live TV
     showLiveTvPlayer(channel);
+}
+
+function showYouTubePlayer(channel, videoId) {
+    // Close any existing player
+    const existingModal = document.getElementById('liveTvPlayerModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'liveTvPlayerModal';
+    modal.className = 'player-overlay';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.95);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    document.body.appendChild(modal);
+
+    modal.innerHTML = `
+        <div style="width: 95%; max-width: 1200px; background: #0a0a0a; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+            <div style="background: #1a1a1a; padding: 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <img src="${channel.logo || 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%23222%22 width=%22100%22 height=%22100%22/%3E%3Ctext x=%2250%22 y=%2255%22 font-size=%2214%22 fill=%22%23666%22 text-anchor=%22middle%22 font-family=%22Arial%22%3ETV%3C/text%3E%3C/svg%3E'}" 
+                         alt="${channel.name}" 
+                         style="width: 40px; height: 40px; border-radius: 4px; object-fit: cover;">
+                    <div>
+                        <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #fff;">${channel.name}</h2>
+                        <p style="margin: 4px 0 0 0; font-size: 12px; color: #aaa;">🔴 LIVE • ${channel.category} • ${channel.country}</p>
+                    </div>
+                </div>
+                <button id="closeYouTubePlayer" style="background: none; border: none; font-size: 24px; color: #fff; cursor: pointer; padding: 8px; width: 40px; height: 40px;">✕</button>
+            </div>
+            <div style="background: #000; aspect-ratio: 16/9; position: relative;">
+                <iframe id="youtubeIframe"
+                        src="https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&rel=0"
+                        style="width: 100%; height: 100%; border: none;"
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen>
+                </iframe>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('closeYouTubePlayer').addEventListener('click', () => {
+        modal.remove();
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
 }
 
 function showLiveTvPlayer(channel) {
