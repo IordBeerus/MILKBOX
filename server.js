@@ -891,7 +891,7 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
             isTextContent = true;
             body = await response.text();
             
-            // If it's an M3U8 file, rewrite relative URLs to be absolute via our proxy
+            // If it's an M3U8 file, rewrite ALL URLs to be proxied through our server
             if (contentType.includes('mpegurl') || contentType.includes('m3u')) {
                 const lines = body.split('\n');
                 body = lines.map(line => {
@@ -899,19 +899,21 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
                     if (!line.trim() || line.startsWith('#')) {
                         return line;
                     }
-                    // If line is a URL, keep it; if relative path, convert to absolute
-                    if (line.trim().startsWith('http')) {
-                        return line;
-                    }
-                    if (line.trim() && !line.startsWith('http')) {
-                        // Relative URL - make it absolute relative to the original stream
-                        try {
-                            const absoluteUrl = new URL(line.trim(), streamUrl).href;
-                            // Now proxy it through our proxy
-                            return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
-                        } catch (e) {
-                            return line;
+                    // If line is a URL (absolute or relative), proxy it through our server
+                    if (line.trim() && !line.startsWith('#')) {
+                        let absoluteUrl = line.trim();
+                        
+                        // If it's a relative URL, make it absolute first
+                        if (!absoluteUrl.startsWith('http')) {
+                            try {
+                                absoluteUrl = new URL(absoluteUrl, streamUrl).href;
+                            } catch (e) {
+                                return line;
+                            }
                         }
+                        
+                        // Now proxy it through our proxy
+                        return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
                     }
                     return line;
                 }).join('\n');
