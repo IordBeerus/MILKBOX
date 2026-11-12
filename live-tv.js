@@ -270,11 +270,15 @@ function createLiveTvCard(channel) {
 function playLiveChannel(channel) {
     console.log('Playing live channel:', channel.name, channel.url);
     
-    // Use the milkbox player or create a video player overlay
-    const playerOverlay = document.getElementById('player-overlay');
-    if (playerOverlay && window.currentlyPlaying) {
-        // If using existing player, close it first
-        document.getElementById('btn-close')?.click?.();
+    // Close any existing player
+    const existingModal = document.getElementById('liveTvPlayerModal');
+    if (existingModal) {
+        const hlsPlayer = window.liveTvHlsInstance;
+        if (hlsPlayer) {
+            hlsPlayer.destroy();
+            window.liveTvHlsInstance = null;
+        }
+        existingModal.remove();
     }
 
     // Create a simple player modal for live TV
@@ -325,16 +329,23 @@ function showLiveTvPlayer(channel) {
                        autoplay
                        crossorigin="anonymous">
                 </video>
-                <div id="liveTvPlayerLoading" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; flex-direction: column;">
+                <div id="liveTvPlayerLoading" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; flex-direction: column; z-index: 100;">
                     <div style="text-align: center;">
-                        <p style="margin: 0 0 16px 0; font-size: 18px;">⏳ Loading stream...</p>
-                        <p style="margin: 0; font-size: 12px; color: #666;">This may take a moment</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                        <p style="margin: 0 0 16px 0; font-size: 18px;">Connecting to stream...</p>
+                        <p style="margin: 0; font-size: 12px; color: #666;">This may take 10-30 seconds</p>
                     </div>
                 </div>
-                <div id="liveTvPlayerError" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; text-align: center; padding: 20px; flex-direction: column;">
+                <div id="liveTvPlayerError" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 16px; text-align: center; padding: 20px; flex-direction: column; z-index: 100;">
                     <div>
-                        <p style="margin: 0 0 16px 0; font-size: 18px;">❌ Unable to play stream</p>
-                        <p style="margin: 0 0 24px 0; font-size: 12px; color: #666;">The stream may be unavailable, geographically restricted, or require special access</p>
+                        <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
+                        <p style="margin: 0 0 8px 0; font-size: 18px;">Unable to play stream</p>
+                        <p style="margin: 0 0 24px 0; font-size: 12px; color: #888; line-height: 1.6;">
+                            The stream may be:<br/>
+                            • Geographically restricted<br/>
+                            • Temporarily offline<br/>
+                            • Requiring special access
+                        </p>
                         <button id="retryLiveTvStream" style="background: #ff2e63; color: #fff; border: none; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600;">Try Another Channel</button>
                     </div>
                 </div>
@@ -382,6 +393,9 @@ function showLiveTvPlayer(channel) {
             // Use proxy for all streams to handle CORS
             const proxiedUrl = `/api/livetv/stream?url=${encodeURIComponent(channel.url)}`;
             
+            console.log('Stream URL:', channel.url);
+            console.log('Proxied URL:', proxiedUrl);
+            
             // Use HLS.js for HLS streams, direct for others
             if (channel.url.includes('.m3u8')) {
                 // HLS stream
@@ -392,63 +406,96 @@ function showLiveTvPlayer(channel) {
                     }
                     
                     const hls = new Hls({
-                        debug: false,
+                        debug: true,
                         enableWorker: true,
                         lowLatencyMode: true,
                         emeEnabled: false,
-                        xhr: {
-                            headers: {
-                                'User-Agent': 'Mozilla/5.0'
-                            }
-                        }
+                        maxMaxBufferSize: 60 * 1000 * 1000,
+                        maxBufferSize: 30 * 1000 * 1000,
+                        maxBufferLength: 30
                     });
                     
                     window.liveTvHlsInstance = hls;
                     
-                    hls.loadSource(proxiedUrl);
-                    hls.attachMedia(video);
+                    // Setup error handler first
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        console.error('HLS error event:', event, data);
+                        if (data.fatal) {
+                            console.error('Fatal HLS error:', data.type);
+                            switch(data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    console.log('Network error - stream may be unavailable');
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    console.log('Media error - trying recovery');
+                                    hls.recoverMediaError();
+                                    return;
+                            }
+                            loadingDiv.style.display = 'none';
+                            errorDiv.style.display = 'flex';
+                            video.style.display = 'none';
+                        }
+                    });
                     
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        console.log('HLS manifest parsed successfully');
                         loadingDiv.style.display = 'none';
                         video.play().catch(e => {
                             console.warn('Auto-play blocked:', e);
                         });
                     });
                     
-                    hls.on(Hls.Events.ERROR, (event, data) => {
-                        console.error('HLS error:', data);
-                        if (data.fatal) {
-                            loadingDiv.style.display = 'none';
-                            errorDiv.style.display = 'flex';
-                            video.style.display = 'none';
-                        }
+                    hls.on(Hls.Events.LEVEL_SWITCHING, (event, data) => {
+                        console.log('Switching quality level:', data.level);
                     });
+                    
+                    console.log('Loading HLS source:', proxiedUrl);
+                    hls.loadSource(proxiedUrl);
+                    hls.attachMedia(video);
+                    
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     // Native HLS support (Safari)
+                    console.log('Using native HLS support (Safari)');
                     video.src = proxiedUrl;
-                    video.onloadstart = () => loadingDiv.style.display = 'none';
-                    video.onerror = () => {
+                    
+                    video.addEventListener('canplay', () => {
+                        console.log('Native HLS: canplay event');
+                        loadingDiv.style.display = 'none';
+                    }, { once: true });
+                    
+                    video.addEventListener('error', (e) => {
+                        console.error('Native HLS error:', e);
                         errorDiv.style.display = 'flex';
                         video.style.display = 'none';
-                    };
+                    });
+                    
                     video.play().catch(e => {
                         console.warn('Playback error:', e);
                         errorDiv.style.display = 'flex';
                         video.style.display = 'none';
                     });
                 } else {
+                    console.error('HLS not supported in this browser');
                     loadingDiv.style.display = 'none';
                     errorDiv.style.display = 'flex';
                     video.style.display = 'none';
                 }
             } else {
                 // Direct stream (MP4, WebM, etc.)
+                console.log('Loading direct stream:', proxiedUrl);
                 video.src = proxiedUrl;
-                video.onloadstart = () => loadingDiv.style.display = 'none';
-                video.onerror = () => {
+                
+                video.addEventListener('canplay', () => {
+                    console.log('Direct stream: canplay event');
+                    loadingDiv.style.display = 'none';
+                }, { once: true });
+                
+                video.addEventListener('error', (e) => {
+                    console.error('Direct stream error:', e);
                     errorDiv.style.display = 'flex';
                     video.style.display = 'none';
-                };
+                });
+                
                 video.play().catch(e => {
                     console.warn('Playback error:', e);
                     errorDiv.style.display = 'flex';

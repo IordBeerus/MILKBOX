@@ -863,20 +863,44 @@ async function proxyLiveTvStream(req, res, requestPath, query) {
         }
 
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
-        const contentLength = response.headers.get('content-length');
+        let body = await response.text();
+        
+        // If it's an M3U8 file, rewrite relative URLs to be absolute via our proxy
+        if (contentType.includes('mpegurl') || contentType.includes('m3u')) {
+            const lines = body.split('\n');
+            body = lines.map(line => {
+                // Skip comments and empty lines
+                if (!line.trim() || line.startsWith('#')) {
+                    return line;
+                }
+                // If line is a URL, keep it; if relative path, convert to absolute
+                if (line.trim().startsWith('http')) {
+                    return line;
+                }
+                if (line.trim()) {
+                    // Relative URL - make it absolute relative to the original stream
+                    const absoluteUrl = new URL(line.trim(), streamUrl).href;
+                    // Now proxy it through our proxy
+                    return `/api/livetv/stream?url=${encodeURIComponent(absoluteUrl)}`;
+                }
+                return line;
+            }).join('\n');
+        }
+        
+        const contentLength = Buffer.byteLength(body);
         
         res.writeHead(200, {
             'Content-Type': contentType,
+            'Content-Length': contentLength,
             'Cache-Control': 'no-cache, no-store, must-revalidate',
             'Pragma': 'no-cache',
             'Expires': '0',
             'Access-Control-Allow-Origin': '*',
-            ...(contentLength ? { 'Content-Length': contentLength } : {})
+            'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type'
         });
 
-        // Stream the response body directly
-        const buffer = await response.arrayBuffer();
-        res.end(Buffer.from(buffer));
+        res.end(body);
     } catch (error) {
         console.error('Live TV proxy error:', error.message);
         res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
