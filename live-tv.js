@@ -374,16 +374,6 @@ function showLiveTvPlayer(channel) {
         modal.remove();
     });
 
-    // Retry button handler
-    document.getElementById('retryLiveTvStream').addEventListener('click', () => {
-        const hlsPlayer = window.liveTvHlsInstance;
-        if (hlsPlayer) {
-            hlsPlayer.destroy();
-            window.liveTvHlsInstance = null;
-        }
-        modal.remove();
-    });
-
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             const hlsPlayer = window.liveTvHlsInstance;
