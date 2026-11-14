@@ -272,11 +272,28 @@ function buildSvgMirrorDocument(siteUrl, tabTitle) {
     ].join('');
 }
 
+function readEnvKeyFromFile(keyName) {
+    try {
+        const envPath = path.join(__dirname, '.env');
+        if (!fs.existsSync(envPath)) return '';
+        for (const line of fs.readFileSync(envPath, 'utf8').split(/\r?\n/)) {
+            const match = line.match(/^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)\s*$/);
+            if (match && match[1] === keyName) {
+                return match[2].replace(/^['"]|['"]$/g, '').trim();
+            }
+        }
+    } catch (_) {}
+    return '';
+}
+
 function createLinkletService(options = {}) {
     const apiBaseUrl = String(options.apiBaseUrl || process.env.LINKLET_API_URL || 'https://api.linklet.workers.dev').replace(/\/+$/, '');
     const getApiKey = typeof options.getApiKey === 'function'
         ? options.getApiKey
-        : () => (options.apiKey !== undefined ? options.apiKey : process.env.LINKLET_API_KEY || '').trim();
+        : () => {
+            if (options.apiKey !== undefined) return String(options.apiKey || '').trim();
+            return String(process.env.LINKLET_API_KEY || readEnvKeyFromFile('LINKLET_API_KEY') || '').trim();
+        };
     const getPublicUrl = typeof options.getPublicUrl === 'function'
         ? options.getPublicUrl
         : () => (options.publicUrl !== undefined ? options.publicUrl : process.env.MILKBOX_PUBLIC_URL || '').trim();
