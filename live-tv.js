@@ -410,6 +410,24 @@ function showLiveTvPlayer(channel) {
                         nudgeOffset: 0.2,
                         nudgeMaxRetry: 10,
                         maxFragLookUpTolerance: 0.25,
+                        liveSyncDurationCount: 3,
+                        liveMaxLatencyDurationCount: 10,
+                        manifestLoadPolicy: {
+                            default: {
+                                maxTimeToFirstByteMs: 10000,
+                                maxLoadTimeMs: 20000,
+                                timeoutRetry: { maxNumRetry: 2, retryDelayMs: 1000 },
+                                errorRetry: { maxNumRetry: 2, retryDelayMs: 1000 }
+                            }
+                        },
+                        playlistLoadPolicy: {
+                            default: {
+                                maxTimeToFirstByteMs: 10000,
+                                maxLoadTimeMs: 20000,
+                                timeoutRetry: { maxNumRetry: 2, retryDelayMs: 1000 },
+                                errorRetry: { maxNumRetry: 2, retryDelayMs: 1000 }
+                            }
+                        },
                         fragLoadPolicy: {
                             default: {
                                 maxTimeToFirstByteMs: 8000,
@@ -424,6 +442,8 @@ function showLiveTvPlayer(channel) {
                     
                     // Setup error handler first
                     let mediaRecoveryAttempts = 0;
+                    let networkRecoveryAttempts = 0;
+                    let usingDirectFallback = Boolean(window.MILKBOX_GITHUB_PAGES);
                     hls.on(Hls.Events.ERROR, (event, data) => {
                         if (!data || !data.fatal) {
                             console.debug('Non-fatal HLS event:', data?.details || event, data?.reason || '');
@@ -432,6 +452,22 @@ function showLiveTvPlayer(channel) {
                         console.debug('Fatal HLS error:', data.type, data.details);
                         switch (data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
+                                if (typeof hls.startLoad === 'function') {
+                                    if (networkRecoveryAttempts < 1) {
+                                        networkRecoveryAttempts += 1;
+                                        console.debug('Network error - retrying load...');
+                                        hls.startLoad();
+                                        return;
+                                    }
+                                    if (!usingDirectFallback && channel.url) {
+                                        usingDirectFallback = true;
+                                        networkRecoveryAttempts = 0;
+                                        console.debug('Proxy network error - falling back to direct stream URL');
+                                        hls.loadSource(channel.url);
+                                        hls.startLoad();
+                                        return;
+                                    }
+                                }
                                 showConnectionError('Network error - stream may be unavailable or unreachable');
                                 return;
                             case Hls.ErrorTypes.MEDIA_ERROR:
@@ -462,6 +498,8 @@ function showLiveTvPlayer(channel) {
                     });
                     
                     hls.on(Hls.Events.FRAG_BUFFERED, () => {
+                        networkRecoveryAttempts = 0;
+                        mediaRecoveryAttempts = 0;
                         clearConnectionTimeout();
                     });
                     

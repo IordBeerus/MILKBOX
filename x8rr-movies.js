@@ -1245,33 +1245,43 @@ async function handleX8rrProxy(req, res, targetUrl) {
         };
 
         const targetLower = targetUrl.toLowerCase();
+        let hasDomainSpecificHeaders = false;
         if (targetLower.includes('nectarandnectary.space') || targetLower.includes('stellarconductornexus.com') || targetLower.includes('vidsrc.sh')) {
             headers['Referer'] = 'https://stellarconductornexus.com/';
             headers['Origin'] = 'https://stellarconductornexus.com';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('hscow.com') || targetLower.includes('fcxmb.com') || targetLower.includes('majorplay.net') || targetLower.includes('vidsrc.pm') || targetLower.includes('hd4u.sbs') || targetLower.includes('finalsignal.top')) {
             headers['Referer'] = 'https://vidsrc.pm/';
             headers['Origin'] = 'https://vidsrc.pm';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('remoteconsultinggroup.site') || targetLower.includes('nextgencloudfabric.com')) {
             headers['Referer'] = 'https://nextgencloudfabric.com/';
             headers['Origin'] = 'https://nextgencloudfabric.com';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vidspark') || targetLower.includes('paretocdn')) {
             headers['Referer'] = 'https://vidspark.to/';
             headers['Origin'] = 'https://vidspark.to';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vidrock') || targetLower.includes('vercetti.org') || targetLower.includes('slowcloud.live')) {
             headers['Referer'] = 'https://vidrock.net/';
             headers['Origin'] = 'https://vidrock.net';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vidzee') || targetLower.includes('fastcloud') || targetLower.includes('nexcloud')) {
             headers['Referer'] = 'https://player.vidzee.wtf/';
             headers['Origin'] = 'https://player.vidzee.wtf';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vidnest') || targetLower.includes('vidora.stream') || targetLower.includes('netrocdn.site') || targetLower.includes('streamflixserver.site') || targetLower.includes('moviesapi.to')) {
             headers['Referer'] = 'https://vidnest.fun/';
             headers['Origin'] = 'https://vidnest.fun';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vidsrc.buzz')) {
             headers['Referer'] = 'https://vidsrc.buzz/';
             headers['Origin'] = 'https://vidsrc.buzz';
+            hasDomainSpecificHeaders = true;
         } else if (targetLower.includes('vixsrc')) {
             headers['Referer'] = 'https://vixsrc.to/';
             headers['Origin'] = 'https://vixsrc.to';
+            hasDomainSpecificHeaders = true;
         } else {
             headers['Referer'] = parsed.origin + '/';
             headers['Origin'] = parsed.origin;
@@ -1286,6 +1296,7 @@ async function handleX8rrProxy(req, res, targetUrl) {
                     for (const [k, v] of Object.entries(customHeaders)) {
                         headers[k] = String(v);
                     }
+                    hasDomainSpecificHeaders = true;
                 }
             } catch {}
         }
@@ -1298,6 +1309,7 @@ async function handleX8rrProxy(req, res, targetUrl) {
                 const origMatch = decoded.match(/Origin=([^|&]+)/i);
                 if (refMatch) headers['Referer'] = refMatch[1].trim();
                 if (origMatch) headers['Origin'] = origMatch[1].trim();
+                if (refMatch || origMatch) hasDomainSpecificHeaders = true;
             } catch {}
         }
 
@@ -1305,11 +1317,26 @@ async function handleX8rrProxy(req, res, targetUrl) {
             headers['Range'] = req.headers.range;
         }
 
-        const r = await fetch(targetUrl, {
-            method: req.method === 'HEAD' ? 'HEAD' : 'GET',
+        const fetchMethod = req.method === 'HEAD' ? 'HEAD' : 'GET';
+        let r = await fetch(targetUrl, {
+            method: fetchMethod,
             headers,
             signal: AbortSignal.timeout(20000)
         });
+
+        // Some IPTV/CDN servers reject synthetic Origin/Referer headers with 400/401/403
+        if (!r.ok && (r.status === 400 || r.status === 401 || r.status === 403) && !hasDomainSpecificHeaders) {
+            const cleanHeaders = { 'User-Agent': UA, 'Accept': '*/*' };
+            if (headers['Range']) cleanHeaders['Range'] = headers['Range'];
+            const retryRes = await fetch(targetUrl, {
+                method: fetchMethod,
+                headers: cleanHeaders,
+                signal: AbortSignal.timeout(20000)
+            });
+            if (retryRes.ok || retryRes.status === 206) {
+                r = retryRes;
+            }
+        }
 
         if (!r.ok && r.status !== 206) {
             res.writeHead(r.status, {
@@ -1320,43 +1347,30 @@ async function handleX8rrProxy(req, res, targetUrl) {
             return true;
         }
 
+        const effectiveUrl = (r.url && /^https?:\/\//i.test(r.url)) ? r.url : targetUrl;
+        const effectiveParsed = new URL(effectiveUrl);
         const ct = (r.headers.get('content-type') || '').toLowerCase();
+        const isM3u8 = ct.includes('mpegurl')
+            || parsed.pathname.toLowerCase().endsWith('.m3u8')
+            || effectiveParsed.pathname.toLowerCase().endsWith('.m3u8')
+            || targetUrl.includes('.m3u8');
 
-        if (ct.includes('mpegurl') || targetUrl.includes('.m3u8')) {
+        if (isM3u8) {
             let text = await r.text();
-            const hostToken = parsed.searchParams.get('token');
-            const origin = parsed.origin;
-            const basePath = targetUrl.substring(0, targetUrl.lastIndexOf('/') + 1);
-
-            text = text.replace(/URI="([^"]+)"/g, (match, uri) => {
+            const hostToken = effectiveParsed.searchParams.get('token') || parsed.searchParams.get('token');
+            const resolvePlaylistRef = (ref) => {
                 let abs;
-                if (uri.startsWith('http://') || uri.startsWith('https://')) {
-                    abs = uri;
-                } else if (uri.startsWith('/')) {
-                    abs = origin + uri;
-                } else {
-                    abs = basePath + uri;
-                }
-                if (hostToken && !abs.includes('token=')) {
-                    abs += (abs.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(hostToken);
-                }
-                if (dataParam && !abs.includes('data=')) {
-                    abs += (abs.includes('?') ? '&' : '?') + 'data=' + encodeURIComponent(dataParam);
-                }
-                const hSuffix = hParam ? `&h=${encodeURIComponent(hParam)}` : '';
-                return `URI="/api/x8rr/proxy?url=${encodeURIComponent(abs)}${hSuffix}"`;
-            });
-
-            text = text.replace(/^(?!#)(\S+)$/gm, (line) => {
-                const trimmed = line.trim();
-                if (!trimmed) return line;
-                let abs;
-                if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-                    abs = trimmed;
-                } else if (trimmed.startsWith('/')) {
-                    abs = origin + trimmed;
-                } else {
-                    abs = basePath + trimmed;
+                try {
+                    abs = new URL(ref, effectiveUrl).toString();
+                } catch {
+                    if (ref.startsWith('http://') || ref.startsWith('https://')) {
+                        abs = ref;
+                    } else if (ref.startsWith('/')) {
+                        abs = effectiveParsed.origin + ref;
+                    } else {
+                        const basePath = effectiveUrl.split('?')[0];
+                        abs = basePath.substring(0, basePath.lastIndexOf('/') + 1) + ref;
+                    }
                 }
                 if (hostToken && !abs.includes('token=')) {
                     abs += (abs.includes('?') ? '&' : '?') + 'token=' + encodeURIComponent(hostToken);
@@ -1366,11 +1380,19 @@ async function handleX8rrProxy(req, res, targetUrl) {
                 }
                 const hSuffix = hParam ? `&h=${encodeURIComponent(hParam)}` : '';
                 return `/api/x8rr/proxy?url=${encodeURIComponent(abs)}${hSuffix}`;
+            };
+
+            text = text.replace(/URI="([^"]+)"/g, (_match, uri) => `URI="${resolvePlaylistRef(uri)}"`);
+
+            text = text.replace(/^(?!#)([^\r\n]+)$/gm, (line) => {
+                const trimmed = line.trim();
+                if (!trimmed) return line;
+                return resolvePlaylistRef(trimmed);
             });
 
             res.writeHead(200, {
                 'Content-Type': 'application/vnd.apple.mpegurl',
-                'Cache-Control': 'no-cache',
+                'Cache-Control': 'no-store, no-cache, must-revalidate',
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
                 'Access-Control-Allow-Headers': '*'
