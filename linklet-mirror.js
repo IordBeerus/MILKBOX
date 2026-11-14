@@ -474,19 +474,20 @@
         }
     }
 
-    function openLinkletModal() {
-        const modal = getEl('linkletModal');
-        if (!modal) return;
-        modal.style.display = 'block';
-        modal.classList.add('active');
+    function activateMirrorsSettingsTab() {
+        const settingsModal = getEl('settingsModal');
+        if (settingsModal && !settingsModal.classList.contains('active')) {
+            settingsModal.style.display = 'block';
+            settingsModal.classList.add('active');
+        }
+        document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
+        document.querySelectorAll('.settings-tab-panel').forEach((p) => p.classList.remove('active'));
+        document.querySelector('.settings-tab[data-settings-tab="mirrors"]')?.classList.add('active');
+        document.querySelector('.settings-tab-panel[data-settings-panel="mirrors"]')?.classList.add('active');
         loadLinkletStatus();
     }
 
-    function closeLinkletModal() {
-        const modal = getEl('linkletModal');
-        if (!modal) return;
-        modal.classList.remove('active');
-        modal.style.display = 'none';
+    function cleanupLinkletTimers() {
         stopPollTimer();
         stopCountdownTimer();
         activeJobId = null;
@@ -512,28 +513,16 @@
     }
 
     function initLinkletUI() {
-        getEl('linkletNavBtn')?.addEventListener('click', openLinkletModal);
-        getEl('footerGenerateSite')?.addEventListener('click', (e) => {
-            e.preventDefault();
-            openLinkletModal();
+        getEl('settingsOpenLinkletBtn')?.addEventListener('click', activateMirrorsSettingsTab);
+        document.querySelector('.settings-tab[data-settings-tab="mirrors"]')?.addEventListener('click', () => {
+            activateMirrorsSettingsTab();
         });
-        getEl('settingsOpenLinkletBtn')?.addEventListener('click', () => {
-            const settingsModal = getEl('settingsModal');
-            if (settingsModal) {
-                settingsModal.classList.remove('active');
-                settingsModal.style.display = 'none';
-            }
-            openLinkletModal();
+        getEl('settingsBtn')?.addEventListener('click', () => {
+            if (!statusData) loadLinkletStatus();
         });
-        getEl('closeLinkletModal')?.addEventListener('click', closeLinkletModal);
-        getEl('linkletModal')?.addEventListener('click', (e) => {
-            if (e.target && e.target.id === 'linkletModal') closeLinkletModal();
-        });
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                const modal = getEl('linkletModal');
-                if (modal && modal.classList.contains('active')) closeLinkletModal();
-            }
+        getEl('closeSettings')?.addEventListener('click', cleanupLinkletTimers);
+        getEl('settingsModal')?.addEventListener('click', (e) => {
+            if (e.target && e.target.id === 'settingsModal') cleanupLinkletTimers();
         });
 
         getEl('linkletProviderSelect')?.addEventListener('change', updateDynamicFields);
@@ -582,8 +571,7 @@
     }
 
     window.MILKBOXLinklet = {
-        open: openLinkletModal,
-        close: closeLinkletModal,
+        open: activateMirrorsSettingsTab,
         refresh: loadLinkletStatus
     };
 })();

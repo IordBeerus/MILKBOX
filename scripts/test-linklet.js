@@ -292,12 +292,17 @@ test('Linklet modal opens, dynamically adapts provider inputs, polls results, an
     window.eval(linkletClientScript);
     window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
 
-    window.document.getElementById('linkletNavBtn').click();
+    assert.equal(window.document.getElementById('linkletNavBtn'), null);
+    assert.equal(window.document.getElementById('footerGenerateSite'), null);
+
+    window.document.getElementById('settingsOpenLinkletBtn').click();
     await new Promise((r) => setTimeout(r, 40));
 
-    const modal = window.document.getElementById('linkletModal');
-    assert.equal(modal.classList.contains('active'), true);
-    assert.notEqual(modal.getAttribute('data-adguard-blocked'), 'true');
+    const settingsModal = window.document.getElementById('settingsModal');
+    const mirrorsPanel = window.document.querySelector('.settings-tab-panel[data-settings-panel="mirrors"]');
+    assert.equal(settingsModal.classList.contains('active'), true);
+    assert.equal(mirrorsPanel.classList.contains('active'), true);
+    assert.notEqual(mirrorsPanel.getAttribute('data-adguard-blocked'), 'true');
     assert.match(window.document.getElementById('linkletUserQuotaVal').textContent, /3 \/ 3 generations left this hour/);
 
     // Submit form -> polls job -> displays generated link

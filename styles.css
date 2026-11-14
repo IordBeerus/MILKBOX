@@ -13658,40 +13658,9 @@ body[data-theme="sakura"] .seasonal-decorations img {
     contain: layout style;
 }
 
-/* Linklet AllOne MAX Site Mirror Generator */
-.btn-linklet-nav {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(255, 46, 99, 0.26) 100%);
-    border-color: rgba(16, 185, 129, 0.5);
-    box-shadow: 0 0 14px rgba(16, 185, 129, 0.16);
-}
-.btn-linklet-nav:hover {
-    background: linear-gradient(135deg, #10b981 0%, #ff2e63 100%);
-    border-color: #34d399;
-    box-shadow: 0 0 22px rgba(16, 185, 129, 0.45);
-}
-
-@media (max-width: 640px) {
-    .btn-linklet-nav span {
-        display: none;
-    }
-    .btn-linklet-nav {
-        padding: 7px 10px;
-    }
-}
-
-.linklet-modal-layer {
-    z-index: 120000;
-}
-
-.linklet-modal-content {
-    max-width: 640px;
-    background: linear-gradient(160deg, rgba(18, 18, 28, 0.98) 0%, rgba(12, 12, 18, 0.99) 100%);
-    border: 1px solid rgba(255, 46, 99, 0.35);
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
-}
-
-.linklet-modal-header {
-    margin-bottom: 16px;
+/* Linklet AllOne MAX Site Mirror Generator (Settings -> Site Mirrors) */
+[data-settings-panel="mirrors"] .linklet-tier-badge {
+    margin-bottom: 10px;
 }
 
 .linklet-tier-badge {
