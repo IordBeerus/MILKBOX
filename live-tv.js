@@ -345,6 +345,12 @@ function createLiveTvCard(channel) {
         playLiveChannel(channel);
     };
 
+    const playBtn = card.querySelector('.btn-play-live');
+    if (playBtn) {
+        playBtn.style.touchAction = 'manipulation';
+        playBtn.addEventListener('click', openChannel);
+    }
+
     card.addEventListener('click', openChannel);
     card.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -386,7 +392,7 @@ function showLiveTvPlayer(channel) {
             display: flex;
             align-items: center;
             justify-content: center;
-            z-index: 10000;
+            z-index: 200000;
         `;
         document.body.appendChild(modal);
     }
@@ -479,6 +485,7 @@ function showLiveTvPlayer(channel) {
             if (playResult && typeof playResult.then === 'function') {
                 playResult.then(() => {
                     overlay.remove();
+                    markStreamReady();
                 }).catch(() => {
                     video.muted = true;
                     video.play?.().catch(() => {});
@@ -513,10 +520,12 @@ function showLiveTvPlayer(channel) {
                         mutedAttempt.then(() => {
                             showTapToPlayPrompt(true);
                         }).catch(() => {
+                            if (loadingDiv) loadingDiv.style.display = 'none';
                             showTapToPlayPrompt(false);
                         });
                     }
                 } catch (_) {
+                    if (loadingDiv) loadingDiv.style.display = 'none';
                     showTapToPlayPrompt(false);
                 }
             });
@@ -535,7 +544,28 @@ function showLiveTvPlayer(channel) {
         liveTvDebugLog('Stream connection failed:', reason);
         if (loadingDiv) {
             loadingDiv.style.display = 'flex';
-            loadingDiv.textContent = `Unable to play this channel: ${reason}`;
+            loadingDiv.innerHTML = '';
+            const msg = document.createElement('p');
+            msg.style.cssText = 'margin: 0 0 14px 0; color: #fff; font-size: 15px;';
+            msg.textContent = `Unable to play this channel: ${reason}`;
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;';
+            const retryBtn = document.createElement('button');
+            retryBtn.type = 'button';
+            retryBtn.className = 'live-tv-retry-btn';
+            retryBtn.style.marginTop = '0';
+            retryBtn.textContent = '🔄 Retry Channel';
+            retryBtn.addEventListener('click', () => playLiveChannel(channel));
+            const dismissBtn = document.createElement('button');
+            dismissBtn.type = 'button';
+            dismissBtn.className = 'live-tv-retry-btn';
+            dismissBtn.style.cssText = 'margin-top: 0; background: rgba(255,255,255,0.14);';
+            dismissBtn.textContent = 'Close';
+            dismissBtn.addEventListener('click', closePlayer);
+            actions.appendChild(retryBtn);
+            actions.appendChild(dismissBtn);
+            loadingDiv.appendChild(msg);
+            loadingDiv.appendChild(actions);
         }
     }
 

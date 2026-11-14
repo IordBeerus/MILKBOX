@@ -13563,6 +13563,8 @@ body[data-theme="sakura"] .seasonal-decorations img {
 }
 
 #liveTvPlayerModal {
+    z-index: 200000 !important;
+    pointer-events: auto !important;
     padding: max(10px, env(safe-area-inset-top, 10px)) 10px max(10px, env(safe-area-inset-bottom, 10px));
     box-sizing: border-box;
     overscroll-behavior: contain;

@@ -240,6 +240,10 @@
         /* Whitelist protection for legitimate MILKBOX playback & navigation containers */
         #playerFrame, #playerContainer, #mbPlayer, #mbNativeVideo,
         #mbStreamIframe, #cinesrcPlayerIframe, #scramjetPlayerIframe,
+        #liveTvPlayerModal, #liveTvPlayerModal .live-tv-player-dialog,
+        #liveTvPlayerStage, #liveTvVideoPlayer, #liveTvPlayerLoading,
+        #liveTvSection, #liveTvGrid, .live-tv-card, .live-tv-tap-overlay,
+        .live-tv-tap-btn, .live-tv-unmute-pill,
         .milkbox-player, .mb-player, #siteTitle, #mobileNav,
         #adguardToast, .adguard-server-badge, .adguard-sandbox-badge,
         .server-selector, #playerSelector, .cinesrc-hud-bar, .scramjet-hud-bar {
@@ -465,6 +469,13 @@
             el.id === 'mbNativeVideo' ||
             el.id === 'mbSubtitlesOverlay' ||
             el.id === 'mbControlsBar' ||
+            el.id === 'liveTvPlayerModal' ||
+            el.id === 'liveTvPlayerStage' ||
+            el.id === 'liveTvVideoPlayer' ||
+            el.id === 'liveTvPlayerLoading' ||
+            el.id === 'closeLiveTvPlayer' ||
+            el.id === 'liveTvSection' ||
+            el.id === 'liveTvGrid' ||
             el.id === 'adguardToast' ||
             el.id === 'adguardServerBadge' ||
             el.id === 'adguardSandboxBadge' ||
@@ -477,6 +488,10 @@
         if (el.closest && (
             el.closest('.milkbox-player') ||
             el.closest('.mb-player') ||
+            el.closest('#liveTvPlayerModal') ||
+            el.closest('#liveTvSection') ||
+            el.closest('.live-tv-player-dialog') ||
+            el.closest('.live-tv-card') ||
             el.closest('#playerSelector') ||
             el.closest('.server-selector') ||
             el.closest('.adguard-server-badge') ||

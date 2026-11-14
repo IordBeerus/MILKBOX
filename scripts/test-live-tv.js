@@ -139,3 +139,34 @@ test('GitHub Pages plays HLS streams directly', async () => {
     window.document.getElementById('closeLiveTvPlayer').click();
     dom.window.close();
 });
+
+test('tapping Watch Live opens and keeps Live TV player intact with AdGuard active', async () => {
+    const dom = await createPage();
+    const { window } = dom;
+    const adguardScript = fs.readFileSync(path.join(root, 'adguard-popupblocker.js'), 'utf8');
+    window.Hls = FakeHls;
+    window.fetch = async () => ({
+        ok: true,
+        text: async () => [
+            '#EXTM3U',
+            '#EXTINF:-1 tvg-id="3ABNUganda.ug",3ABN TV Uganda',
+            'https://example.com/3abn.m3u8',
+        ].join('\n'),
+    });
+    window.eval(adguardScript);
+    window.eval(liveTvScript);
+    await window.initializeLiveTV();
+    const btn = window.document.querySelector('#liveTvGrid .live-tv-card .btn-play-live');
+    assert.ok(btn, 'Watch Live button should exist');
+    btn.click();
+    await new Promise(resolve => setTimeout(resolve, 160));
+    const modal = window.document.getElementById('liveTvPlayerModal');
+    const video = window.document.getElementById('liveTvVideoPlayer');
+    assert.ok(modal, 'Live TV modal must remain mounted after AdGuard mutation sweep');
+    assert.ok(video, 'Live TV video element must remain mounted after AdGuard mutation sweep');
+    assert.notEqual(modal.getAttribute('data-adguard-blocked'), 'true');
+    assert.notEqual(video.getAttribute('data-adguard-blocked'), 'true');
+    window.document.getElementById('closeLiveTvPlayer').click();
+    dom.window.close();
+});
+
