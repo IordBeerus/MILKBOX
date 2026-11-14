@@ -11980,6 +11980,7 @@ const ROUTE_URL_MAP = {
     trending: '/trending',
     streaming: '/streaming',
     free: '/free',
+    livetv: '/livetv',
     providers: '/providers',
     theaters: '/theaters',
     popular: '/popular',
@@ -11996,11 +11997,18 @@ function getSectionFromPath(pathname) {
     if (p === '/trending') return 'trending';
     if (p === '/streaming') return 'streaming';
     if (p === '/free') return 'free';
+    if (p === '/livetv') return 'livetv';
     if (p === '/providers') return 'providers';
     if (p === '/theaters') return 'theaters';
     if (p === '/popular') return 'popular';
     if (p === '/manga') return 'manga';
     return 'home';
+}
+
+function getCurrentSectionFromLocation() {
+    return getSectionFromPath(window.MILKBOX_GITHUB_PAGES
+        ? window.location.hash.slice(1)
+        : window.location.pathname);
 }
 
 function applySectionChange(section, link, pushHistory = true) {
@@ -12010,8 +12018,9 @@ function applySectionChange(section, link, pushHistory = true) {
     if (pushHistory) {
         try {
             const targetPath = ROUTE_URL_MAP[section] || `/${section}`;
-            if (window.location.pathname !== targetPath) {
-                window.history.pushState({ section }, '', targetPath);
+            const currentPath = window.MILKBOX_GITHUB_PAGES ? window.location.hash.slice(1) : window.location.pathname;
+            if (currentPath !== targetPath) {
+                window.history.pushState({ section }, '', window.MILKBOX_GITHUB_PAGES ? `#${targetPath}` : targetPath);
             }
         } catch (_) {}
     }
@@ -12042,6 +12051,7 @@ function applySectionChange(section, link, pushHistory = true) {
     show('top10Section', section === 'home');
     if (section === 'home') renderTop10Row();
     show('freeSection', false);
+    show('liveTvSection', section === 'livetv');
     const animeCwList = getAnimeContinueWatching();
     const hasAnimeCw = animeCwList && animeCwList.length > 0;
     show('animeContinueWatchingSection', (section === 'anime' || section === 'home') && hasAnimeCw);
@@ -12122,6 +12132,25 @@ function applySectionChange(section, link, pushHistory = true) {
         show('providerSection', false);
         renderLiveTab('free');
         showLiveHero('free', true);
+    } else if (section === 'livetv') {
+        show('moviesSection', false);
+        show('tvShowsSection', false);
+        show('myListSection', false);
+        show('homeGenres', false);
+        show('trendingSection', false);
+        show('streamingSection', false);
+        show('freeSection', false);
+        show('theatersSection', false);
+        show('popularSection', false);
+        show('mangaSection', false);
+        show('collectionsSection', false);
+        show('providerSection', false);
+        show('musicSection', false);
+        show('providersSection', false);
+        show('exploreGenresSection', false);
+        show('animeContinueWatchingSection', false);
+        show('movieContinueWatchingSection', false);
+        document.getElementById('heroSection').style.display = 'none';
     } else if (section === 'providers') {
         show('moviesSection', false);
         show('tvShowsSection', false);
@@ -12363,7 +12392,7 @@ if (mobileMenuBtn) {
 // Nav Dropdown
 const SECTION_LABELS = {
     home: 'Home', movies: 'Movies', tvshows: 'TV Shows', anime: 'Anime',
-    manga: 'Manga', trending: 'Trending', streaming: 'Streaming', providers: 'Providers',
+    manga: 'Manga', trending: 'Trending', streaming: 'Streaming', free: 'Free To Watch', livetv: '🔴 LIVE TV', providers: 'Providers',
     theaters: 'In Theaters', popular: 'Most Popular', music: 'Music', mylist: 'My List'
 };
 function updateNavDropdownLabel(section) {
@@ -13318,7 +13347,7 @@ window.addEventListener('popstate', (e) => {
         closePlaybackPlayer(false);
         return;
     }
-    const targetSection = (e.state && e.state.section) || getSectionFromPath(window.location.pathname);
+    const targetSection = (e.state && e.state.section) || getCurrentSectionFromLocation();
     applySectionChange(targetSection, null, false);
 });
 
@@ -13728,7 +13757,7 @@ function initAll() {
     try { initCardLogoObserver(); } catch (e) { console.error('initCardLogoObserver error:', e); }
     try { initContentSectionObserver(); } catch (e) { console.error('initContentSectionObserver error:', e); }
     try {
-        const initialSection = getSectionFromPath(window.location.pathname);
+        const initialSection = getCurrentSectionFromLocation();
         if (initialSection && initialSection !== 'home') {
             applySectionChange(initialSection, null, false);
         }
