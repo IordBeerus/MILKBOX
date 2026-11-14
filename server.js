@@ -8,6 +8,7 @@ const { handleStreamResolve, handleStreamProxy } = require('./stream-provider');
 const { handleX8rrProxy, handleX8rrStreamApi, handleX8rrSubtitlesApi, handleX8rrVttProxy } = require('./x8rr-movies');
 const { handleX8rrManga } = require('./x8rr-manga');
 const { initWatchPartyServer } = require('./watch-party-server');
+const { createLinkletService } = require('./linklet-service');
 
 Platform.shim.eval = async (data) => new Function(data.output)();
 
@@ -22,6 +23,7 @@ function loadEnvFile() {
 }
 
 loadEnvFile();
+const linkletService = createLinkletService();
 const defaultAppPort = Number(process.env.DEFAULT_APP_PORT) || 3000;
 let port = Number(process.env.PORT) || defaultAppPort;
 if (port === 8080 || port === Number(process.env.NGINX_PORT || 8080)) {
@@ -2030,6 +2032,7 @@ const server = http.createServer(async (req, res) => {
     if (await handleStreamProxy(req, res, requestPath, query)) return;
     if (await proxyGoogleDriveStream(req, res, requestPath, query)) return;
     if (await handleGoogleDriveLibrary(req, res, requestPath)) return;
+    if (await linkletService.handleHttpRequest(req, res, requestPath)) return;
 
     if (requestPath === '/api/party/room') {
         const code = (query.get('code') || '').trim().toUpperCase();

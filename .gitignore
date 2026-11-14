@@ -5,3 +5,4 @@ node_modules/
 .aistudio/
 bun.lock
 bun.lockb
+.linklet-rate-limits.json
