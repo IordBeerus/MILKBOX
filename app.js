@@ -381,7 +381,7 @@ async function autoLoadHostedLibrary() {
     try {
         if (HOSTED_LIBRARY_URL) {
             try {
-                const res = await fetch(HOSTED_LIBRARY_URL, { cache: 'no-store' });
+                const res = await fetch(HOSTED_LIBRARY_URL);
                 if (res.ok) {
                     const data = await res.json();
                     const m = Array.isArray(data.movies) ? data.movies.filter(x => x && x.title) : [];
@@ -2079,7 +2079,7 @@ async function loadLocalProviderIcons() {
     if (localProviderIconsLoaded) return;
     localProviderIconsLoaded = true;
     try {
-        const response = await fetch('assets/provider-icons/manifest.json', { cache: 'no-store' });
+        const response = await fetch('assets/provider-icons/manifest.json');
         if (response.ok) Object.assign(LOCAL_PROVIDER_ICONS, await response.json());
     } catch {}
 }
