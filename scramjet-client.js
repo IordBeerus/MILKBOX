@@ -1,12 +1,3 @@
-/**
- * Scramjet Client for MILKBOX - Enhanced with Fallback Support
- * Handles modern web proxy functionality with WISP gateway support
- * Integrates with MercuryWorkshop's Scramjet: https://github.com/MercuryWorkshop/scramjet
- * 
- * Features fallback mechanisms for network restrictions and Chrome blocking
- */
-
-// Primary and fallback WISP endpoints
 const WISP_URLS = [
     'wss://wisp.classroom.lat/',
     'wss://wisp.works/',
