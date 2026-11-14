@@ -52,8 +52,8 @@ class ScramjetClient {
         this.useDirectProxy = true;
         this.isConnected = true;
         this.wispSocket = null;
-        if (reason) {
-            console.warn(`[Scramjet] ${reason}, using direct proxy mode`);
+        if (reason && typeof window !== 'undefined' && window._scramjetDebug) {
+            console.log(`[Scramjet] ${reason}, using direct proxy mode`);
         }
         try { this.onFallback('direct-proxy'); } catch {}
         try { this.onConnect(); } catch {}
@@ -147,8 +147,8 @@ class ScramjetClient {
                 if (this.wispSocket === socket) {
                     this.wispSocket = null;
                 }
-                if (reason) {
-                    console.warn(`[Scramjet] ${reason} on ${wispUrl}, trying next fallback`);
+                if (reason && typeof window !== 'undefined' && window._scramjetDebug) {
+                    console.log(`[Scramjet] ${reason} on ${wispUrl}, trying next fallback`);
                 }
                 this.currentWispIndex++;
                 this._connectToWisp(timeout).then(resolve);
@@ -411,7 +411,7 @@ if (typeof window !== 'undefined') {
             if (window._scramjetDebug) console.log('[Scramjet] Global client disconnected');
         },
         onError: (error) => {
-            console.warn('[Scramjet] Gateway notice:', error?.message || 'Connection unavailable');
+            if (window._scramjetDebug) console.log('[Scramjet] Gateway notice:', error?.message || 'Connection unavailable');
         },
         onReconnectAttempt: (attempt) => {
             console.log(`[Scramjet] Reconnection attempt ${attempt}`);
