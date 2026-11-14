@@ -1473,6 +1473,24 @@ async function proxyMiruro(req, res, requestPath, query) {
     return true;
 }
 
+let _wispProbeCache = { checkedAt: 0, reachable: false };
+async function isExternalWispReachable() {
+    if (Date.now() - _wispProbeCache.checkedAt < 5 * 60 * 1000) {
+        return _wispProbeCache.reachable;
+    }
+    try {
+        const dns = require('dns').promises;
+        await Promise.race([
+            dns.lookup('wisp.classroom.lat'),
+            new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 1200))
+        ]);
+        _wispProbeCache = { checkedAt: Date.now(), reachable: true };
+    } catch {
+        _wispProbeCache = { checkedAt: Date.now(), reachable: false };
+    }
+    return _wispProbeCache.reachable;
+}
+
 // Scramjet proxy service
 async function handleScramjetProxy(req, res, requestPath, query) {
     if (!requestPath.startsWith('/api/scramjet/')) return false;
@@ -1488,6 +1506,7 @@ async function handleScramjetProxy(req, res, requestPath, query) {
     }
 
     if (requestPath === '/api/scramjet/status') {
+        const wispReachable = await isExternalWispReachable();
         res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({
             ok: true,
@@ -1495,6 +1514,8 @@ async function handleScramjetProxy(req, res, requestPath, query) {
             version: '2.5.0',
             status: 'operational',
             wisp: 'wss://wisp.classroom.lat/',
+            wispReachable,
+            directProxyReady: true,
             sources: ['vidsrc', 'cinesrc', 'vidlink']
         }));
         return true;
