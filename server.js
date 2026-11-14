@@ -1880,6 +1880,9 @@ const server = http.createServer(async (req, res) => {
     if (requestPath === '/api/x8rr/proxy' || requestPath === '/api/proxy') {
         if (await handleX8rrProxy(req, res, query.get('url'))) return;
     }
+    if (requestPath === '/api/livetv/stream') {
+        if (await handleX8rrProxy(req, res, query.get('url'))) return;
+    }
     if (requestPath.startsWith('/api/x8rr/stream') || requestPath.startsWith('/api/stream/movie/') || requestPath.startsWith('/api/stream/tv/') || requestPath === '/api/stream/scrape') {
         if (await handleX8rrStreamApi(req, res, requestPath, query)) return;
     }
