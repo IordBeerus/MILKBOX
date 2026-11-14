@@ -169,6 +169,8 @@ function getSyncStatus() {
 
 function syncToGitHub(customMessage) {
     const timestamp = new Date().toISOString();
+    const nowMs = Date.now();
+    const isAutoSync = typeof customMessage === 'string' && /^(Startup|Periodic) auto-sync/i.test(customMessage);
     lastSyncStatus.lastAttempt = timestamp;
 
     const { token: GITHUB_TOKEN, repo: GITHUB_REPO, branch: GITHUB_BRANCH } = resolveCredentials();
@@ -194,6 +196,35 @@ function syncToGitHub(customMessage) {
         } catch {
             console.log('[Git Sync] Initializing git repository...');
             run('git init');
+        }
+
+        // Fast cooldown & clean-tree short-circuit for automatic background syncs
+        // so repeated container wakes or pre-warming don't hammer GitHub APIs.
+        const autoSyncStampPath = path.join(__dirname, '.git', 'autosync_last_ts');
+        if (isAutoSync) {
+            try {
+                const dirty = run('git status --porcelain').trim();
+                let ahead = 0;
+                try {
+                    ahead = parseInt(run(`git rev-list --count origin/${GITHUB_BRANCH}..HEAD`).trim(), 10) || 0;
+                } catch {}
+                let lastAutoTs = 0;
+                if (fs.existsSync(autoSyncStampPath)) {
+                    lastAutoTs = parseInt(fs.readFileSync(autoSyncStampPath, 'utf8').trim(), 10) || 0;
+                }
+                if (!dirty && ahead === 0 && lastAutoTs && (nowMs - lastAutoTs) < 10 * 60 * 1000) {
+                    lastSyncStatus.lastSuccess = timestamp;
+                    lastSyncStatus.success = true;
+                    lastSyncStatus.message = 'GitHub repository is already up to date';
+                    return {
+                        success: true,
+                        upToDate: true,
+                        skipped: true,
+                        message: 'Clean working tree within auto-sync cooldown',
+                        timestamp
+                    };
+                }
+            } catch {}
         }
 
         // 2. Configure git user identity
@@ -224,6 +255,11 @@ function syncToGitHub(customMessage) {
             run(`git remote set-url origin "${authUrl}"`);
         } catch {
             run(`git remote add origin "${authUrl}"`);
+        }
+
+        // Record auto-sync timestamp before hitting remote so overlapping restarts back off
+        if (isAutoSync) {
+            try { fs.writeFileSync(autoSyncStampPath, String(nowMs)); } catch {}
         }
 
         // 4. Fetch remote history so local tree never diverges or gets rejected

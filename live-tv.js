@@ -803,13 +803,28 @@ function debounceLiveTv(func, delay) {
     };
 }
 
-// Initialize LIVE TV reliably whether script runs before or after DOMContentLoaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (document.getElementById('liveTvSection')) {
-            initializeLiveTV();
-        }
-    });
-} else if (document.getElementById('liveTvSection')) {
-    initializeLiveTV();
+function isLiveTvRouteActive() {
+    try {
+        const path = (window.location && window.location.pathname || '').toLowerCase();
+        const hash = (window.location && window.location.hash || '').toLowerCase();
+        return path.includes('livetv') || hash.includes('livetv');
+    } catch (_) {
+        return false;
+    }
 }
+
+// Setup UI listeners cleanly; fetch playlist immediately only if landing directly on Live TV
+function bootstrapLiveTvOnReady() {
+    if (!document.getElementById('liveTvSection')) return;
+    setupLiveTvUI();
+    if (isLiveTvRouteActive()) {
+        loadLiveTvChannels();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootstrapLiveTvOnReady);
+} else {
+    bootstrapLiveTvOnReady();
+}
+

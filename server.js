@@ -780,6 +780,10 @@ async function resolvePlayback(req, res, requestPath, query) {
     return true;
 }
 
+const tmdbProxyCache = new Map();
+const tmdbInflightRequests = new Map();
+let tmdbRateLimitUntil = 0;
+
 async function proxyTmdb(req, res, requestPath, query) {
     const marker = '/api/tmdb';
     if (requestPath !== marker && !requestPath.startsWith(`${marker}/`)) return false;
@@ -796,6 +800,40 @@ async function proxyTmdb(req, res, requestPath, query) {
         if (key !== 'api_key') target.searchParams.set(key, value);
     }
     if (!target.searchParams.has('language')) target.searchParams.set('language', 'en-US');
+
+    const cacheKey = target.pathname + target.search;
+    const isConfigPath = cleanTargetPath === '/configuration';
+    const cacheTtlMs = isConfigPath ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000;
+    const now = Date.now();
+    const cached = tmdbProxyCache.get(cacheKey);
+    if (cached && (now - cached.time) < cacheTtlMs) {
+        res.writeHead(cached.status, {
+            'Content-Type': cached.contentType,
+            'Cache-Control': 'public, max-age=300, stale-while-revalidate=600'
+        });
+        res.end(cached.body);
+        return true;
+    }
+
+    if (now < tmdbRateLimitUntil) {
+        if (cached) {
+            res.writeHead(cached.status, {
+                'Content-Type': cached.contentType,
+                'Cache-Control': 'public, max-age=60'
+            });
+            res.end(cached.body);
+            return true;
+        }
+        const retrySecs = Math.max(1, Math.ceil((tmdbRateLimitUntil - now) / 1000));
+        res.writeHead(429, {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            'Retry-After': String(retrySecs)
+        });
+        res.end(JSON.stringify({ status_code: 429, status_message: 'TMDB rate limit cooldown active. Please retry shortly.' }));
+        return true;
+    }
+
     const isReadAccessToken = /^Bearer\s+/i.test(tmdbCredential) || tmdbCredential.startsWith('eyJ');
     const headers = {
         'Accept': 'application/json',
@@ -803,13 +841,41 @@ async function proxyTmdb(req, res, requestPath, query) {
     };
     if (isReadAccessToken) headers.Authorization = `Bearer ${tmdbCredential.replace(/^Bearer\s+/i, '')}`;
     else target.searchParams.set('api_key', tmdbCredential);
+
     try {
-        const response = await fetch(target, { headers });
-        const body = await response.text();
-        const cacheControl = response.ok ? 'public, max-age=180, stale-while-revalidate=600' : 'no-store';
-        res.writeHead(response.status, { 'Content-Type': response.headers.get('content-type') || 'application/json; charset=utf-8', 'Cache-Control': cacheControl });
-        res.end(body);
+        let pending = tmdbInflightRequests.get(cacheKey);
+        if (!pending) {
+            pending = (async () => {
+                const response = await fetch(target, { headers, signal: AbortSignal.timeout(10000) });
+                const body = await response.text();
+                const contentType = response.headers.get('content-type') || 'application/json; charset=utf-8';
+                if (response.status === 429) {
+                    const retryAfter = parseInt(response.headers.get('retry-after') || '15', 10);
+                    tmdbRateLimitUntil = Date.now() + (Number.isFinite(retryAfter) ? retryAfter * 1000 : 15000);
+                } else if (response.ok) {
+                    if (tmdbProxyCache.size >= 600) {
+                        const firstKey = tmdbProxyCache.keys().next().value;
+                        tmdbProxyCache.delete(firstKey);
+                    }
+                    tmdbProxyCache.set(cacheKey, { status: response.status, contentType, body, time: Date.now() });
+                }
+                return { status: response.status, contentType, body };
+            })().finally(() => {
+                tmdbInflightRequests.delete(cacheKey);
+            });
+            tmdbInflightRequests.set(cacheKey, pending);
+        }
+
+        const result = await pending;
+        const cacheControl = result.status >= 200 && result.status < 300 ? 'public, max-age=300, stale-while-revalidate=600' : 'no-store';
+        res.writeHead(result.status, { 'Content-Type': result.contentType, 'Cache-Control': cacheControl });
+        res.end(result.body);
     } catch (error) {
+        if (cached) {
+            res.writeHead(cached.status, { 'Content-Type': cached.contentType, 'Cache-Control': 'public, max-age=60' });
+            res.end(cached.body);
+            return true;
+        }
         res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
         res.end(JSON.stringify({ error: 'TMDB proxy failed', message: error.message }));
     }
@@ -2136,10 +2202,9 @@ server.on('error', (err) => {
 
 server.listen(port, '0.0.0.0', () => {
     console.log(`MILKBOX running at http://localhost:${port}`);
-    // Startup auto-sync after server initializes (non-blocking in child process)
+    // Startup auto-sync after server settles (non-blocking, skipped automatically if clean & recent)
     setTimeout(() => {
         try {
-            console.log('[Auto-Sync] Initiating non-blocking startup sync to GitHub...');
             const { spawn } = require('child_process');
             const child = spawn(process.execPath, [path.join(__dirname, 'sync-github.js'), 'Startup auto-sync: MILKBOX'], {
                 detached: true,
@@ -2149,9 +2214,9 @@ server.listen(port, '0.0.0.0', () => {
         } catch (e) {
             console.warn('[Auto-Sync] Startup sync notice:', e.message);
         }
-    }, 10000);
+    }, 30000);
 
-    // Continuous auto-sync every 5 minutes (non-blocking in child process)
+    // Continuous auto-sync every 15 minutes (non-blocking in child process)
     setInterval(() => {
         try {
             const { spawn } = require('child_process');
@@ -2163,6 +2228,6 @@ server.listen(port, '0.0.0.0', () => {
         } catch (e) {
             console.warn('[Auto-Sync] Periodic sync notice:', e.message);
         }
-    }, 5 * 60 * 1000);
+    }, 15 * 60 * 1000);
 });
 

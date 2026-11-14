@@ -417,7 +417,6 @@ async function autoLoadHostedLibrary() {
                             saveData();
                             refreshCurrent();
                             loaded = true;
-                            enrichMissingLogos().catch(() => {});
                         }
                     }
                 }
@@ -7387,58 +7386,96 @@ const TMDB_GENRE_MAP = {
     'western': 'western'
 };
 
+const tmdbClientCache = new Map();
+const tmdbInflight = new Map();
+
 async function tmdbJson(path) {
     if (Date.now() < tmdbUnavailableUntil) {
         throw new Error(tmdbUnavailableReason || 'TMDB service temporarily unavailable');
     }
     const normalizedPath = String(path || '').startsWith('/') ? path : `/${path}`;
     const sep = normalizedPath.includes('?') ? '&' : '?';
+    const cacheKey = `${normalizedPath}${sep}language=en-US`;
+    const cacheTtl = normalizedPath === '/configuration' ? 24 * 60 * 60 * 1000 : 5 * 60 * 1000;
+    const cached = tmdbClientCache.get(cacheKey);
+    if (cached && (Date.now() - cached.time) < cacheTtl) {
+        return cached.data;
+    }
 
-    
-    const isProxyHost = window.location.hostname === 'localhost' || window.location.hostname.includes('run.app');
-    if (isProxyHost) {
-        try {
-            const tmdbUrl = `${TMDB_BASE.replace(/\/$/, '')}${normalizedPath}${sep}language=en-US`;
-            const res = await fetch(tmdbUrl, { headers: { 'accept': 'application/json' } });
-            if (res.ok) {
-                const text = await res.text();
-                if (!/^\s*<(?:!doctype|html|head|body|script)/i.test(text)) {
-                    return JSON.parse(text);
+    if (tmdbInflight.has(cacheKey)) {
+        return tmdbInflight.get(cacheKey);
+    }
+
+    const requestPromise = (async () => {
+        const isProxyHost = window.location.hostname === 'localhost' || window.location.hostname.includes('run.app');
+        if (isProxyHost) {
+            try {
+                const tmdbUrl = `${TMDB_BASE.replace(/\/$/, '')}${cacheKey}`;
+                const res = await fetch(tmdbUrl, { headers: { 'accept': 'application/json' } });
+                if (res.ok) {
+                    const text = await res.text();
+                    if (!/^\s*<(?:!doctype|html|head|body|script)/i.test(text)) {
+                        const data = JSON.parse(text);
+                        if (tmdbClientCache.size >= 400) {
+                            tmdbClientCache.delete(tmdbClientCache.keys().next().value);
+                        }
+                        tmdbClientCache.set(cacheKey, { data, time: Date.now() });
+                        return data;
+                    }
+                } else if (res.status === 429 || res.status === 503) {
+                    const retrySecs = parseInt(res.headers.get('Retry-After') || '20', 10);
+                    const cooldownMs = (Number.isFinite(retrySecs) ? retrySecs : 20) * 1000;
+                    tmdbUnavailableUntil = Date.now() + cooldownMs;
+                    tmdbUnavailableReason = `Rate limit active (${res.status}). Pausing TMDB requests briefly.`;
+                    throw new Error(tmdbUnavailableReason);
+                }
+            } catch (proxyErr) {
+                if (proxyErr && /Rate limit active|429/i.test(proxyErr.message || '')) {
+                    throw proxyErr;
                 }
             }
-        } catch (_) {}
-    }
+        }
 
-    
-    try {
-        const directUrl = `https://api.themoviedb.org/3${normalizedPath}${sep}language=en-US`;
-        const directRes = await fetch(directUrl, {
-            headers: {
-                'accept': 'application/json',
-                'Authorization': `Bearer ${TMDB_READ_TOKEN}`
-            }
-        });
-        if (directRes.ok) {
-            return await directRes.json();
-        }
-        const errText = await directRes.text();
-        let errMsg = `TMDB HTTP ${directRes.status}`;
         try {
-            const parsed = JSON.parse(errText);
-            if (parsed.status_message) errMsg += `: ${parsed.status_message}`;
-        } catch (_) {}
-        if (directRes.status === 429 || directRes.status === 503) {
-            tmdbUnavailableUntil = Date.now() + 10000;
-            tmdbUnavailableReason = errMsg;
+            const directUrl = `https://api.themoviedb.org/3${cacheKey}`;
+            const directRes = await fetch(directUrl, {
+                headers: {
+                    'accept': 'application/json',
+                    'Authorization': `Bearer ${TMDB_READ_TOKEN}`
+                }
+            });
+            if (directRes.ok) {
+                const data = await directRes.json();
+                if (tmdbClientCache.size >= 400) {
+                    tmdbClientCache.delete(tmdbClientCache.keys().next().value);
+                }
+                tmdbClientCache.set(cacheKey, { data, time: Date.now() });
+                return data;
+            }
+            const errText = await directRes.text();
+            let errMsg = `TMDB HTTP ${directRes.status}`;
+            try {
+                const parsed = JSON.parse(errText);
+                if (parsed.status_message) errMsg += `: ${parsed.status_message}`;
+            } catch (_) {}
+            if (directRes.status === 429 || directRes.status === 503) {
+                tmdbUnavailableUntil = Date.now() + 20000;
+                tmdbUnavailableReason = errMsg;
+            }
+            throw new Error(errMsg);
+        } catch (err) {
+            if (!String(err?.message || '').includes('HTTP 404')) {
+                tmdbUnavailableUntil = Math.max(tmdbUnavailableUntil, Date.now() + 12000);
+                tmdbUnavailableReason = `Error contacting TMDB: ${err.message}`;
+            }
+            throw err;
         }
-        throw new Error(errMsg);
-    } catch (err) {
-        if (!err.message.includes('HTTP 404')) {
-            tmdbUnavailableUntil = Date.now() + 8000;
-            tmdbUnavailableReason = `Error contacting TMDB: ${err.message}`;
-        }
-        throw err;
-    }
+    })().finally(() => {
+        tmdbInflight.delete(cacheKey);
+    });
+
+    tmdbInflight.set(cacheKey, requestPromise);
+    return requestPromise;
 }
 
 async function checkCatalogAvailability() {
@@ -7673,23 +7710,32 @@ function popularPaths() {
     return paths;
 }
 
-async function fetchBatched(paths, batchSize = 15) {
+async function fetchBatched(paths, batchSize = 4) {
     const jsons = [];
     let firstError = null;
     let attempted = 0;
-    for (let i = 0; i < paths.length; i += batchSize) {
-        const chunk = paths.slice(i, i + batchSize);
+    const effectiveBatchSize = Math.max(1, Math.min(batchSize, 5));
+    for (let i = 0; i < paths.length; i += effectiveBatchSize) {
+        if (Date.now() < tmdbUnavailableUntil) break;
+        const chunk = paths.slice(i, i + effectiveBatchSize);
         attempted += chunk.length;
         const results = await Promise.allSettled(chunk.map(p => tmdbJson(p)));
+        let hitRateLimit = false;
         for (const res of results) {
             if (res.status === 'fulfilled' && res.value) {
                 jsons.push(res.value);
-            } else if (!firstError && res.status === 'rejected') {
-                firstError = res.reason;
+            } else if (res.status === 'rejected') {
+                if (!firstError) firstError = res.reason;
+                const msg = String(res.reason?.message || res.reason || '');
+                if (/429|Rate limit|temporarily unavailable/i.test(msg)) {
+                    hitRateLimit = true;
+                }
             }
         }
+        if (hitRateLimit) break;
         const chunkSuccess = results.some(r => r.status === 'fulfilled' && r.value);
         if (!chunkSuccess && jsons.length === 0) break;
+        if (i + effectiveBatchSize < paths.length) await sleep(120);
     }
     if (!jsons.length) {
         const detail = firstError instanceof Error ? firstError.message : String(firstError || 'No request succeeded.');
@@ -7713,8 +7759,10 @@ async function enrichTmdbDetails(items, btn, quiet) {
     let done = 0;
     const total = targets.length;
     if (!total) return;
-    for (let i = 0; i < total; i += 10) {
-        const chunk = targets.slice(i, i + 10);
+    for (let i = 0; i < total; i += 3) {
+        if (Date.now() < tmdbUnavailableUntil) break;
+        const chunk = targets.slice(i, i + 3);
+        let rateLimited = false;
         await Promise.all(chunk.map(async (m) => {
             try {
                 const kind = m.type === 'tv' ? 'tv' : 'movie';
@@ -7739,23 +7787,34 @@ async function enrichTmdbDetails(items, btn, quiet) {
                         m.certification = pick('US') || pick('GB') || '';
                     }
                 }
-            } catch (e) {  }
+            } catch (e) {
+                if (/429|Rate limit|temporarily unavailable/i.test(String(e?.message || e))) {
+                    rateLimited = true;
+                }
+            }
         }));
-        done = Math.min(i + 10, total);
+        done = Math.min(i + 3, total);
         if (btn) btn.textContent = `Fetching logos & ratings... ${done}/${total}`;
-        if (done % 100 === 0) { saveData(); refreshCurrent(); }
-        await sleep(350);
+        if (rateLimited) break;
+        if (done % 60 === 0) { saveData(); refreshCurrent(); }
+        await sleep(450);
     }
     saveData();
     refreshCurrent();
     if (!quiet) toast('Hero logos & content ratings loaded!', 'success');
 }
 
-
+let isEnrichingMissingLogos = false;
 async function enrichMissingLogos() {
-    const needLogo = [...movies.slice(0, 40), ...tvShows.slice(0, 40)].filter(m => m && m.tmdbId && !m.logo);
+    if (isEnrichingMissingLogos) return;
+    const needLogo = [...movies.slice(0, 6), ...tvShows.slice(0, 6)].filter(m => m && m.tmdbId && !m.logo);
     if (!needLogo.length) return;
-    await enrichTmdbDetails(needLogo, null, true);
+    isEnrichingMissingLogos = true;
+    try {
+        await enrichTmdbDetails(needLogo, null, true);
+    } finally {
+        isEnrichingMissingLogos = false;
+    }
 }
 
 
@@ -13753,10 +13812,19 @@ function initAll() {
         }
     } catch (e) { console.error('renderAll error:', e); }
     try { renderProviders(); } catch (e) { console.error('renderProviders error:', e); }
-    try { if (!localAnimeExists()) loadAnimeLive(); } catch (e) { console.error('preload anime error:', e); }
-    try { loadMoviesLive(); } catch (e) { console.error('preload movies error:', e); }
-    try { autoLoadHostedLibrary(); } catch (e) { console.error('autoLoadHostedLibrary error:', e); }
-    try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
+    try {
+        autoLoadHostedLibrary().then(() => {
+            if (movies.length < 200) {
+                try { loadMoviesLive(); } catch (e) { console.error('preload movies error:', e); }
+            }
+            setTimeout(() => {
+                try { if (!localAnimeExists()) loadAnimeLive(); } catch (e) { console.error('preload anime error:', e); }
+            }, 1200);
+            setTimeout(() => {
+                try { enrichMissingLogos(); } catch (e) { console.error('enrichMissingLogos error:', e); }
+            }, 2500);
+        });
+    } catch (e) { console.error('autoLoadHostedLibrary error:', e); }
     try { initCardLogoObserver(); } catch (e) { console.error('initCardLogoObserver error:', e); }
     try { initContentSectionObserver(); } catch (e) { console.error('initContentSectionObserver error:', e); }
     try {
