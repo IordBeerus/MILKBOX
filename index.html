@@ -88,7 +88,6 @@
                     <li><a href="#" class="nav-link" data-section="trending">Trending</a></li>
                     <li><a href="#" class="nav-link" data-section="streaming">Streaming</a></li>
                     <li><a href="#" class="nav-link" data-section="free">Free To Watch</a></li>
-                    <li><a href="#" class="nav-link" data-section="livetv">🔴 LIVE TV</a></li>
                     <li><a href="#" class="nav-link" data-section="providers">Providers</a></li>
                     <li><a href="#" class="nav-link" data-section="theaters">In Theaters</a></li>
                     <li><a href="#" class="nav-link" data-section="popular">Most Popular</a></li>
@@ -154,7 +153,6 @@
             <li><a href="#" class="mobile-nav-link" data-section="trending">Trending</a></li>
             <li><a href="#" class="mobile-nav-link" data-section="streaming">Streaming</a></li>
             <li><a href="#" class="mobile-nav-link" data-section="free">Free To Watch</a></li>
-            <li><a href="#" class="mobile-nav-link" data-section="livetv">🔴 LIVE TV</a></li>
             <li><a href="#" class="mobile-nav-link" data-section="providers">Providers</a></li>
             <li><a href="#" class="mobile-nav-link" data-section="theaters">In Theaters</a></li>
             <li><a href="#" class="mobile-nav-link" data-section="popular">Most Popular</a></li>
@@ -461,35 +459,6 @@
                     <div class="skeleton-card skeleton-landscape"><div class="skeleton-media"><div class="skeleton-shimmer"></div><div class="skeleton-badge"></div></div><div class="skeleton-details"><div class="skeleton-line title"><div class="skeleton-shimmer"></div></div><div class="skeleton-line sub"><div class="skeleton-shimmer"></div></div></div></div>
                 </div>
                 <div class="pagination" id="freePager" style="display:none"></div>
-            </div>
-        </section>
-        <section class="content-section live-section" id="liveTvSection" style="display:none;">
-            <h3 class="section-title">🔴 LIVE TV Channels</h3>
-            <p class="live-hint">Stream live TV channels from around the world</p>
-            <div class="grid-wrap">
-                <div class="live-tv-controls" style="margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
-                    <select id="liveTvCountryFilter" style="padding: 8px 12px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px;">
-                        <option value="">All Countries</option>
-                    </select>
-                    <select id="liveTvCategoryFilter" style="padding: 8px 12px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px;">
-                        <option value="">All Categories</option>
-                        <option value="news">News</option>
-                        <option value="sports">Sports</option>
-                        <option value="entertainment">Entertainment</option>
-                        <option value="music">Music</option>
-                        <option value="kids">Kids</option>
-                        <option value="movies">Movies</option>
-                        <option value="documentary">Documentary</option>
-                        <option value="religious">Religious</option>
-                    </select>
-                    <input type="text" id="liveTvSearch" placeholder="Search channels..." style="padding: 8px 12px; background: #222; color: #fff; border: 1px solid #444; border-radius: 6px; font-size: 14px; flex: 1; min-width: 200px;">
-                </div>
-                <div class="content-grid" id="liveTvGrid">
-                    <div class="skeleton-card"><div class="skeleton-media"><div class="skeleton-shimmer"></div></div><div class="skeleton-details"><div class="skeleton-line"><div class="skeleton-shimmer"></div></div></div></div>
-                    <div class="skeleton-card"><div class="skeleton-media"><div class="skeleton-shimmer"></div></div><div class="skeleton-details"><div class="skeleton-line"><div class="skeleton-shimmer"></div></div></div></div>
-                    <div class="skeleton-card"><div class="skeleton-media"><div class="skeleton-shimmer"></div></div><div class="skeleton-details"><div class="skeleton-line"><div class="skeleton-shimmer"></div></div></div></div>
-                </div>
-                <div class="live-tv-status" id="liveTvStatus" style="display:none; text-align: center; padding: 40px 20px; color: #aaa;"></div>
             </div>
         </section>
         <div id="homeGenres" style="display:none"></div>
@@ -2475,9 +2444,9 @@
             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Zm240-200 240-120-240-120v240Z"/></svg>
             <span>Movies</span>
         </button>
-        <button class="mobile-tab-btn nav-link" data-section="livetv" title="LIVE TV">
-            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><circle cx="480" cy="-480" r="8" fill="red"/><path d="M160-120v-80q-33 0-56.5-23.5T80-280v-440q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v440q0 33-23.5 56.5T800-200v80h-40l-26-80H227l-27 80h-40Zm0-160h640v-440H160v440Zm320-220Z"/></svg>
-            <span>LIVE TV</span>
+        <button class="mobile-tab-btn nav-link" data-section="tvshows" title="TV Shows">
+            <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M160-120v-80q-33 0-56.5-23.5T80-280v-440q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v440q0 33-23.5 56.5T800-200v80h-40l-26-80H227l-27 80h-40Zm0-160h640v-440H160v440Zm320-220Z"/></svg>
+            <span>TV Shows</span>
         </button>
         <button class="mobile-tab-btn nav-link" data-section="anime" title="Anime">
             <svg xmlns="http://www.w3.org/2000/svg" height="22px" viewBox="0 -960 960 960" width="22px" fill="currentColor"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
@@ -2750,7 +2719,7 @@
     <script src="/musify-player.js?v=milkify-audio-info-20261011"></script>
     <script src="/gdrive-music.js?v=20261030-oauth-policy-v2"></script>
     <script src="/watch-party.js?v=20261026"></script>
-    <script src="/live-tv.js?v=20261112-livetv-v1"></script>
+    <script src="/scramjet-client.js?v=20261112-wisp-gateway"></script>
     <script src="/app.js?v=20261110-adguard-css-sandbox-v4"></script>
     <script>
     // Initialize Scramjet with Chrome blocking fallback

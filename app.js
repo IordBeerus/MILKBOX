@@ -12118,31 +12118,10 @@ function applySectionChange(section, link, pushHistory = true) {
         show('theatersSection', false);
         show('popularSection', false);
         show('mangaSection', false);
-        show('liveTvSection', false);
         show('collectionsSection', false);
         show('providerSection', false);
         renderLiveTab('free');
         showLiveHero('free', true);
-    } else if (section === 'livetv') {
-        show('moviesSection', false);
-        show('tvShowsSection', false);
-        show('myListSection', false);
-        show('homeGenres', false);
-        show('trendingSection', false);
-        show('streamingSection', false);
-        show('freeSection', false);
-        show('theatersSection', false);
-        show('popularSection', false);
-        show('mangaSection', false);
-        show('liveTvSection', true);
-        show('collectionsSection', false);
-        show('providerSection', false);
-        show('musicSection', false);
-        show('providersSection', false);
-        show('exploreGenresSection', false);
-        show('animeContinueWatchingSection', false);
-        show('movieContinueWatchingSection', false);
-        document.getElementById('heroSection').style.display = 'none';
     } else if (section === 'providers') {
         show('moviesSection', false);
         show('tvShowsSection', false);
