@@ -1856,6 +1856,62 @@ async function handleScramjetProxy(req, res, requestPath, query) {
     return false;
 }
 
+let liveTvPlaylistCache = { text: null, gz: null, time: 0, promise: null };
+
+async function handleLiveTvPlaylist(req, res) {
+    const CACHE_TTL_MS = 30 * 60 * 1000;
+    const now = Date.now();
+    try {
+        if (!liveTvPlaylistCache.text || (now - liveTvPlaylistCache.time) > CACHE_TTL_MS) {
+            if (!liveTvPlaylistCache.promise) {
+                liveTvPlaylistCache.promise = (async () => {
+                    const upstream = await fetch('https://iptv-org.github.io/iptv/index.m3u', {
+                        headers: { 'User-Agent': 'Mozilla/5.0' },
+                        signal: AbortSignal.timeout(25000)
+                    });
+                    if (!upstream.ok) {
+                        throw new Error(`Playlist upstream returned HTTP ${upstream.status}`);
+                    }
+                    const text = await upstream.text();
+                    const gz = await new Promise((resolve, reject) => {
+                        zlib.gzip(Buffer.from(text, 'utf8'), (err, buf) => (err ? reject(err) : resolve(buf)));
+                    });
+                    liveTvPlaylistCache.text = text;
+                    liveTvPlaylistCache.gz = gz;
+                    liveTvPlaylistCache.time = Date.now();
+                })().finally(() => {
+                    liveTvPlaylistCache.promise = null;
+                });
+            }
+            await liveTvPlaylistCache.promise;
+        }
+    } catch (err) {
+        if (!liveTvPlaylistCache.text) {
+            res.writeHead(502, {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify({ error: err.message || 'Failed to load Live TV playlist' }));
+            return true;
+        }
+    }
+
+    const acceptEncoding = (req.headers && req.headers['accept-encoding']) || '';
+    const baseHeaders = {
+        'Content-Type': 'audio/mpegurl; charset=utf-8',
+        'Cache-Control': 'public, max-age=300',
+        'Access-Control-Allow-Origin': '*'
+    };
+    if (acceptEncoding.includes('gzip') && liveTvPlaylistCache.gz) {
+        res.writeHead(200, { ...baseHeaders, 'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding' });
+        res.end(liveTvPlaylistCache.gz);
+    } else {
+        res.writeHead(200, baseHeaders);
+        res.end(liveTvPlaylistCache.text);
+    }
+    return true;
+}
+
 let watchPartyServer = null;
 
 const server = http.createServer(async (req, res) => {
@@ -1879,6 +1935,9 @@ const server = http.createServer(async (req, res) => {
     }
     if (requestPath === '/api/x8rr/proxy' || requestPath === '/api/proxy') {
         if (await handleX8rrProxy(req, res, query.get('url'))) return;
+    }
+    if (requestPath === '/api/livetv/playlist') {
+        if (await handleLiveTvPlaylist(req, res)) return;
     }
     if (requestPath === '/api/livetv/stream') {
         if (await handleX8rrProxy(req, res, query.get('url'))) return;

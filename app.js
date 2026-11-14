@@ -12034,8 +12034,8 @@ function applySectionChange(section, link, pushHistory = true) {
     stopHeroTrailer();
     currentHeroItemId = null;
 
-    document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
-    if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
+    document.body.classList.remove('movies-active', 'tvshows-active', 'anime-active', 'mylist-active', 'trending-active', 'streaming-active', 'free-active', 'livetv-active', 'providers-active', 'theaters-active', 'popular-active', 'music-active', 'manga-active', 'home-active');
+    if (['home', 'movies', 'tvshows', 'anime', 'mylist', 'trending', 'streaming', 'free', 'livetv', 'providers', 'theaters', 'popular', 'music', 'manga'].includes(section)) {
         document.body.classList.add(section + '-active');
     }
     const show = (id, v) => { const el=document.getElementById(id); if(el) el.style.display = v ? '' : 'none'; };
@@ -12151,6 +12151,9 @@ function applySectionChange(section, link, pushHistory = true) {
         show('animeContinueWatchingSection', false);
         show('movieContinueWatchingSection', false);
         document.getElementById('heroSection').style.display = 'none';
+        if (typeof window.ensureLiveTvLoaded === 'function') {
+            window.ensureLiveTvLoaded();
+        }
     } else if (section === 'providers') {
         show('moviesSection', false);
         show('tvShowsSection', false);

@@ -7368,6 +7368,9 @@ body.light-mode .info-backdrop::after { background: linear-gradient(transparent,
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 14px;
     box-shadow: 0 18px 50px rgba(0,0,0,0.6);
+    max-height: calc(100vh - 84px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     list-style: none;
     z-index: 1200;
     opacity: 0;
@@ -13473,16 +13476,36 @@ body[data-theme="sakura"] .seasonal-decorations img {
     }
 }
 
+#liveTvSection {
+    padding: 86px 40px 48px 40px;
+}
+
+#liveTvGrid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 16px !important;
+    padding: 10px 0 24px !important;
+    width: 100% !important;
+}
+
 .live-tv-card {
-    transition: all 0.3s ease;
-    border-radius: 8px;
+    transition: all 0.25s ease;
+    border-radius: 10px;
     overflow: hidden;
     background: #0f0f0f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .live-tv-card:hover {
-    transform: translateY(-8px);
+    transform: translateY(-6px);
     box-shadow: 0 16px 32px rgba(255, 46, 99, 0.3);
+}
+
+.live-tv-card:focus-visible {
+    outline: 2px solid #ff2e63;
+    outline-offset: 2px;
 }
 
 .live-tv-card .card-media img {
@@ -13490,15 +13513,16 @@ body[data-theme="sakura"] .seasonal-decorations img {
 }
 
 .live-tv-card:hover .card-media img {
-    transform: scale(1.08);
+    transform: scale(1.06);
 }
 
 .live-tv-card .btn-play-live {
     transition: all 0.2s ease;
+    min-height: 38px;
 }
 
 .live-tv-card .btn-play-live:hover {
-    transform: scale(1.05);
+    transform: scale(1.03);
     box-shadow: 0 6px 16px rgba(255, 46, 99, 0.5) !important;
 }
 
@@ -13510,19 +13534,52 @@ body[data-theme="sakura"] .seasonal-decorations img {
     background: rgba(255, 46, 99, 0.08);
     border: 1px solid rgba(255, 46, 99, 0.15);
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 10px;
     margin-bottom: 16px;
 }
 
 .live-tv-controls select,
 .live-tv-controls input {
     font-family: 'Outfit', sans-serif;
+    min-height: 40px;
 }
 
 .live-tv-status {
-    padding: 60px 20px;
+    padding: 48px 20px;
     text-align: center;
-    color: #aaa;
+    color: #ccc;
+}
+
+.live-tv-retry-btn {
+    margin-top: 14px;
+    padding: 10px 20px;
+    border-radius: 8px;
+    border: none;
+    background: linear-gradient(135deg, #ff2e63 0%, #ff1449 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#liveTvPlayerModal {
+    padding: max(10px, env(safe-area-inset-top, 10px)) 10px max(10px, env(safe-area-inset-bottom, 10px));
+    box-sizing: border-box;
+    overscroll-behavior: contain;
+}
+
+#liveTvPlayerModal .live-tv-player-dialog {
+    width: 100%;
+    max-width: 1100px;
+    max-height: 92vh;
+    max-height: 92dvh;
+    background: #0a0a0a;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
 }
 
 #liveTvPlayerModal video {
@@ -13531,4 +13588,66 @@ body[data-theme="sakura"] .seasonal-decorations img {
     object-fit: contain;
 }
 
+.live-tv-tap-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 120;
+    pointer-events: auto;
+}
+
+.live-tv-tap-btn {
+    padding: 12px 22px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: linear-gradient(135deg, #ff2e63 0%, #ff1449 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(255, 46, 99, 0.45);
+}
+
+.live-tv-unmute-pill {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 125;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(15, 15, 18, 0.85);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+@media (max-width: 768px) {
+    #liveTvSection {
+        padding: 72px 12px 88px 12px !important;
+    }
+    #liveTvGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+    .live-tv-controls select,
+    .live-tv-controls input {
+        width: 100%;
+        min-width: 0 !important;
+    }
+    #liveTvPlayerModal {
+        padding: max(6px, env(safe-area-inset-top, 6px)) 6px max(6px, env(safe-area-inset-bottom, 6px));
+    }
+}
+
+@media (max-width: 420px) {
+    #liveTvGrid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
 
