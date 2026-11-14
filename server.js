@@ -2161,10 +2161,48 @@ const server = http.createServer(async (req, res) => {
         const ext = path.extname(filePath).toLowerCase();
         const type = mimeTypes[ext] || 'application/octet-stream';
         const isStaticAsset = ['.png', '.jpg', '.jpeg', '.webp', '.svg', '.ico'].includes(ext);
-        const cacheControl = isStaticAsset ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache';
+        const cacheControl = filePath.endsWith('library.json')
+            ? 'public, max-age=300, stale-while-revalidate=3600'
+            : (isStaticAsset ? 'public, max-age=86400, stale-while-revalidate=604800' : 'no-cache');
         const acceptEncoding = (req.headers && req.headers['accept-encoding']) || '';
 
         if (outputContent.length > 2048 && ['.json', '.js', '.css', '.html', '.svg'].includes(ext) && acceptEncoding.includes('gzip')) {
+            if (!global.__staticGzipCache) global.__staticGzipCache = new Map();
+            const isIndexHtml = filePath.endsWith('index.html');
+            if (!isIndexHtml) {
+                let mtimeMs = 0;
+                try { mtimeMs = fs.statSync(filePath).mtimeMs; } catch (_) {}
+                const cachedGz = global.__staticGzipCache.get(filePath);
+                if (cachedGz && cachedGz.mtimeMs === mtimeMs) {
+                    res.writeHead(200, {
+                        'Content-Type': type,
+                        'Content-Encoding': 'gzip',
+                        'Vary': 'Accept-Encoding',
+                        'Cache-Control': cacheControl
+                    });
+                    res.end(cachedGz.gzData);
+                    return;
+                }
+                zlib.gzip(outputContent, (gzErr, gzData) => {
+                    if (gzErr) {
+                        res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
+                        res.end(outputContent);
+                    } else {
+                        if (global.__staticGzipCache.size >= 40) {
+                            global.__staticGzipCache.delete(global.__staticGzipCache.keys().next().value);
+                        }
+                        global.__staticGzipCache.set(filePath, { mtimeMs, gzData });
+                        res.writeHead(200, {
+                            'Content-Type': type,
+                            'Content-Encoding': 'gzip',
+                            'Vary': 'Accept-Encoding',
+                            'Cache-Control': cacheControl
+                        });
+                        res.end(gzData);
+                    }
+                });
+                return;
+            }
             zlib.gzip(outputContent, (gzErr, gzData) => {
                 if (gzErr) {
                     res.writeHead(200, { 'Content-Type': type, 'Cache-Control': cacheControl });
@@ -2173,6 +2211,7 @@ const server = http.createServer(async (req, res) => {
                     res.writeHead(200, {
                         'Content-Type': type,
                         'Content-Encoding': 'gzip',
+                        'Vary': 'Accept-Encoding',
                         'Cache-Control': cacheControl
                     });
                     res.end(gzData);

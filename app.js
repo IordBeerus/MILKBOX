@@ -423,7 +423,7 @@ async function autoLoadHostedLibrary() {
             } catch (e) {  }
         }
        
-        try { compactLibraryDescriptions(); } catch (e) {  }
+        try { scheduleIdle(() => { try { compactLibraryDescriptions(); } catch {} }); } catch (e) {  }
       
         if (!(movies.length || tvShows.length)) {
             try {
@@ -1793,15 +1793,6 @@ function createCard(item, type, isLandscape = true) {
         `;
     }
 
-    if (!item.logo && item.tmdbId) {
-        if (!cardLogoObserver) initCardLogoObserver();
-        if (cardLogoObserver) {
-            cardLogoObserver.observe(card);
-        } else {
-            queueLogoFetch(item, card);
-        }
-    }
-
     card.addEventListener('click', (e) => {
         const action = e.target.dataset.action || e.target.closest('[data-action]')?.dataset.action;
         if (action === 'play') playItem(item, effType);
@@ -1950,7 +1941,6 @@ function renderCatalogGrid(section, source) {
         if (pager) pager.style.display = 'none';
         return;
     }
-    slider.innerHTML = '';
     const isGrid = slider.closest('.catalog-grid') || currentSection === 'movies' || currentSection === 'tvshows' || currentSection === 'anime';
     const perPage = isGrid ? 36 : 24;
     const total = Math.ceil(items.length / perPage);
@@ -1958,7 +1948,11 @@ function renderCatalogGrid(section, source) {
     catalogPage[cfg.pkey] = page;
     const start = (page - 1) * perPage;
     const slice = items.slice(start, start + perPage);
-    slice.forEach(item => slider.appendChild(createCard(item, cfg.type, isLandscape)));
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < slice.length; i++) {
+        frag.appendChild(createCard(slice[i], cfg.type, isLandscape));
+    }
+    slider.replaceChildren(frag);
     if (pager) {
         pager.style.display = total > 1 ? '' : 'none';
         pager.innerHTML = `<button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page - 1}" ${page === 1 ? 'disabled' : ''}>&#10094; Prev</button><span class="pager-info">Page ${page} of ${total} (${items.length.toLocaleString()} titles)</span><button class="pager-btn pager-nav" data-catpage="${cfg.pkey}" data-page="${page + 1}" ${page === total ? 'disabled' : ''}>Next &#10095;</button>`;
@@ -3306,10 +3300,16 @@ function renderHomeDiscovery() {
         const matches = candidates.filter(item =>
             genArr(item.genre).some(genre => watchedGenres.has(String(genre).trim().toLowerCase()))
         );
-        const ranked = (matches.length ? matches : candidates)
+        const poolSlice = (matches.length ? matches : candidates).slice(0, 400);
+        const ranked = poolSlice
             .map((item, index) => {
-                const genreScore = genArr(item.genre).reduce((score, genre) =>
-                    score + (watchedGenres.get(String(genre).trim().toLowerCase()) || 0), 0);
+                let genreScore = 0;
+                if (watchedGenres.size > 0) {
+                    const gs = genArr(item.genre);
+                    for (let i = 0; i < gs.length; i++) {
+                        genreScore += (watchedGenres.get(String(gs[i]).trim().toLowerCase()) || 0);
+                    }
+                }
                 const rating = Number.parseFloat(item.rating) || 0;
                 return { item, index, score: genreScore * 10 + rating };
             })
@@ -13801,7 +13801,7 @@ function initAll() {
     try { applySeasonalThemeIfNeeded(); } catch (e) { console.error('applySeasonalThemeIfNeeded error:', e); }
     try { applyBackground(); } catch (e) { console.error('applyBackground error:', e); }
     try { updateThemeCardsUI(); } catch (e) { console.error('updateThemeCardsUI error:', e); }
-    try { scanMovieQualities(true); } catch (e) { console.error('scanMovieQualities error:', e); }
+    try { scheduleIdle(() => { try { scanMovieQualities(true); } catch (e) {} }); } catch (e) { console.error('scanMovieQualities error:', e); }
     try {
         const hg = document.getElementById('homeGenres');
         if (hg && currentSection === 'home') hg.style.display = 'none';

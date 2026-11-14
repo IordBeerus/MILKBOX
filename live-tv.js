@@ -289,12 +289,13 @@ function renderLiveTvChannels() {
 
     grid.style.display = 'grid';
     if (statusDiv) statusDiv.style.display = 'none';
-    grid.innerHTML = '';
 
+    const frag = document.createDocumentFragment();
     liveTvFilteredChannels.slice(0, 200).forEach(channel => {
         const card = createLiveTvCard(channel);
-        grid.appendChild(card);
+        frag.appendChild(card);
     });
+    grid.replaceChildren(frag);
 }
 
 function createLiveTvCard(channel) {
@@ -314,7 +315,7 @@ function createLiveTvCard(channel) {
 
     card.innerHTML = `
         <div class="card-media" style="position: relative; overflow: hidden; border-radius: 8px 8px 0 0; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center;">
-            <img src="${logo}" alt="${safeName}" loading="lazy"
+            <img src="${logo}" alt="${safeName}" loading="lazy" decoding="async"
                  style="width: 100%; height: 100%; object-fit: contain; padding: 12px; background: #0a0a0a;"
                  onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Crect fill=%22%231a1a1a%22 width=%22100%22 height=%22100%22/%3E%3Ccircle cx=%2250%22 cy=%2235%22 r=%2215%22 fill=%22%23ff2e63%22/%3E%3Crect x=%2230%22 y=%2255%22 width=%2240%22 height=%2230%22 fill=%22%23ff2e63%22 rx=%225%22/%3E%3C/svg%3E'">
             <div style="position: absolute; top: 8px; right: 8px; background: #ff2e63; color: white; padding: 5px 9px; border-radius: 20px; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 4px; box-shadow: 0 2px 8px rgba(255, 46, 99, 0.4);">

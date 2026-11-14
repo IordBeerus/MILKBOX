@@ -13653,3 +13653,8 @@ body[data-theme="sakura"] .seasonal-decorations img {
     }
 }
 
+.card,
+.live-tv-card {
+    contain: layout style;
+}
+

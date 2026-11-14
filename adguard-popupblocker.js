@@ -680,17 +680,24 @@
     // -------------------------------------------------------------
     // Ad Video & In-Page Ad Annihilation Engine
     // -------------------------------------------------------------
+    let lastAdScanTime = 0;
     function scanAndNeutralizeOverlays() {
         if (!enabled) return;
+        const now = Date.now();
+        if (now - lastAdScanTime < 450) return;
+        lastAdScanTime = now;
         try {
             // Keep CSS shield intact
             injectCSSShield(document);
 
-            // 1. Strip rogue video/audio elements outside legitimate MILKBOX player
+            // 1. Strip rogue video/audio elements outside legitimate MILKBOX players (including Live TV)
             const allVideos = document.querySelectorAll('video, audio');
             for (let i = 0; i < allVideos.length; i++) {
                 const v = allVideos[i];
-                if (v.id === 'mbNativeVideo' || v.classList.contains('milkbox-video-element') || (v.closest && v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater'))) {
+                if (v.id === 'mbNativeVideo' ||
+                    v.id === 'liveTvVideoPlayer' ||
+                    v.classList.contains('milkbox-video-element') ||
+                    (v.closest && v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater, #liveTvPlayerModal'))) {
                     continue;
                 }
                 try {
@@ -701,29 +708,16 @@
                 } catch {}
             }
 
-            // 2. Strip elements matching ad selectors
-            try {
-                const adNodes = document.querySelectorAll(AD_SIGNATURE_SELECTORS);
-                for (let i = 0; i < adNodes.length; i++) {
-                    const el = adNodes[i];
-                    if (!isLegitimateAppElement(el)) {
-                        disarmAndHideElement(el, 'Ad signature element removed');
-                    }
-                }
-            } catch (e) {
-                console.warn('[AdGuard] querySelectorAll error:', e);
-            }
-
-            // 3. Strip suspicious floating overlays & clickjack anchors
+            // 2. Strip suspicious floating overlays & clickjack anchors (lightweight targeted query)
             const positioned = document.querySelectorAll('div[style*="fixed"], div[style*="absolute"], a[target="_blank"]');
             for (let i = 0; i < positioned.length; i++) {
                 const el = positioned[i];
-                if (isOverlayOrClickjacker(el)) {
+                if (!isLegitimateAppElement(el) && isOverlayOrClickjacker(el)) {
                     disarmAndHideElement(el, 'Hidden ad overlay neutralized');
                 }
             }
 
-            // 4. Enforce optimal sandboxing on all playback iframes
+            // 3. Enforce optimal sandboxing on all playback iframes
             document.querySelectorAll('#playerFrame iframe, #animePlayerWrap iframe, .player-container iframe, #mbStreamIframe, #cinesrcPlayerIframe, #scramjetPlayerIframe').forEach(hardenPlaybackIframe);
         } catch {}
     }
@@ -800,24 +794,41 @@
             }
         }
 
+        function isFastSkipAppNode(node) {
+            if (!node || node.nodeType !== 1) return true;
+            const cls = typeof node.className === 'string' ? node.className : '';
+            if (cls && /\b(?:card|live-tv-card|skeleton-card|slider|content-grid|content-section|navbar|nav-dropdown)\b/.test(cls)) {
+                return true;
+            }
+            return isLegitimateAppElement(node);
+        }
+
         const observer = new MutationObserver(mutations => {
             if (!enabled) return;
 
+            let needsScan = false;
             for (let i = 0; i < mutations.length; i++) {
                 const m = mutations[i];
 
-                // Synchronous immediate inspection of added elements
+                // Inspect only newly added non-card subtrees
                 if (m.type === 'childList' && m.addedNodes && m.addedNodes.length > 0) {
+                    if (isFastSkipAppNode(m.target)) continue;
                     for (let j = 0; j < m.addedNodes.length; j++) {
-                        inspectNode(m.addedNodes[j]);
+                        const added = m.addedNodes[j];
+                        if (added && added.nodeType === 1 && !isFastSkipAppNode(added)) {
+                            inspectNode(added);
+                            if (added.tagName === 'IFRAME' || added.tagName === 'VIDEO' || added.tagName === 'A') {
+                                needsScan = true;
+                            }
+                        }
                     }
                 }
 
-                // Stricter attribute monitoring: catch dynamically morphed styles & classes
+                // Monitor dangerous style/src/target changes only on non-app elements
                 if (m.type === 'attributes' && m.target && m.target.nodeType === 1) {
                     const el = m.target;
-                    if (!isLegitimateAppElement(el)) {
-                        if (m.attributeName === 'style' || m.attributeName === 'class') {
+                    if (!isFastSkipAppNode(el)) {
+                        if (m.attributeName === 'style') {
                             if (isOverlayOrClickjacker(el) || matchesAdSelector(el)) {
                                 disarmAndHideElement(el, 'Dynamically positioned ad overlay neutralized');
                             }
@@ -831,12 +842,12 @@
                 }
             }
 
-            // Debounced sweep for deep structural changes
-            if (!scanDebounce) {
+            // Debounced sweep only when potential ad/embed nodes appeared
+            if (needsScan && !scanDebounce) {
                 scanDebounce = setTimeout(() => {
                     scanDebounce = null;
                     scanAndNeutralizeOverlays();
-                }, 120);
+                }, 500);
             }
         });
 
@@ -844,7 +855,7 @@
             childList: true,
             subtree: true,
             attributes: true,
-            attributeFilter: ['style', 'class', 'src', 'href', 'target', 'hidden', 'id']
+            attributeFilter: ['style', 'src', 'href', 'target']
         };
 
         if (document.documentElement) {
@@ -857,21 +868,23 @@
     }
 
     // -------------------------------------------------------------
-    // Active Playback Sentinel (High-frequency micro-sweep during video)
+    // Active Playback Sentinel (Low-overhead sweep during video playback)
     // -------------------------------------------------------------
     setInterval(() => {
         if (!enabled) return;
         if (isPlayerActiveNow()) {
-            // Check for rogue videos or floating traps that escaped
             const videos = document.querySelectorAll('video');
             for (let i = 0; i < videos.length; i++) {
                 const v = videos[i];
-                if (v.id !== 'mbNativeVideo' && !v.classList.contains('milkbox-video-element') && (!v.closest || !v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater'))) {
+                if (v.id !== 'mbNativeVideo' &&
+                    v.id !== 'liveTvVideoPlayer' &&
+                    !v.classList.contains('milkbox-video-element') &&
+                    (!v.closest || !v.closest('.milkbox-player, .mb-player, #playerFrame, #animeTheater, #liveTvPlayerModal'))) {
                     try { v.pause(); v.muted = true; v.src = ''; disarmAndHideElement(v, 'Rogue background video neutralized'); } catch {}
                 }
             }
         }
-    }, 400);
+    }, 1200);
 
     // -------------------------------------------------------------
     // Top-Level Navigation Protection (location.assign & location.replace)
