@@ -370,7 +370,7 @@ function showLiveTvPlayer(channel) {
     
     function showConnectionError(reason) {
         clearConnectionTimeout();
-        console.error('Stream connection failed:', reason);
+        console.debug('Stream connection failed:', reason);
         
         loadingDiv.textContent = `Unable to play this channel: ${reason}`;
     }
@@ -406,6 +406,10 @@ function showLiveTvPlayer(channel) {
                         maxMaxBufferSize: 60 * 1000 * 1000,
                         maxBufferSize: 30 * 1000 * 1000,
                         maxBufferLength: 30,
+                        maxBufferHole: 1.5,
+                        nudgeOffset: 0.2,
+                        nudgeMaxRetry: 10,
+                        maxFragLookUpTolerance: 0.25,
                         fragLoadPolicy: {
                             default: {
                                 maxTimeToFirstByteMs: 8000,
@@ -419,22 +423,28 @@ function showLiveTvPlayer(channel) {
                     window.liveTvHlsInstance = hls;
                     
                     // Setup error handler first
+                    let mediaRecoveryAttempts = 0;
                     hls.on(Hls.Events.ERROR, (event, data) => {
-                        console.error('HLS error event:', event, data);
-                        if (data.fatal) {
-                            console.error('Fatal HLS error:', data.type);
-                            switch(data.type) {
-                                case Hls.ErrorTypes.NETWORK_ERROR:
-                                    console.log('Network error - stream may be unavailable');
-                                    showConnectionError('Network error - stream may be unavailable or unreachable');
-                                    return;
-                                case Hls.ErrorTypes.MEDIA_ERROR:
-                                    console.log('Media error - trying recovery');
+                        if (!data || !data.fatal) {
+                            console.debug('Non-fatal HLS event:', data?.details || event, data?.reason || '');
+                            return;
+                        }
+                        console.debug('Fatal HLS error:', data.type, data.details);
+                        switch (data.type) {
+                            case Hls.ErrorTypes.NETWORK_ERROR:
+                                showConnectionError('Network error - stream may be unavailable or unreachable');
+                                return;
+                            case Hls.ErrorTypes.MEDIA_ERROR:
+                                if (mediaRecoveryAttempts < 2) {
+                                    mediaRecoveryAttempts += 1;
+                                    console.debug(`Media error - trying recovery (${mediaRecoveryAttempts}/2)`);
                                     hls.recoverMediaError();
                                     return;
-                            }
-                            showConnectionError('HLS fatal error: ' + data.type);
+                                }
+                                showConnectionError('Media error - unable to decode stream');
+                                return;
                         }
+                        showConnectionError('HLS fatal error: ' + data.type);
                     });
                     
                     hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -443,7 +453,7 @@ function showLiveTvPlayer(channel) {
                         loadingDiv.style.display = 'none';
                         video.style.display = 'block';
                         video.play().catch(e => {
-                            console.warn('Auto-play blocked:', e);
+                            console.debug('Auto-play blocked:', e);
                         });
                     });
                     
@@ -472,16 +482,16 @@ function showLiveTvPlayer(channel) {
                     }, { once: true });
                     
                     video.addEventListener('error', (e) => {
-                        console.error('Native HLS error:', e);
+                        console.debug('Native HLS error:', e);
                         showConnectionError('Video playback error');
                     });
                     
                     video.play().catch(e => {
-                        console.warn('Playback error:', e);
+                        console.debug('Playback error:', e);
                         showConnectionError('Unable to play stream');
                     });
                 } else {
-                    console.error('HLS not supported in this browser');
+                    console.debug('HLS not supported in this browser');
                     showConnectionError('HLS playback not supported in your browser');
                 }
             } else {
@@ -497,7 +507,7 @@ function showLiveTvPlayer(channel) {
                 }, { once: true });
                 
                 video.addEventListener('error', (e) => {
-                    console.error('Direct stream error:', e);
+                    console.debug('Direct stream error:', e);
                     showConnectionError('Stream playback failed');
                 });
                 
@@ -506,16 +516,16 @@ function showLiveTvPlayer(channel) {
                 });
                 
                 video.play().catch(e => {
-                    console.warn('Playback error:', e);
+                    console.debug('Playback error:', e);
                     showConnectionError('Unable to play stream');
                 });
             }
         } catch (error) {
-            console.error('Error setting up playback:', error);
+            console.debug('Error setting up playback:', error);
             showConnectionError('Error setting up playback: ' + error.message);
         }
     } else {
-        console.error('No stream URL available for channel:', channel);
+        console.debug('No stream URL available for channel:', channel);
         showConnectionError('No valid stream URL available');
     }
 
