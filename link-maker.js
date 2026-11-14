@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    const HISTORY_STORAGE_KEY = 'milkbox_linklet_history_v1';
+    const HISTORY_STORAGE_KEY = 'milkbox_link_maker_history_v1';
     const MAX_HISTORY_ITEMS = 25;
 
     let statusData = null;
@@ -94,7 +94,7 @@
     }
 
     function getSelectedProvider() {
-        const select = getEl('linkletProviderSelect');
+        const select = getEl('linkMakerProviderSelect');
         const id = select ? select.value : 'cloudflare';
         const providers = (statusData && Array.isArray(statusData.providers)) ? statusData.providers : [];
         return providers.find((p) => p.id === id) || providers[0] || null;
@@ -104,13 +104,13 @@
         const provider = getSelectedProvider();
         if (!provider) return;
 
-        const fileFields = getEl('linkletFileFields');
-        const ipFields = getEl('linkletIpFields');
-        const envNameGroup = getEl('linkletEnvNameGroup');
-        const formatSelect = getEl('linkletFormatSelect');
-        const amountInput = getEl('linkletAmountInput');
-        const providerHint = getEl('linkletProviderHint');
-        const ipInput = getEl('linkletIpInput');
+        const fileFields = getEl('linkMakerFileFields');
+        const ipFields = getEl('linkMakerIpFields');
+        const envNameGroup = getEl('linkMakerEnvNameGroup');
+        const formatSelect = getEl('linkMakerFormatSelect');
+        const amountInput = getEl('linkMakerAmountInput');
+        const providerHint = getEl('linkMakerProviderHint');
+        const ipInput = getEl('linkMakerIpInput');
 
         const isIp = provider.kind === 'ip';
         if (fileFields) fileFields.style.display = isIp ? 'none' : '';
@@ -146,12 +146,12 @@
     }
 
     function renderQuotaBar() {
-        const quotaBadge = getEl('linkletUserQuotaVal');
-        const tierBadge = getEl('linkletTierQuotaVal');
-        const cooldownNote = getEl('linkletCooldownNote');
-        const submitBtn = getEl('linkletGenerateBtn');
-        const configNotice = getEl('linkletConfigNotice');
-        const targetOriginEl = getEl('linkletTargetOrigin');
+        const quotaBadge = getEl('linkMakerUserQuotaVal');
+        const tierBadge = getEl('linkMakerTierQuotaVal');
+        const cooldownNote = getEl('linkMakerCooldownNote');
+        const submitBtn = getEl('linkMakerGenerateBtn');
+        const configNotice = getEl('linkMakerConfigNotice');
+        const targetOriginEl = getEl('linkMakerTargetOrigin');
 
         if (!statusData) return;
 
@@ -162,7 +162,7 @@
         if (configNotice) {
             if (!statusData.configured) {
                 configNotice.style.display = '';
-                configNotice.textContent = 'Server notice: LINKLET_API_KEY is not configured in .env yet. Add your Linklet AllOne MAX key to .env to enable live generation.';
+                configNotice.textContent = 'Link Maker is currently unavailable on this server.';
             } else {
                 configNotice.style.display = 'none';
             }
@@ -170,7 +170,7 @@
 
         const limits = statusData.limits || {};
         const globalUsage = statusData.globalUsage || {};
-        const tier = statusData.tier || { name: 'Linklet AllOne MAX', perMinute: 50, perDay: 5000, linksPerGeneration: 100 };
+        const tier = statusData.tier || { name: 'AllOne MAX', perMinute: 50, perDay: 5000, linksPerGeneration: 100 };
 
         if (quotaBadge) {
             const rem = Number(limits.remainingRequests ?? 3);
@@ -221,23 +221,23 @@
                 const left = updateLockState();
                 if (left <= 0) {
                     stopCountdownTimer();
-                    loadLinkletStatus();
+                    loadLinkMakerStatus();
                 }
             }, 1000);
         }
     }
 
     function renderResultsList(urls, jobMeta) {
-        const resultsWrap = getEl('linkletResultsWrap');
-        const resultsList = getEl('linkletResultsList');
-        const statusBanner = getEl('linkletJobStatus');
-        const copyAllBtn = getEl('linkletCopyAllBtn');
+        const resultsWrap = getEl('linkMakerResultsWrap');
+        const resultsList = getEl('linkMakerResultsList');
+        const statusBanner = getEl('linkMakerJobStatus');
+        const copyAllBtn = getEl('linkMakerCopyAllBtn');
 
         if (statusBanner && jobMeta) {
             const stateLabel = String(jobMeta.status || 'queued').toUpperCase();
             const countText = jobMeta.requested ? ` (${jobMeta.completed || 0}/${jobMeta.requested})` : '';
             statusBanner.style.display = '';
-            statusBanner.className = `linklet-job-status is-${escapeHtml(String(jobMeta.status || 'queued').toLowerCase())}`;
+            statusBanner.className = `link-maker-job-status is-${escapeHtml(String(jobMeta.status || 'queued').toLowerCase())}`;
             statusBanner.textContent = `Job ${jobMeta.id || ''} · ${jobMeta.provider || ''} · ${stateLabel}${countText}`;
         }
 
@@ -258,7 +258,7 @@
         }
 
         const itemsToRender = cleanUrls.length
-            ? cleanUrls.map((url) => ({ url, provider: (jobMeta && jobMeta.provider) || 'linklet', fresh: true }))
+            ? cleanUrls.map((url) => ({ url, provider: (jobMeta && jobMeta.provider) || 'link', fresh: true }))
             : savedUrls.map((item) => ({ url: item.url, provider: item.provider || 'saved', fresh: false }));
 
         resultsList.innerHTML = itemsToRender.map((item) => {
@@ -266,14 +266,14 @@
             const safeProvider = escapeHtml(item.provider);
             const tag = item.fresh ? 'NEW' : 'SAVED';
             return `
-                <div class="linklet-result-row">
-                    <div class="linklet-result-meta">
-                        <span class="linklet-result-badge">${safeProvider} · ${tag}</span>
-                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="linklet-result-url">${safeUrl}</a>
+                <div class="link-maker-result-row">
+                    <div class="link-maker-result-meta">
+                        <span class="link-maker-result-badge">${safeProvider} · ${tag}</span>
+                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-maker-result-url">${safeUrl}</a>
                     </div>
-                    <div class="linklet-result-actions">
-                        <button type="button" class="linklet-mini-btn linklet-copy-one" data-url="${safeUrl}">Copy</button>
-                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="linklet-mini-btn primary">Open ↗</a>
+                    <div class="link-maker-result-actions">
+                        <button type="button" class="link-maker-mini-btn link-maker-copy-one" data-url="${safeUrl}">Copy</button>
+                        <a href="${safeUrl}" target="_blank" rel="noopener noreferrer" class="link-maker-mini-btn primary">Open ↗</a>
                     </div>
                 </div>
             `;
@@ -283,34 +283,34 @@
     async function pollJob(jobId, attempt = 0) {
         if (!jobId || activeJobId !== jobId) return;
         if (attempt >= 35) {
-            const statusBanner = getEl('linkletJobStatus');
+            const statusBanner = getEl('linkMakerJobStatus');
             if (statusBanner) {
                 statusBanner.style.display = '';
-                statusBanner.textContent = `Job ${jobId} is still queued at Linklet. Refresh shortly to check results.`;
+                statusBanner.textContent = `Job ${jobId} is still queued. Refresh shortly to check results.`;
             }
             return;
         }
 
         try {
-            const res = await fetch(`/api/linklet/jobs/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
+            const res = await fetch(`/api/link-maker/jobs/${encodeURIComponent(jobId)}`, { cache: 'no-store' });
             const data = await res.json().catch(() => ({}));
 
             if (res.status === 429) {
                 const waitSec = Math.max(2, Number(data.retryAfterSeconds) || parseInt(res.headers.get('Retry-After') || '5', 10) || 5);
-                const statusBanner = getEl('linkletJobStatus');
+                const statusBanner = getEl('linkMakerJobStatus');
                 if (statusBanner) {
                     statusBanner.style.display = '';
-                    statusBanner.textContent = `Waiting ${waitSec}s before next status check (Linklet rate limit)…`;
+                    statusBanner.textContent = `Waiting ${waitSec}s before next status check…`;
                 }
                 activePollTimer = setTimeout(() => pollJob(jobId, attempt + 1), waitSec * 1000);
                 return;
             }
 
             if (!res.ok) {
-                const statusBanner = getEl('linkletJobStatus');
+                const statusBanner = getEl('linkMakerJobStatus');
                 if (statusBanner) {
                     statusBanner.style.display = '';
-                    statusBanner.className = 'linklet-job-status is-failed';
+                    statusBanner.className = 'link-maker-job-status is-failed';
                     statusBanner.textContent = data.error || `Failed to check job (${res.status})`;
                 }
                 return;
@@ -318,20 +318,20 @@
 
             const urls = (Array.isArray(data.results) ? data.results : []).map(normalizeResultUrl).filter(Boolean);
             if (urls.length) {
-                saveGeneratedLinks(data.provider || 'linklet', urls);
+                saveGeneratedLinks(data.provider || 'link', urls);
             }
             renderResultsList(urls, data);
 
             const st = String(data.status || '').toLowerCase();
             if (st === 'complete' || st === 'completed' || st === 'failed' || st === 'error') {
                 if (st === 'complete' || st === 'completed') {
-                    showToast(`Generated ${urls.length || data.completed || 1} MILKBOX mirror link(s)!`);
+                    showToast(`Created ${urls.length || data.completed || 1} MILKBOX link(s)!`);
                 } else {
                     const failReason = (Array.isArray(data.failures) && data.failures[0])
                         ? (typeof data.failures[0] === 'string' ? data.failures[0] : (data.failures[0].error || data.failures[0].message || ''))
                         : '';
                     if (failReason) {
-                        const statusBanner = getEl('linkletJobStatus');
+                        const statusBanner = getEl('linkMakerJobStatus');
                         if (statusBanner) statusBanner.textContent += ` — ${failReason}`;
                     }
                 }
@@ -344,22 +344,22 @@
         }
     }
 
-    async function loadLinkletStatus() {
-        const providerSelect = getEl('linkletProviderSelect');
-        const configNotice = getEl('linkletConfigNotice');
+    async function loadLinkMakerStatus() {
+        const providerSelect = getEl('linkMakerProviderSelect');
+        const configNotice = getEl('linkMakerConfigNotice');
 
         if (window.MILKBOX_GITHUB_PAGES) {
             if (configNotice) {
                 configNotice.style.display = '';
-                configNotice.textContent = 'Site mirror generation requires the live MILKBOX Node server (not available on static GitHub Pages).';
+                configNotice.textContent = 'Link Maker requires the live MILKBOX server (not available on static GitHub Pages).';
             }
-            const submitBtn = getEl('linkletGenerateBtn');
+            const submitBtn = getEl('linkMakerGenerateBtn');
             if (submitBtn) submitBtn.disabled = true;
             return;
         }
 
         try {
-            const res = await fetch('/api/linklet/status', { cache: 'no-store' });
+            const res = await fetch('/api/link-maker/status', { cache: 'no-store' });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             statusData = await res.json();
 
@@ -379,7 +379,7 @@
         } catch (err) {
             if (configNotice) {
                 configNotice.style.display = '';
-                configNotice.textContent = `Could not reach Linklet status endpoint: ${err.message}`;
+                configNotice.textContent = `Could not reach Link Maker service: ${err.message}`;
             }
         }
     }
@@ -391,13 +391,13 @@
         const provider = getSelectedProvider();
         if (!provider) return;
 
-        const amountInput = getEl('linkletAmountInput');
-        const formatSelect = getEl('linkletFormatSelect');
-        const tabTitleInput = getEl('linkletTabTitleInput');
-        const ipInput = getEl('linkletIpInput');
-        const nameInput = getEl('linkletNameInput');
-        const statusBanner = getEl('linkletJobStatus');
-        const submitBtn = getEl('linkletGenerateBtn');
+        const amountInput = getEl('linkMakerAmountInput');
+        const formatSelect = getEl('linkMakerFormatSelect');
+        const tabTitleInput = getEl('linkMakerTabTitleInput');
+        const ipInput = getEl('linkMakerIpInput');
+        const nameInput = getEl('linkMakerNameInput');
+        const statusBanner = getEl('linkMakerJobStatus');
+        const submitBtn = getEl('linkMakerGenerateBtn');
 
         const payload = {
             provider: provider.id,
@@ -420,16 +420,16 @@
         stopPollTimer();
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.textContent = 'Generating…';
+            submitBtn.textContent = 'Making Links…';
         }
         if (statusBanner) {
             statusBanner.style.display = '';
-            statusBanner.className = 'linklet-job-status is-queued';
-            statusBanner.textContent = `Submitting ${provider.name} generation job…`;
+            statusBanner.className = 'link-maker-job-status is-queued';
+            statusBanner.textContent = `Submitting ${provider.name} job…`;
         }
 
         try {
-            const res = await fetch('/api/linklet/generate', {
+            const res = await fetch('/api/link-maker/generate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -445,11 +445,11 @@
             if (!res.ok) {
                 if (statusBanner) {
                     statusBanner.style.display = '';
-                    statusBanner.className = 'linklet-job-status is-failed';
+                    statusBanner.className = 'link-maker-job-status is-failed';
                     statusBanner.textContent = data.error || `Request failed (${res.status})`;
                 }
-                showToast(data.error || 'Could not generate links');
-                await loadLinkletStatus();
+                showToast(data.error || 'Could not create links');
+                await loadLinkMakerStatus();
                 return;
             }
 
@@ -458,23 +458,23 @@
             if (data.id) {
                 activePollTimer = setTimeout(() => pollJob(data.id, 0), 900);
             }
-            await loadLinkletStatus();
+            await loadLinkMakerStatus();
         } catch (err) {
             if (statusBanner) {
                 statusBanner.style.display = '';
-                statusBanner.className = 'linklet-job-status is-failed';
+                statusBanner.className = 'link-maker-job-status is-failed';
                 statusBanner.textContent = `Network error: ${err.message}`;
             }
         } finally {
             isSubmitting = false;
             if (submitBtn) {
-                submitBtn.textContent = 'Generate MILKBOX Links';
+                submitBtn.textContent = 'Make MILKBOX Links';
             }
             renderQuotaBar();
         }
     }
 
-    function activateMirrorsSettingsTab() {
+    function activateLinkMakerSettingsTab() {
         const settingsModal = getEl('settingsModal');
         if (settingsModal && !settingsModal.classList.contains('active')) {
             settingsModal.style.display = 'block';
@@ -482,12 +482,12 @@
         }
         document.querySelectorAll('.settings-tab').forEach((t) => t.classList.remove('active'));
         document.querySelectorAll('.settings-tab-panel').forEach((p) => p.classList.remove('active'));
-        document.querySelector('.settings-tab[data-settings-tab="mirrors"]')?.classList.add('active');
-        document.querySelector('.settings-tab-panel[data-settings-panel="mirrors"]')?.classList.add('active');
-        loadLinkletStatus();
+        document.querySelector('.settings-tab[data-settings-tab="linkmaker"]')?.classList.add('active');
+        document.querySelector('.settings-tab-panel[data-settings-panel="linkmaker"]')?.classList.add('active');
+        loadLinkMakerStatus();
     }
 
-    function cleanupLinkletTimers() {
+    function cleanupLinkMakerTimers() {
         stopPollTimer();
         stopCountdownTimer();
         activeJobId = null;
@@ -512,66 +512,66 @@
         }
     }
 
-    function initLinkletUI() {
-        getEl('settingsOpenLinkletBtn')?.addEventListener('click', activateMirrorsSettingsTab);
-        document.querySelector('.settings-tab[data-settings-tab="mirrors"]')?.addEventListener('click', () => {
-            activateMirrorsSettingsTab();
+    function initLinkMakerUI() {
+        getEl('settingsOpenLinkMakerBtn')?.addEventListener('click', activateLinkMakerSettingsTab);
+        document.querySelector('.settings-tab[data-settings-tab="linkmaker"]')?.addEventListener('click', () => {
+            activateLinkMakerSettingsTab();
         });
         getEl('settingsBtn')?.addEventListener('click', () => {
-            if (!statusData) loadLinkletStatus();
+            if (!statusData) loadLinkMakerStatus();
         });
-        getEl('closeSettings')?.addEventListener('click', cleanupLinkletTimers);
+        getEl('closeSettings')?.addEventListener('click', cleanupLinkMakerTimers);
         getEl('settingsModal')?.addEventListener('click', (e) => {
-            if (e.target && e.target.id === 'settingsModal') cleanupLinkletTimers();
+            if (e.target && e.target.id === 'settingsModal') cleanupLinkMakerTimers();
         });
 
-        getEl('linkletProviderSelect')?.addEventListener('change', updateDynamicFields);
-        getEl('linkletForm')?.addEventListener('submit', handleGenerateSubmit);
+        getEl('linkMakerProviderSelect')?.addEventListener('change', updateDynamicFields);
+        getEl('linkMakerForm')?.addEventListener('submit', handleGenerateSubmit);
 
-        document.querySelectorAll('.linklet-title-chip').forEach((chip) => {
+        document.querySelectorAll('.link-maker-title-chip').forEach((chip) => {
             chip.addEventListener('click', () => {
-                const input = getEl('linkletTabTitleInput');
+                const input = getEl('linkMakerTabTitleInput');
                 if (input && chip.dataset.title) {
                     input.value = chip.dataset.title;
                 }
             });
         });
 
-        getEl('linkletResultsList')?.addEventListener('click', (e) => {
-            const btn = e.target.closest('.linklet-copy-one');
+        getEl('linkMakerResultsList')?.addEventListener('click', (e) => {
+            const btn = e.target.closest('.link-maker-copy-one');
             if (btn && btn.dataset.url) {
-                copyText(btn.dataset.url, 'Copied mirror link!');
+                copyText(btn.dataset.url, 'Copied link!');
             }
         });
 
-        getEl('linkletCopyAllBtn')?.addEventListener('click', () => {
-            const btn = getEl('linkletCopyAllBtn');
+        getEl('linkMakerCopyAllBtn')?.addEventListener('click', () => {
+            const btn = getEl('linkMakerCopyAllBtn');
             if (!btn || !btn.dataset.urls) return;
             try {
                 const urls = JSON.parse(btn.dataset.urls);
                 if (Array.isArray(urls) && urls.length) {
-                    copyText(urls.join('\n'), `Copied ${urls.length} mirror links!`);
+                    copyText(urls.join('\n'), `Copied ${urls.length} links!`);
                 }
             } catch (_) {}
         });
 
-        getEl('linkletClearHistoryBtn')?.addEventListener('click', () => {
+        getEl('linkMakerClearHistoryBtn')?.addEventListener('click', () => {
             try {
                 localStorage.removeItem(HISTORY_STORAGE_KEY);
             } catch (_) {}
             renderResultsList([], null);
-            showToast('Cleared saved mirror links');
+            showToast('Cleared saved links');
         });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initLinkletUI);
+        document.addEventListener('DOMContentLoaded', initLinkMakerUI);
     } else {
-        initLinkletUI();
+        initLinkMakerUI();
     }
 
-    window.MILKBOXLinklet = {
-        open: activateMirrorsSettingsTab,
-        refresh: loadLinkletStatus
+    window.MILKBOXLinkMaker = {
+        open: activateLinkMakerSettingsTab,
+        refresh: loadLinkMakerStatus
     };
 })();
