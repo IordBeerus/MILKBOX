@@ -123,13 +123,6 @@
                 <span>Watch Party</span>
                 <span class="watch-party-badge-dot" id="watchPartyNavDot" style="display:none"></span>
             </button>
-            <button class="btn-watch-party btn-linklet-nav" id="linkletNavBtn" title="Generate More MILKBOX Links (Linklet AllOne MAX)" type="button">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
-                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
-                </svg>
-                <span>Generate Site</span>
-            </button>
             <button class="btn-icon btn-announcements" id="announcementsNavBtn" title="What's New & Announcements" aria-label="Announcements" type="button">
                 <svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 -960 960 960" width="20px" fill="#e3e3e3"><path d="M160-200v-80h80v-280q0-83 50-147.5T420-792v-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820v28q80 20 130 84.5T720-560v280h80v80H160Zm320-300Zm0 420q-33 0-56.5-23.5T400-160h160q0 33-23.5 56.5T480-80ZM320-280h320v-280q0-66-47-113t-113-47q-66 0-113 47t-47 113v280Z"/></svg>
                 <span class="announcements-unread-badge" id="announcementsUnreadBadge" style="display:none">1</span>
@@ -1758,6 +1751,7 @@
                 <button class="settings-tab" data-settings-tab="appearance">Appearance</button>
                 <button class="settings-tab" data-settings-tab="data">Data & Storage</button>
                 <button class="settings-tab" data-settings-tab="manga">Manga</button>
+                <button class="settings-tab" data-settings-tab="mirrors">Site Mirrors</button>
                 <button class="settings-tab" data-settings-tab="announcements">Announcements</button>
             </div>
 
@@ -2448,6 +2442,101 @@
                 </div>
             </div>
 
+            <div class="settings-tab-panel" data-settings-panel="mirrors">
+                <div class="settings-card">
+                    <div class="linklet-tier-badge">
+                        <span class="wp-neon-dot"></span>
+                        <span>LINKLET ALLONE MAX</span>
+                    </div>
+                    <h3 class="settings-card-title">Generate More of MILKBOX</h3>
+                    <p class="settings-card-desc">Spin up fresh mirror links pointing to <strong id="linkletTargetOrigin">this site</strong> across supported Linklet hosts.</p>
+
+                    <div class="settings-card-body">
+                        <div class="linklet-quota-grid">
+                            <div class="linklet-quota-box">
+                                <span class="linklet-quota-label">ANTI-SPAM USER LIMIT</span>
+                                <strong class="linklet-quota-value" id="linkletUserQuotaVal">3 generations per hour · max 5/batch</strong>
+                            </div>
+                            <div class="linklet-quota-box">
+                                <span class="linklet-quota-label">UPSTREAM TIER CAPACITY</span>
+                                <strong class="linklet-quota-value" id="linkletTierQuotaVal">Linklet AllOne MAX (50/min · 5,000/day · 100 MAX/gen)</strong>
+                            </div>
+                        </div>
+
+                        <div class="linklet-notice" id="linkletConfigNotice" style="display:none"></div>
+                        <div class="linklet-notice is-limit" id="linkletCooldownNote" style="display:none"></div>
+
+                        <form id="linkletForm" class="linklet-form">
+                            <div class="linklet-form-row">
+                                <div class="form-group linklet-form-group" style="flex:2">
+                                    <label for="linkletProviderSelect">Hosting Provider</label>
+                                    <select id="linkletProviderSelect" class="settings-select"></select>
+                                    <small class="help-text" id="linkletProviderHint">Loading providers…</small>
+                                </div>
+                                <div class="form-group linklet-form-group" style="flex:1;min-width:110px">
+                                    <label for="linkletAmountInput">Links to Generate</label>
+                                    <input type="number" id="linkletAmountInput" min="1" max="5" value="1" required>
+                                </div>
+                            </div>
+
+                            <div id="linkletFileFields">
+                                <div class="linklet-form-row">
+                                    <div class="form-group linklet-form-group" style="flex:1">
+                                        <label for="linkletFormatSelect">Mirror File Format</label>
+                                        <select id="linkletFormatSelect" class="settings-select">
+                                            <option value="html" selected>HTML Fullscreen Portal (.html)</option>
+                                            <option value="svg">SVG Launcher Card (.svg)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group linklet-form-group" style="flex:1.4">
+                                        <label for="linkletTabTitleInput">Page Tab Title</label>
+                                        <input type="text" id="linkletTabTitleInput" maxlength="48" placeholder="MILKBOX" value="MILKBOX">
+                                    </div>
+                                </div>
+                                <div class="linklet-title-presets">
+                                    <span>Quick Title:</span>
+                                    <button type="button" class="linklet-title-chip" data-title="MILKBOX">MILKBOX</button>
+                                    <button type="button" class="linklet-title-chip" data-title="Google Docs">Google Docs</button>
+                                    <button type="button" class="linklet-title-chip" data-title="Desmos | Graphing Calculator">Desmos</button>
+                                    <button type="button" class="linklet-title-chip" data-title="Study Notes">Study Notes</button>
+                                </div>
+                            </div>
+
+                            <div id="linkletIpFields" style="display:none">
+                                <div class="linklet-form-row">
+                                    <div class="form-group linklet-form-group" style="flex:1.4">
+                                        <label for="linkletIpInput">Site IPv4 Address</label>
+                                        <input type="text" id="linkletIpInput" placeholder="e.g. 34.73.99.76" autocomplete="off">
+                                        <small class="help-text">Auto-detected from this host when available; must be a public IPv4.</small>
+                                    </div>
+                                    <div class="form-group linklet-form-group" id="linkletEnvNameGroup" style="flex:1;display:none">
+                                        <label for="linkletNameInput">Subdomain Name (optional)</label>
+                                        <input type="text" id="linkletNameInput" maxlength="32" placeholder="e.g. milkbox-stream" autocomplete="off">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="settings-apply-btn linklet-submit-btn" id="linkletGenerateBtn">
+                                Generate MILKBOX Links
+                            </button>
+                        </form>
+
+                        <div class="linklet-job-status" id="linkletJobStatus" style="display:none"></div>
+
+                        <div class="linklet-results-wrap" id="linkletResultsWrap" style="display:none">
+                            <div class="linklet-results-head">
+                                <span>Generated Site Links</span>
+                                <div class="linklet-results-head-actions">
+                                    <button type="button" class="linklet-mini-btn" id="linkletCopyAllBtn" style="display:none">Copy All</button>
+                                    <button type="button" class="linklet-mini-btn" id="linkletClearHistoryBtn">Clear Saved</button>
+                                </div>
+                            </div>
+                            <div class="linklet-results-list" id="linkletResultsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
@@ -2479,7 +2568,6 @@
                 <a href="#" id="footerHelp">Help</a>
                 <a href="#" id="footerTerms">Terms</a>
                 <a href="#" id="footerPrivacy">Privacy</a>
-                <a href="#" id="footerGenerateSite">Generate Site Links</a>
                 <a href="mailto:haidaaggretsuko2@gmail.com" id="footerContact">Contact For Any Issues!</a>
             </p>
             <p class="copyright">&copy; 2024 <span class="footer-brand">MILKBOX</span>. For personal use only.</p>
@@ -2655,104 +2743,6 @@
         </div>
     </div>
 
-    <div class="modal linklet-modal-layer" id="linkletModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="linkletModalTitle">
-        <div class="modal-content linklet-modal-content">
-            <button type="button" class="close-modal" id="closeLinkletModal" aria-label="Close Site Generator">&times;</button>
-
-            <div class="linklet-modal-header">
-                <div class="linklet-tier-badge">
-                    <span class="wp-neon-dot"></span>
-                    <span>LINKLET ALLONE MAX</span>
-                </div>
-                <h2 class="linklet-modal-title" id="linkletModalTitle">Generate More of MILKBOX</h2>
-                <p class="linklet-modal-subtitle">Spin up fresh mirror links pointing to <strong id="linkletTargetOrigin">this site</strong> across supported Linklet hosts.</p>
-            </div>
-
-            <div class="linklet-quota-grid">
-                <div class="linklet-quota-box">
-                    <span class="linklet-quota-label">ANTI-SPAM USER LIMIT</span>
-                    <strong class="linklet-quota-value" id="linkletUserQuotaVal">3 generations per hour · max 5/batch</strong>
-                </div>
-                <div class="linklet-quota-box">
-                    <span class="linklet-quota-label">UPSTREAM TIER CAPACITY</span>
-                    <strong class="linklet-quota-value" id="linkletTierQuotaVal">Linklet AllOne MAX (50/min · 5,000/day · 100 MAX/gen)</strong>
-                </div>
-            </div>
-
-            <div class="linklet-notice" id="linkletConfigNotice" style="display:none"></div>
-            <div class="linklet-notice is-limit" id="linkletCooldownNote" style="display:none"></div>
-
-            <form id="linkletForm" class="linklet-form">
-                <div class="linklet-form-row">
-                    <div class="form-group linklet-form-group" style="flex:2">
-                        <label for="linkletProviderSelect">Hosting Provider</label>
-                        <select id="linkletProviderSelect" class="settings-select"></select>
-                        <small class="help-text" id="linkletProviderHint">Loading providers…</small>
-                    </div>
-                    <div class="form-group linklet-form-group" style="flex:1;min-width:110px">
-                        <label for="linkletAmountInput">Links to Generate</label>
-                        <input type="number" id="linkletAmountInput" min="1" max="5" value="1" required>
-                    </div>
-                </div>
-
-                <div id="linkletFileFields">
-                    <div class="linklet-form-row">
-                        <div class="form-group linklet-form-group" style="flex:1">
-                            <label for="linkletFormatSelect">Mirror File Format</label>
-                            <select id="linkletFormatSelect" class="settings-select">
-                                <option value="html" selected>HTML Fullscreen Portal (.html)</option>
-                                <option value="svg">SVG Launcher Card (.svg)</option>
-                            </select>
-                        </div>
-                        <div class="form-group linklet-form-group" style="flex:1.4">
-                            <label for="linkletTabTitleInput">Page Tab Title</label>
-                            <input type="text" id="linkletTabTitleInput" maxlength="48" placeholder="MILKBOX" value="MILKBOX">
-                        </div>
-                    </div>
-                    <div class="linklet-title-presets">
-                        <span>Quick Title:</span>
-                        <button type="button" class="linklet-title-chip" data-title="MILKBOX">MILKBOX</button>
-                        <button type="button" class="linklet-title-chip" data-title="Google Docs">Google Docs</button>
-                        <button type="button" class="linklet-title-chip" data-title="Desmos | Graphing Calculator">Desmos</button>
-                        <button type="button" class="linklet-title-chip" data-title="Study Notes">Study Notes</button>
-                    </div>
-                </div>
-
-                <div id="linkletIpFields" style="display:none">
-                    <div class="linklet-form-row">
-                        <div class="form-group linklet-form-group" style="flex:1.4">
-                            <label for="linkletIpInput">Site IPv4 Address</label>
-                            <input type="text" id="linkletIpInput" placeholder="e.g. 34.73.99.76" autocomplete="off">
-                            <small class="help-text">Auto-detected from this host when available; must be a public IPv4.</small>
-                        </div>
-                        <div class="form-group linklet-form-group" id="linkletEnvNameGroup" style="flex:1;display:none">
-                            <label for="linkletNameInput">Subdomain Name (optional)</label>
-                            <input type="text" id="linkletNameInput" maxlength="32" placeholder="e.g. milkbox-stream" autocomplete="off">
-                        </div>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-submit linklet-submit-btn" id="linkletGenerateBtn">
-                    Generate MILKBOX Links
-                </button>
-            </form>
-
-            <div class="linklet-job-status" id="linkletJobStatus" style="display:none"></div>
-
-            <div class="linklet-results-wrap" id="linkletResultsWrap" style="display:none">
-                <div class="linklet-results-head">
-                    <span>Generated Site Links</span>
-                    <div class="linklet-results-head-actions">
-                        <button type="button" class="linklet-mini-btn" id="linkletCopyAllBtn" style="display:none">Copy All</button>
-                        <button type="button" class="linklet-mini-btn" id="linkletClearHistoryBtn">Clear Saved</button>
-                    </div>
-                </div>
-                <div class="linklet-results-list" id="linkletResultsList"></div>
-            </div>
-        </div>
-    </div>
-
-    
     
     <div class="modal genre-spotlight-modal" id="genreSpotlightModal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="genreSpotlightTitle">
         <div class="modal-content genre-spotlight-content">
@@ -2874,7 +2864,7 @@
     <script src="watch-party.js?v=20261026"></script>
     <script src="scramjet-client.js?v=20261114-init-v2"></script>
     <script src="live-tv.js?v=20261114-pages-v3"></script>
-    <script src="linklet-mirror.js?v=20261114-v1"></script>
+    <script src="linklet-mirror.js?v=20261114-v2"></script>
     <script src="app.js?v=20261114-perf-v4"></script>
     <script>
     // Initialize Scramjet with Chrome blocking fallback
