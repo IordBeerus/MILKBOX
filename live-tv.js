@@ -368,9 +368,13 @@ function showLiveTvPlayer(channel) {
         }
     }
     
+    function liveTvDebugLog(...args) {
+        if (window._liveTvDebug) console.log('[LIVE TV]', ...args);
+    }
+
     function showConnectionError(reason) {
         clearConnectionTimeout();
-        console.debug('Stream connection failed:', reason);
+        liveTvDebugLog('Stream connection failed:', reason);
         
         loadingDiv.textContent = `Unable to play this channel: ${reason}`;
     }
@@ -400,8 +404,8 @@ function showLiveTvPlayer(channel) {
                     
                     const hls = new Hls({
                         debug: false,
-                        enableWorker: true,
-                        lowLatencyMode: true,
+                        enableWorker: false,
+                        lowLatencyMode: false,
                         emeEnabled: false,
                         maxMaxBufferSize: 60 * 1000 * 1000,
                         maxBufferSize: 30 * 1000 * 1000,
@@ -446,23 +450,23 @@ function showLiveTvPlayer(channel) {
                     let usingDirectFallback = Boolean(window.MILKBOX_GITHUB_PAGES);
                     hls.on(Hls.Events.ERROR, (event, data) => {
                         if (!data || !data.fatal) {
-                            console.debug('Non-fatal HLS event:', data?.details || event, data?.reason || '');
+                            liveTvDebugLog('Non-fatal HLS event:', data?.details || event, data?.reason || '');
                             return;
                         }
-                        console.debug('Fatal HLS error:', data.type, data.details);
+                        liveTvDebugLog('Fatal HLS error:', data.type, data.details);
                         switch (data.type) {
                             case Hls.ErrorTypes.NETWORK_ERROR:
                                 if (typeof hls.startLoad === 'function') {
                                     if (networkRecoveryAttempts < 1) {
                                         networkRecoveryAttempts += 1;
-                                        console.debug('Network error - retrying load...');
+                                        liveTvDebugLog('Network error - retrying load...');
                                         hls.startLoad();
                                         return;
                                     }
                                     if (!usingDirectFallback && channel.url) {
                                         usingDirectFallback = true;
                                         networkRecoveryAttempts = 0;
-                                        console.debug('Proxy network error - falling back to direct stream URL');
+                                        liveTvDebugLog('Proxy network error - falling back to direct stream URL');
                                         hls.loadSource(channel.url);
                                         hls.startLoad();
                                         return;
@@ -473,7 +477,7 @@ function showLiveTvPlayer(channel) {
                             case Hls.ErrorTypes.MEDIA_ERROR:
                                 if (mediaRecoveryAttempts < 2) {
                                     mediaRecoveryAttempts += 1;
-                                    console.debug(`Media error - trying recovery (${mediaRecoveryAttempts}/2)`);
+                                    liveTvDebugLog(`Media error - trying recovery (${mediaRecoveryAttempts}/2)`);
                                     hls.recoverMediaError();
                                     return;
                                 }
@@ -489,7 +493,7 @@ function showLiveTvPlayer(channel) {
                         loadingDiv.style.display = 'none';
                         video.style.display = 'block';
                         video.play().catch(e => {
-                            console.debug('Auto-play blocked:', e);
+                            liveTvDebugLog('Auto-play blocked:', e);
                         });
                     });
                     
@@ -520,16 +524,16 @@ function showLiveTvPlayer(channel) {
                     }, { once: true });
                     
                     video.addEventListener('error', (e) => {
-                        console.debug('Native HLS error:', e);
+                        liveTvDebugLog('Native HLS error:', e);
                         showConnectionError('Video playback error');
                     });
                     
                     video.play().catch(e => {
-                        console.debug('Playback error:', e);
+                        liveTvDebugLog('Playback error:', e);
                         showConnectionError('Unable to play stream');
                     });
                 } else {
-                    console.debug('HLS not supported in this browser');
+                    liveTvDebugLog('HLS not supported in this browser');
                     showConnectionError('HLS playback not supported in your browser');
                 }
             } else {
@@ -545,7 +549,7 @@ function showLiveTvPlayer(channel) {
                 }, { once: true });
                 
                 video.addEventListener('error', (e) => {
-                    console.debug('Direct stream error:', e);
+                    liveTvDebugLog('Direct stream error:', e);
                     showConnectionError('Stream playback failed');
                 });
                 
@@ -554,16 +558,16 @@ function showLiveTvPlayer(channel) {
                 });
                 
                 video.play().catch(e => {
-                    console.debug('Playback error:', e);
+                    liveTvDebugLog('Playback error:', e);
                     showConnectionError('Unable to play stream');
                 });
             }
         } catch (error) {
-            console.debug('Error setting up playback:', error);
+            liveTvDebugLog('Error setting up playback:', error);
             showConnectionError('Error setting up playback: ' + error.message);
         }
     } else {
-        console.debug('No stream URL available for channel:', channel);
+        liveTvDebugLog('No stream URL available for channel:', channel);
         showConnectionError('No valid stream URL available');
     }
 
