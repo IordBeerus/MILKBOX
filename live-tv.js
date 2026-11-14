@@ -377,11 +377,12 @@ function showLiveTvPlayer(channel) {
     
     if (channel.url) {
         try {
-            // Use proxy for all streams to handle CORS
-            const proxiedUrl = `/api/livetv/stream?url=${encodeURIComponent(channel.url)}`;
+            const playbackUrl = window.MILKBOX_GITHUB_PAGES
+                ? channel.url
+                : `/api/livetv/stream?url=${encodeURIComponent(channel.url)}`;
             
             console.log('Stream URL:', channel.url);
-            console.log('Proxied URL:', proxiedUrl);
+            console.log('Playback URL:', playbackUrl);
             
             // Set connection timeout
             connectionTimeout = setTimeout(() => {
@@ -454,14 +455,14 @@ function showLiveTvPlayer(channel) {
                         clearConnectionTimeout();
                     });
                     
-                    console.log('Loading HLS source:', proxiedUrl);
-                    hls.loadSource(proxiedUrl);
+                    console.log('Loading HLS source:', playbackUrl);
+                    hls.loadSource(playbackUrl);
                     hls.attachMedia(video);
                     
                 } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
                     // Native HLS support (Safari)
                     console.log('Using native HLS support (Safari)');
-                    video.src = proxiedUrl;
+                    video.src = playbackUrl;
                     
                     video.addEventListener('canplay', () => {
                         console.log('Native HLS: canplay event');
@@ -485,8 +486,8 @@ function showLiveTvPlayer(channel) {
                 }
             } else {
                 // Direct stream (MP4, WebM, etc.)
-                console.log('Loading direct stream:', proxiedUrl);
-                video.src = proxiedUrl;
+                console.log('Loading direct stream:', playbackUrl);
+                video.src = playbackUrl;
                 
                 video.addEventListener('canplay', () => {
                     console.log('Direct stream: canplay event');

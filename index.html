@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <base href="/">
+    <script>
+        window.MILKBOX_GITHUB_PAGES = location.hostname === 'iordbeerus.github.io' && /^\/MILKBOX(?:\/|$)/i.test(location.pathname);
+        if (window.MILKBOX_GITHUB_PAGES) document.querySelector('base').href = '/MILKBOX/';
+    </script>
     <title id="siteTitle">MILKBOX</title>
     <meta name="description" content="Explore movies, TV series, anime, manga, and music on MILKBOX. Watch ad-free with Milkbox Player, host watch parties, and stream across all your devices.">
 
@@ -50,8 +54,8 @@
     <meta name="color-scheme" content="dark light">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="MILKBOX">
-    <link rel="manifest" href="/manifest.webmanifest">
-    <link rel="apple-touch-icon" href="/assets/pwa/icon-180.png">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/pwa/icon-180.png">
     <link rel="icon" type="image/png" id="siteFavicon" href="https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png">
     <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
     <meta name="googlebot" content="noindex, nofollow, noarchive">
@@ -60,12 +64,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DynaPuff:wght@400..700&family=Reggae+One&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap">
-    <link rel="stylesheet" href="/styles.css">
-    <link rel="stylesheet" href="/milkbox-player.css">
-    <link rel="stylesheet" href="/discord-button.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="milkbox-player.css">
+    <link rel="stylesheet" href="discord-button.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/musify-player.css?v=milkify-audio-info-20261011">
-    <script src="/adguard-popupblocker.js?v=20261110-css-shield-sandbox-bypass-v4"></script>
+    <link rel="stylesheet" href="musify-player.css?v=milkify-audio-info-20261011">
+    <script src="adguard-popupblocker.js?v=20261110-css-shield-sandbox-bypass-v4"></script>
 </head>
 <body id="siteBody">
     <nav class="navbar">
@@ -651,7 +655,7 @@
              
                 <header class="musify-header">
                     <div class="musify-brand">
-                        <img src="/SiteIcon.png" alt="MILKBOX" class="musify-logo-img" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';">
+                        <img src="SiteIcon.png" alt="MILKBOX" class="musify-logo-img" onerror="this.onerror=null; this.src='https://raw.githubusercontent.com/IordBeerus/MILKBOX/main/SiteIcon.png';">
                         <div class="musify-brand-info">
                             <h2>Milkify <span class="musify-brand-badge">Material You</span></h2>
                             <p>Unlock the full potential of music: Stream effortlessly with one app!</p>
@@ -2520,7 +2524,7 @@
             <div class="wp-tab-pane active" id="wpPaneCreate">
                 <div class="wp-now-playing-preview" id="wpCreateMediaPreview">
                     <div class="wp-preview-thumb-wrap">
-                        <img id="wpCreateMediaPoster" src="/SiteIcon.png" alt="" class="wp-preview-thumb">
+                        <img id="wpCreateMediaPoster" src="SiteIcon.png" alt="" class="wp-preview-thumb">
                     </div>
                     <div class="wp-preview-meta">
                         <span class="wp-preview-tag" id="wpCreateMediaTag">SELECTED TITLE</span>
@@ -2747,16 +2751,16 @@
 
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://apis.google.com/js/api.js"></script>
-    <script src="/jsmediatags.min.js"></script>
-    <script src="/collections-data.js?v=20261013"></script>
+    <script src="jsmediatags.min.js"></script>
+    <script src="collections-data.js?v=20261013"></script>
     <script src="https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js"></script>
-    <script src="/milkbox-player.js?v=player-fix-20261009"></script>
-    <script src="/musify-player.js?v=milkify-audio-info-20261011"></script>
-    <script src="/gdrive-music.js?v=20261030-oauth-policy-v2"></script>
-    <script src="/watch-party.js?v=20261026"></script>
-    <script src="/scramjet-client.js?v=20261112-wisp-gateway"></script>
-    <script src="/live-tv.js?v=20261114-livetv-v2"></script>
-    <script src="/app.js?v=20261114-livetv-v2"></script>
+    <script src="milkbox-player.js?v=player-fix-20261009"></script>
+    <script src="musify-player.js?v=milkify-audio-info-20261011"></script>
+    <script src="gdrive-music.js?v=20261030-oauth-policy-v2"></script>
+    <script src="watch-party.js?v=20261026"></script>
+    <script src="scramjet-client.js?v=20261112-wisp-gateway"></script>
+    <script src="live-tv.js?v=20261114-pages-v3"></script>
+    <script src="app.js?v=20261114-pages-v3"></script>
     <script>
     // Initialize Scramjet with Chrome blocking fallback
     (function() {

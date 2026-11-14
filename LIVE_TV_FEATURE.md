@@ -200,6 +200,7 @@ Attempt Playback
 
 ### Stream Won't Play
 - Channel may be offline or blocked
+- GitHub Pages plays streams directly; channels without browser CORS support may not work
 - Some streams require VPN or specific region access
 - Try another channel from same country
 - Check browser compatibility
