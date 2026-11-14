@@ -2,18 +2,22 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const http = require('node:http');
 const { JSDOM } = require('jsdom');
 
 const {
     LINKLET_ALLONE_MAX_TIER,
+    PUBLIC_TIER_INFO,
     isValidPublicIpv4,
     createLinkletService
 } = require('../linklet-service');
 
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+const stylesCss = fs.readFileSync(path.join(root, 'styles.css'), 'utf8');
 const adguardScript = fs.readFileSync(path.join(root, 'adguard-popupblocker.js'), 'utf8');
-const linkletClientScript = fs.readFileSync(path.join(root, 'linklet-mirror.js'), 'utf8');
+const linkMakerClientScript = fs.readFileSync(path.join(root, 'link-maker.js'), 'utf8');
+const serverSrc = fs.readFileSync(path.join(root, 'server.js'), 'utf8');
 
 function makeReq(ip = '203.0.113.10', host = 'milkbox.fyi') {
     return {
@@ -26,7 +30,7 @@ function makeReq(ip = '203.0.113.10', host = 'milkbox.fyi') {
     };
 }
 
-test('uses Linklet AllOne MAX tier limits exclusively', () => {
+test('uses Linklet AllOne MAX tier limits exclusively and hides Linklet from client code', () => {
     assert.deepEqual(LINKLET_ALLONE_MAX_TIER, {
         name: 'Linklet AllOne MAX',
         perMinute: 50,
@@ -35,9 +39,16 @@ test('uses Linklet AllOne MAX tier limits exclusively', () => {
     });
     const serviceSrc = fs.readFileSync(path.join(root, 'linklet-service.js'), 'utf8');
     assert.doesNotMatch(serviceSrc, /AllOne.*Basic|AllOne.*Plus/i);
+
+    // Ensure no browser-served file mentions Linklet or exposes the client-facing mirror script
+    assert.doesNotMatch(html, /linklet/i);
+    assert.doesNotMatch(linkMakerClientScript, /linklet/i);
+    assert.doesNotMatch(stylesCss, /linklet/i);
+    assert.doesNotMatch(adguardScript, /linklet/i);
+    assert.equal(fs.existsSync(path.join(root, 'linklet-mirror.js')), false);
 });
 
-test('formats file-based Linklet requests properly and decodes valid HTML/SVG portals', async () => {
+test('formats file-based requests properly, decodes valid HTML/SVG portals, and sanitizes public responses', async () => {
     const captured = [];
     const service = createLinkletService({
         apiKey: 'lkt_live_test_key',
@@ -69,6 +80,9 @@ test('formats file-based Linklet requests properly and decodes valid HTML/SVG po
         }
     });
 
+    const statusPayload = await service.getStatus(makeReq());
+    assert.doesNotMatch(JSON.stringify(statusPayload), /linklet|LINKLET_API_KEY|\.env/i);
+
     const res = await service.generateSiteLinks(makeReq(), {
         provider: 'cloudflare',
         format: 'html',
@@ -77,6 +91,8 @@ test('formats file-based Linklet requests properly and decodes valid HTML/SVG po
     });
 
     assert.equal(res.status, 202);
+    assert.equal(res.body.statusUrl, '/api/link-maker/jobs/job-file-1');
+    assert.doesNotMatch(JSON.stringify(res.body), /linklet|LINKLET_API_KEY|\.env/i);
     assert.equal(captured[0].url, 'https://api.linklet.workers.dev/v1/generate');
     assert.equal(captured[0].init.headers.Authorization, 'Bearer lkt_live_test_key');
     assert.equal(captured[0].init.headers['Content-Type'], 'application/json');
@@ -94,6 +110,7 @@ test('formats file-based Linklet requests properly and decodes valid HTML/SVG po
     assert.equal(jobRes.status, 200);
     assert.equal(captured[1].url, 'https://api.linklet.workers.dev/v1/generate/job-file-1');
     assert.equal(jobRes.body.results.length, 2);
+    assert.doesNotMatch(JSON.stringify(jobRes.body), /linklet/i);
 
     // Padlet enforces SVG format and maximum of 1 link
     const padletBad = await service.generateSiteLinks(makeReq(), { provider: 'padlet', format: 'html', amount: 1 });
@@ -183,7 +200,7 @@ test('enforces anti-spam limit of 3 generations per hour per user and batch cap'
     assert.equal(afterHour.status, 202);
 });
 
-test('respects upstream 429 Retry-After cooldown without tight retry loops', async () => {
+test('respects upstream 429 Retry-After cooldown and sanitizes upstream Linklet errors', async () => {
     let clock = 1_700_000_000_000;
     let upstreamCalls = 0;
     const service = createLinkletService({
@@ -196,7 +213,7 @@ test('respects upstream 429 Retry-After cooldown without tight retry loops', asy
                 ok: false,
                 status: 429,
                 headers: { get: (k) => (k.toLowerCase() === 'retry-after' ? '45' : null) },
-                text: async () => JSON.stringify({ error: 'Rate limit reached' })
+                text: async () => JSON.stringify({ error: 'Linklet rate limit reached' })
             };
         }
     });
@@ -206,21 +223,40 @@ test('respects upstream 429 Retry-After cooldown without tight retry loops', asy
     assert.equal(first.status, 429);
     assert.equal(first.headers['Retry-After'], '45');
     assert.equal(upstreamCalls, 1);
+    assert.doesNotMatch(first.body.error, /linklet/i);
 
-    // Subsequent call during cooldown short-circuits locally before hitting Linklet again
+    // Subsequent call during cooldown short-circuits locally before hitting upstream again
     clock += 5000;
     const second = await service.generateSiteLinks(req, { provider: 'cdn', amount: 1 });
     assert.equal(second.status, 429);
     assert.equal(upstreamCalls, 1);
+    assert.doesNotMatch(second.body.error, /linklet/i);
 });
 
-test('Linklet modal opens, dynamically adapts provider inputs, polls results, and stays whitelisted by AdGuard', async () => {
+test('server.js blocks direct HTTP access to backend files and old /api/linklet paths', () => {
+    assert.match(serverSrc, /'linklet-service\.js'/);
+    assert.match(serverSrc, /'server\.js'/);
+    assert.match(serverSrc, /relNoSlash\.startsWith\('scripts\/'\)/);
+
+    const service = createLinkletService({ apiKey: '', stateFilePath: null });
+    return (async () => {
+        const fakeRes = { statusCode: 0, body: '', writeHead(s) { this.statusCode = s; }, end(b) { this.body = b; } };
+        const handledOld = await service.handleHttpRequest({ method: 'GET', headers: {}, socket: {} }, fakeRes, '/api/linklet/status');
+        assert.equal(handledOld, false);
+        const handledNew = await service.handleHttpRequest({ method: 'GET', headers: {}, socket: {} }, fakeRes, '/api/link-maker/status');
+        assert.equal(handledNew, true);
+        assert.equal(fakeRes.statusCode, 200);
+        assert.doesNotMatch(fakeRes.body, /linklet|LINKLET_API_KEY|\.env/i);
+    })();
+});
+
+test('Link Maker opens inside Settings, dynamically adapts provider inputs, polls results, and stays whitelisted by AdGuard', async () => {
     const dom = new JSDOM(html, { url: 'http://localhost:3000/', runScripts: 'outside-only' });
     const { window } = dom;
 
     const statusPayload = {
         configured: true,
-        tier: LINKLET_ALLONE_MAX_TIER,
+        tier: PUBLIC_TIER_INFO,
         providers: [
             { id: 'cloudflare', name: 'Cloudflare Pages', kind: 'file', input: 'SVG / HTML', formats: ['html', 'svg'], defaultFormat: 'html', maxAmount: 100, userMaxAmount: 5, supportsOptionalName: false },
             { id: 'padlet', name: 'Padlet', kind: 'file', input: 'SVG', formats: ['svg'], defaultFormat: 'svg', maxAmount: 1, userMaxAmount: 1, supportsOptionalName: false },
@@ -241,7 +277,7 @@ test('Linklet modal opens, dynamically adapts provider inputs, polls results, an
             remainingLinksToday: 15
         },
         globalUsage: {
-            tier: LINKLET_ALLONE_MAX_TIER,
+            tier: PUBLIC_TIER_INFO,
             minuteUsed: 0,
             minuteRemaining: 50,
             dayUsed: 0,
@@ -252,10 +288,10 @@ test('Linklet modal opens, dynamically adapts provider inputs, polls results, an
     };
 
     window.fetch = async (url, init) => {
-        if (url === '/api/linklet/status') {
+        if (url === '/api/link-maker/status') {
             return { ok: true, status: 200, json: async () => statusPayload };
         }
-        if (url === '/api/linklet/generate') {
+        if (url === '/api/link-maker/generate') {
             const body = JSON.parse(init.body);
             assert.equal(body.provider, 'cloudflare');
             return {
@@ -270,7 +306,7 @@ test('Linklet modal opens, dynamically adapts provider inputs, polls results, an
                 })
             };
         }
-        if (url === '/api/linklet/jobs/job-ui-1') {
+        if (url === '/api/link-maker/jobs/job-ui-1') {
             return {
                 ok: true,
                 status: 200,
@@ -289,42 +325,42 @@ test('Linklet modal opens, dynamically adapts provider inputs, polls results, an
     };
 
     window.eval(adguardScript);
-    window.eval(linkletClientScript);
+    window.eval(linkMakerClientScript);
     window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
 
     assert.equal(window.document.getElementById('linkletNavBtn'), null);
     assert.equal(window.document.getElementById('footerGenerateSite'), null);
 
-    window.document.getElementById('settingsOpenLinkletBtn').click();
+    window.document.getElementById('settingsOpenLinkMakerBtn').click();
     await new Promise((r) => setTimeout(r, 40));
 
     const settingsModal = window.document.getElementById('settingsModal');
-    const mirrorsPanel = window.document.querySelector('.settings-tab-panel[data-settings-panel="mirrors"]');
+    const linkMakerPanel = window.document.querySelector('.settings-tab-panel[data-settings-panel="linkmaker"]');
     assert.equal(settingsModal.classList.contains('active'), true);
-    assert.equal(mirrorsPanel.classList.contains('active'), true);
-    assert.notEqual(mirrorsPanel.getAttribute('data-adguard-blocked'), 'true');
-    assert.match(window.document.getElementById('linkletUserQuotaVal').textContent, /3 \/ 3 generations left this hour/);
+    assert.equal(linkMakerPanel.classList.contains('active'), true);
+    assert.notEqual(linkMakerPanel.getAttribute('data-adguard-blocked'), 'true');
+    assert.match(window.document.getElementById('linkMakerUserQuotaVal').textContent, /3 \/ 3 generations left this hour/);
 
     // Submit form -> polls job -> displays generated link
-    window.document.getElementById('linkletForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
+    window.document.getElementById('linkMakerForm').dispatchEvent(new window.Event('submit', { bubbles: true, cancelable: true }));
     await new Promise((r) => setTimeout(r, 1100));
 
-    const resultsText = window.document.getElementById('linkletResultsList').textContent;
+    const resultsText = window.document.getElementById('linkMakerResultsList').textContent;
     assert.match(resultsText, /https:\/\/milkbox-demo\.pages\.dev/);
 
     // Selecting padlet locks to SVG and max=1
-    const sel = window.document.getElementById('linkletProviderSelect');
+    const sel = window.document.getElementById('linkMakerProviderSelect');
     sel.value = 'padlet';
     sel.dispatchEvent(new window.Event('change'));
-    assert.equal(window.document.getElementById('linkletFormatSelect').value, 'svg');
-    assert.equal(window.document.getElementById('linkletAmountInput').max, '1');
+    assert.equal(window.document.getElementById('linkMakerFormatSelect').value, 'svg');
+    assert.equal(window.document.getElementById('linkMakerAmountInput').max, '1');
 
     // Selecting envpm reveals IP + optional name fields
     sel.value = 'envpm';
     sel.dispatchEvent(new window.Event('change'));
-    assert.equal(window.document.getElementById('linkletIpFields').style.display, '');
-    assert.equal(window.document.getElementById('linkletEnvNameGroup').style.display, '');
-    assert.equal(window.document.getElementById('linkletIpInput').value, '34.73.99.76');
+    assert.equal(window.document.getElementById('linkMakerIpFields').style.display, '');
+    assert.equal(window.document.getElementById('linkMakerEnvNameGroup').style.display, '');
+    assert.equal(window.document.getElementById('linkMakerIpInput').value, '34.73.99.76');
 
     dom.window.close();
 });

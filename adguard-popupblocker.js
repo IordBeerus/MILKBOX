@@ -244,7 +244,7 @@
         #liveTvPlayerStage, #liveTvVideoPlayer, #liveTvPlayerLoading,
         #liveTvSection, #liveTvGrid, .live-tv-card, .live-tv-tap-overlay,
         .live-tv-tap-btn, .live-tv-unmute-pill,
-        [data-settings-panel="mirrors"],
+        [data-settings-panel="linkmaker"],
         .milkbox-player, .mb-player, #siteTitle, #mobileNav,
         #adguardToast, .adguard-server-badge, .adguard-sandbox-badge,
         .server-selector, #playerSelector, .cinesrc-hud-bar, .scramjet-hud-bar {
@@ -504,7 +504,7 @@
             el.closest('.sidebar') ||
             el.closest('.cinesrc-hud-bar') ||
             el.closest('.scramjet-hud-bar') ||
-            el.closest('[data-settings-panel="mirrors"]')
+            el.closest('[data-settings-panel="linkmaker"]')
         )) {
             return true;
         }
@@ -580,8 +580,8 @@
             const href = anchor.href || anchor.getAttribute('href') || '';
             const target = anchor.target || anchor.getAttribute('target');
 
-            // If an anchor points to an external unwhitelisted address (skip user-generated Linklet mirrors in Settings)
-            if (href && !isAllowedInternalUrl(href) && !(anchor.closest && anchor.closest('[data-settings-panel="mirrors"]'))) {
+            // If an anchor points to an external unwhitelisted address (skip user-generated Link Maker URLs in Settings)
+            if (href && !isAllowedInternalUrl(href) && !(anchor.closest && anchor.closest('[data-settings-panel="linkmaker"]'))) {
                 e.preventDefault();
                 e.stopPropagation();
                 e.stopImmediatePropagation();

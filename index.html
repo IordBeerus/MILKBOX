@@ -1751,7 +1751,7 @@
                 <button class="settings-tab" data-settings-tab="appearance">Appearance</button>
                 <button class="settings-tab" data-settings-tab="data">Data & Storage</button>
                 <button class="settings-tab" data-settings-tab="manga">Manga</button>
-                <button class="settings-tab" data-settings-tab="mirrors">Site Mirrors</button>
+                <button class="settings-tab" data-settings-tab="linkmaker">Link Maker</button>
                 <button class="settings-tab" data-settings-tab="announcements">Announcements</button>
             </div>
 
@@ -1783,11 +1783,11 @@
                         <div id="diagnosticsResults" style="display:none;margin-top:8px;padding:12px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);font-size:13px;line-height:1.6;"></div>
                         <div class="settings-row">
                             <div class="settings-row-info">
-                                <div class="settings-row-label">Site Mirror Generator</div>
-                                <div class="settings-row-desc">Generate additional MILKBOX mirror links using Linklet AllOne MAX (3 generations per hour limit).</div>
+                                <div class="settings-row-label">Link Maker</div>
+                                <div class="settings-row-desc">Create additional MILKBOX access links inside Settings (3 generations per hour limit).</div>
                             </div>
                             <div class="settings-row-control">
-                                <button class="settings-apply-btn" id="settingsOpenLinkletBtn" type="button">Generate Links</button>
+                                <button class="settings-apply-btn" id="settingsOpenLinkMakerBtn" type="button">Open Link Maker</button>
                             </div>
                         </div>
                     </div>
@@ -2442,96 +2442,96 @@
                 </div>
             </div>
 
-            <div class="settings-tab-panel" data-settings-panel="mirrors">
+            <div class="settings-tab-panel" data-settings-panel="linkmaker">
                 <div class="settings-card">
-                    <div class="linklet-tier-badge">
+                    <div class="link-maker-tier-badge">
                         <span class="wp-neon-dot"></span>
-                        <span>LINKLET ALLONE MAX</span>
+                        <span>ALLONE MAX</span>
                     </div>
-                    <h3 class="settings-card-title">Generate More of MILKBOX</h3>
-                    <p class="settings-card-desc">Spin up fresh mirror links pointing to <strong id="linkletTargetOrigin">this site</strong> across supported Linklet hosts.</p>
+                    <h3 class="settings-card-title">Link Maker</h3>
+                    <p class="settings-card-desc">Create fresh access links pointing to <strong id="linkMakerTargetOrigin">this site</strong> across supported hosts.</p>
 
                     <div class="settings-card-body">
-                        <div class="linklet-quota-grid">
-                            <div class="linklet-quota-box">
-                                <span class="linklet-quota-label">ANTI-SPAM USER LIMIT</span>
-                                <strong class="linklet-quota-value" id="linkletUserQuotaVal">3 generations per hour · max 5/batch</strong>
+                        <div class="link-maker-quota-grid">
+                            <div class="link-maker-quota-box">
+                                <span class="link-maker-quota-label">ANTI-SPAM USER LIMIT</span>
+                                <strong class="link-maker-quota-value" id="linkMakerUserQuotaVal">3 generations per hour · max 5/batch</strong>
                             </div>
-                            <div class="linklet-quota-box">
-                                <span class="linklet-quota-label">UPSTREAM TIER CAPACITY</span>
-                                <strong class="linklet-quota-value" id="linkletTierQuotaVal">Linklet AllOne MAX (50/min · 5,000/day · 100 MAX/gen)</strong>
+                            <div class="link-maker-quota-box">
+                                <span class="link-maker-quota-label">SERVICE CAPACITY</span>
+                                <strong class="link-maker-quota-value" id="linkMakerTierQuotaVal">AllOne MAX (50/min · 5,000/day · 100 MAX/gen)</strong>
                             </div>
                         </div>
 
-                        <div class="linklet-notice" id="linkletConfigNotice" style="display:none"></div>
-                        <div class="linklet-notice is-limit" id="linkletCooldownNote" style="display:none"></div>
+                        <div class="link-maker-notice" id="linkMakerConfigNotice" style="display:none"></div>
+                        <div class="link-maker-notice is-limit" id="linkMakerCooldownNote" style="display:none"></div>
 
-                        <form id="linkletForm" class="linklet-form">
-                            <div class="linklet-form-row">
-                                <div class="form-group linklet-form-group" style="flex:2">
-                                    <label for="linkletProviderSelect">Hosting Provider</label>
-                                    <select id="linkletProviderSelect" class="settings-select"></select>
-                                    <small class="help-text" id="linkletProviderHint">Loading providers…</small>
+                        <form id="linkMakerForm" class="link-maker-form">
+                            <div class="link-maker-form-row">
+                                <div class="form-group link-maker-form-group" style="flex:2">
+                                    <label for="linkMakerProviderSelect">Hosting Provider</label>
+                                    <select id="linkMakerProviderSelect" class="settings-select"></select>
+                                    <small class="help-text" id="linkMakerProviderHint">Loading providers…</small>
                                 </div>
-                                <div class="form-group linklet-form-group" style="flex:1;min-width:110px">
-                                    <label for="linkletAmountInput">Links to Generate</label>
-                                    <input type="number" id="linkletAmountInput" min="1" max="5" value="1" required>
+                                <div class="form-group link-maker-form-group" style="flex:1;min-width:110px">
+                                    <label for="linkMakerAmountInput">Links to Make</label>
+                                    <input type="number" id="linkMakerAmountInput" min="1" max="5" value="1" required>
                                 </div>
                             </div>
 
-                            <div id="linkletFileFields">
-                                <div class="linklet-form-row">
-                                    <div class="form-group linklet-form-group" style="flex:1">
-                                        <label for="linkletFormatSelect">Mirror File Format</label>
-                                        <select id="linkletFormatSelect" class="settings-select">
+                            <div id="linkMakerFileFields">
+                                <div class="link-maker-form-row">
+                                    <div class="form-group link-maker-form-group" style="flex:1">
+                                        <label for="linkMakerFormatSelect">Link File Format</label>
+                                        <select id="linkMakerFormatSelect" class="settings-select">
                                             <option value="html" selected>HTML Fullscreen Portal (.html)</option>
                                             <option value="svg">SVG Launcher Card (.svg)</option>
                                         </select>
                                     </div>
-                                    <div class="form-group linklet-form-group" style="flex:1.4">
-                                        <label for="linkletTabTitleInput">Page Tab Title</label>
-                                        <input type="text" id="linkletTabTitleInput" maxlength="48" placeholder="MILKBOX" value="MILKBOX">
+                                    <div class="form-group link-maker-form-group" style="flex:1.4">
+                                        <label for="linkMakerTabTitleInput">Page Tab Title</label>
+                                        <input type="text" id="linkMakerTabTitleInput" maxlength="48" placeholder="MILKBOX" value="MILKBOX">
                                     </div>
                                 </div>
-                                <div class="linklet-title-presets">
+                                <div class="link-maker-title-presets">
                                     <span>Quick Title:</span>
-                                    <button type="button" class="linklet-title-chip" data-title="MILKBOX">MILKBOX</button>
-                                    <button type="button" class="linklet-title-chip" data-title="Google Docs">Google Docs</button>
-                                    <button type="button" class="linklet-title-chip" data-title="Desmos | Graphing Calculator">Desmos</button>
-                                    <button type="button" class="linklet-title-chip" data-title="Study Notes">Study Notes</button>
+                                    <button type="button" class="link-maker-title-chip" data-title="MILKBOX">MILKBOX</button>
+                                    <button type="button" class="link-maker-title-chip" data-title="Google Docs">Google Docs</button>
+                                    <button type="button" class="link-maker-title-chip" data-title="Desmos | Graphing Calculator">Desmos</button>
+                                    <button type="button" class="link-maker-title-chip" data-title="Study Notes">Study Notes</button>
                                 </div>
                             </div>
 
-                            <div id="linkletIpFields" style="display:none">
-                                <div class="linklet-form-row">
-                                    <div class="form-group linklet-form-group" style="flex:1.4">
-                                        <label for="linkletIpInput">Site IPv4 Address</label>
-                                        <input type="text" id="linkletIpInput" placeholder="e.g. 34.73.99.76" autocomplete="off">
+                            <div id="linkMakerIpFields" style="display:none">
+                                <div class="link-maker-form-row">
+                                    <div class="form-group link-maker-form-group" style="flex:1.4">
+                                        <label for="linkMakerIpInput">Site IPv4 Address</label>
+                                        <input type="text" id="linkMakerIpInput" placeholder="e.g. 34.73.99.76" autocomplete="off">
                                         <small class="help-text">Auto-detected from this host when available; must be a public IPv4.</small>
                                     </div>
-                                    <div class="form-group linklet-form-group" id="linkletEnvNameGroup" style="flex:1;display:none">
-                                        <label for="linkletNameInput">Subdomain Name (optional)</label>
-                                        <input type="text" id="linkletNameInput" maxlength="32" placeholder="e.g. milkbox-stream" autocomplete="off">
+                                    <div class="form-group link-maker-form-group" id="linkMakerEnvNameGroup" style="flex:1;display:none">
+                                        <label for="linkMakerNameInput">Subdomain Name (optional)</label>
+                                        <input type="text" id="linkMakerNameInput" maxlength="32" placeholder="e.g. milkbox-stream" autocomplete="off">
                                     </div>
                                 </div>
                             </div>
 
-                            <button type="submit" class="settings-apply-btn linklet-submit-btn" id="linkletGenerateBtn">
-                                Generate MILKBOX Links
+                            <button type="submit" class="settings-apply-btn link-maker-submit-btn" id="linkMakerGenerateBtn">
+                                Make MILKBOX Links
                             </button>
                         </form>
 
-                        <div class="linklet-job-status" id="linkletJobStatus" style="display:none"></div>
+                        <div class="link-maker-job-status" id="linkMakerJobStatus" style="display:none"></div>
 
-                        <div class="linklet-results-wrap" id="linkletResultsWrap" style="display:none">
-                            <div class="linklet-results-head">
-                                <span>Generated Site Links</span>
-                                <div class="linklet-results-head-actions">
-                                    <button type="button" class="linklet-mini-btn" id="linkletCopyAllBtn" style="display:none">Copy All</button>
-                                    <button type="button" class="linklet-mini-btn" id="linkletClearHistoryBtn">Clear Saved</button>
+                        <div class="link-maker-results-wrap" id="linkMakerResultsWrap" style="display:none">
+                            <div class="link-maker-results-head">
+                                <span>Created Site Links</span>
+                                <div class="link-maker-results-head-actions">
+                                    <button type="button" class="link-maker-mini-btn" id="linkMakerCopyAllBtn" style="display:none">Copy All</button>
+                                    <button type="button" class="link-maker-mini-btn" id="linkMakerClearHistoryBtn">Clear Saved</button>
                                 </div>
                             </div>
-                            <div class="linklet-results-list" id="linkletResultsList"></div>
+                            <div class="link-maker-results-list" id="linkMakerResultsList"></div>
                         </div>
                     </div>
                 </div>
@@ -2864,7 +2864,7 @@
     <script src="watch-party.js?v=20261026"></script>
     <script src="scramjet-client.js?v=20261114-init-v2"></script>
     <script src="live-tv.js?v=20261114-pages-v3"></script>
-    <script src="linklet-mirror.js?v=20261114-v2"></script>
+    <script src="link-maker.js?v=20261114-v1"></script>
     <script src="app.js?v=20261114-perf-v4"></script>
     <script>
     // Initialize Scramjet with Chrome blocking fallback

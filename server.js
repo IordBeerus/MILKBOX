@@ -2080,12 +2080,30 @@ const server = http.createServer(async (req, res) => {
     const normalizedRelative = path.normalize(requestedFile).replace(/^(\.\.[\/\\])+/, '');
     const basename = path.basename(normalizedRelative);
 
-    // Block sensitive files (.env, .git, config secrets, server scripts, etc.)
-    const isSensitive = 
+    const relNoSlash = normalizedRelative.replace(/^[\/\\]+/, '').toLowerCase();
+    const blockedServerFiles = new Set([
+        'server.js',
+        'linklet-service.js',
+        'x8rr-movies.js',
+        'x8rr-manga.js',
+        'stream-provider.js',
+        'watch-party-server.js',
+        'build-collections.js',
+        'sync-github.js',
+        'sync-provider-icons.js',
+        'render.yaml',
+        'package.json',
+        'package-lock.json',
+        'metadata.json'
+    ]);
+
+    // Block sensitive files (.env, .git, config secrets, backend modules, server scripts, etc.)
+    const isSensitive =
         basename.startsWith('.') ||
         basename.endsWith('.env') ||
-        basename === 'sync-github.js' ||
-        basename === 'render.yaml' ||
+        blockedServerFiles.has(basename.toLowerCase()) ||
+        relNoSlash.startsWith('scripts/') ||
+        relNoSlash.startsWith('scripts\\') ||
         normalizedRelative.includes('/.');
 
     if (isSensitive) {

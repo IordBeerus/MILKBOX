@@ -10,6 +10,14 @@ const LINKLET_ALLONE_MAX_TIER = Object.freeze({
     linksPerGeneration: 100
 });
 
+// Sanitized tier metadata exposed to browser clients
+const PUBLIC_TIER_INFO = Object.freeze({
+    name: 'AllOne MAX',
+    perMinute: LINKLET_ALLONE_MAX_TIER.perMinute,
+    perDay: LINKLET_ALLONE_MAX_TIER.perDay,
+    linksPerGeneration: LINKLET_ALLONE_MAX_TIER.linksPerGeneration
+});
+
 // Per-user anti-spam limits so no single user can exhaust the shared AllOne MAX quota
 const DEFAULT_USER_LIMITS = Object.freeze({
     maxGenerationsPerWindow: 3,
@@ -35,7 +43,7 @@ const LINKLET_PROVIDERS = Object.freeze([
     },
     {
         id: 'cdn',
-        name: 'Linklet CDN',
+        name: 'Fast CDN',
         kind: 'file',
         input: 'SVG / HTML',
         formats: ['html', 'svg'],
@@ -143,6 +151,19 @@ function escapeHtml(value) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+}
+
+function sanitizePublicErrorMessage(rawMessage, fallback) {
+    const raw = String(rawMessage || '').trim();
+    if (!raw) return fallback;
+    if (/linklet|LINKLET_API_KEY|\.env/i.test(raw)) {
+        return raw
+            .replace(/Linklet\s+AllOne\s+MAX/gi, 'AllOne MAX')
+            .replace(/Linklet/gi, 'Link Maker')
+            .replace(/LINKLET_API_KEY/gi, 'server configuration')
+            .replace(/\.env\b/gi, 'server config');
+    }
+    return raw;
 }
 
 function isValidPublicIpv4(ip) {
@@ -438,7 +459,7 @@ function createLinkletService(options = {}) {
                 remainingLinksToday
             },
             global: {
-                tier: LINKLET_ALLONE_MAX_TIER,
+                tier: PUBLIC_TIER_INFO,
                 minuteUsed: globalMinuteUsed,
                 minuteRemaining: globalMinuteRemaining,
                 dayUsed: globalDayUsed,
@@ -488,7 +509,7 @@ function createLinkletService(options = {}) {
 
         return {
             configured: Boolean(getApiKey()),
-            tier: LINKLET_ALLONE_MAX_TIER,
+            tier: PUBLIC_TIER_INFO,
             providers: LINKLET_PROVIDERS.map((p) => ({
                 ...p,
                 userMaxAmount: Math.min(p.maxAmount, userLimits.maxLinksPerGeneration)
@@ -595,7 +616,7 @@ function createLinkletService(options = {}) {
                 allowed: false,
                 status: 429,
                 retryAfter,
-                error: `Linklet upstream cooldown active. Please retry in ${retryAfter}s.`
+                error: `Link Maker cooldown active. Please retry in ${retryAfter}s.`
             };
         }
 
@@ -624,7 +645,7 @@ function createLinkletService(options = {}) {
                 allowed: false,
                 status: 429,
                 retryAfter,
-                error: `Linklet AllOne MAX minute capacity (${LINKLET_ALLONE_MAX_TIER.perMinute}/min) reached. Please wait ${retryAfter}s.`
+                error: `AllOne MAX minute capacity (${LINKLET_ALLONE_MAX_TIER.perMinute}/min) reached. Please wait ${retryAfter}s.`
             };
         }
 
@@ -633,7 +654,7 @@ function createLinkletService(options = {}) {
                 allowed: false,
                 status: 429,
                 retryAfter: 3600,
-                error: `Linklet AllOne MAX daily allowance (${LINKLET_ALLONE_MAX_TIER.perDay}/day) reached for today.`
+                error: `AllOne MAX daily allowance (${LINKLET_ALLONE_MAX_TIER.perDay}/day) reached for today.`
             };
         }
 
@@ -667,7 +688,7 @@ function createLinkletService(options = {}) {
             return {
                 status: 503,
                 body: {
-                    error: 'Linklet API is not configured on this server. Set LINKLET_API_KEY in .env.'
+                    error: 'Link Maker is not configured on this server.'
                 }
             };
         }
@@ -720,8 +741,8 @@ function createLinkletService(options = {}) {
             return {
                 status: 502,
                 body: {
-                    error: 'Failed to reach Linklet generation service.',
-                    message: err.message,
+                    error: 'Failed to reach Link Maker generation service.',
+                    message: sanitizePublicErrorMessage(err && err.message, 'Service unavailable'),
                     limits: getQuotaSnapshot(clientIp).user
                 }
             };
@@ -735,7 +756,7 @@ function createLinkletService(options = {}) {
                 status: 429,
                 headers: { 'Retry-After': String(retryAfter) },
                 body: {
-                    error: (upstreamData && (upstreamData.error || upstreamData.message)) || 'Linklet rate or queue limit reached.',
+                    error: sanitizePublicErrorMessage(upstreamData && (upstreamData.error || upstreamData.message), 'Link Maker rate or queue limit reached.'),
                     retryAfterSeconds: retryAfter,
                     limits: getQuotaSnapshot(clientIp).user
                 }
@@ -746,7 +767,7 @@ function createLinkletService(options = {}) {
             return {
                 status: 502,
                 body: {
-                    error: 'Linklet API key was rejected by upstream (401). Please verify LINKLET_API_KEY.'
+                    error: 'Link Maker server credentials were rejected (401).'
                 }
             };
         }
@@ -755,7 +776,7 @@ function createLinkletService(options = {}) {
             return {
                 status: upstreamRes.status >= 500 ? 502 : upstreamRes.status,
                 body: {
-                    error: (upstreamData && (upstreamData.error || upstreamData.message)) || `Linklet request failed (${upstreamRes.status}).`,
+                    error: sanitizePublicErrorMessage(upstreamData && (upstreamData.error || upstreamData.message), `Link Maker request failed (${upstreamRes.status}).`),
                     limits: getQuotaSnapshot(clientIp).user
                 }
             };
@@ -782,9 +803,9 @@ function createLinkletService(options = {}) {
                 provider: built.payload.provider,
                 status: upstreamData.status || 'queued',
                 requested: upstreamData.requested || built.payload.amount,
-                statusUrl: jobId ? `/api/linklet/jobs/${encodeURIComponent(jobId)}` : null,
+                statusUrl: jobId ? `/api/link-maker/jobs/${encodeURIComponent(jobId)}` : null,
                 siteUrl: siteInfo.origin,
-                tier: LINKLET_ALLONE_MAX_TIER,
+                tier: PUBLIC_TIER_INFO,
                 limits: updatedQuota.user,
                 globalUsage: updatedQuota.global
             }
@@ -796,7 +817,7 @@ function createLinkletService(options = {}) {
         if (!apiKey) {
             return {
                 status: 503,
-                body: { error: 'Linklet API is not configured on this server.' }
+                body: { error: 'Link Maker is not configured on this server.' }
             };
         }
 
@@ -804,7 +825,7 @@ function createLinkletService(options = {}) {
         if (!cleanJobId || !/^[a-zA-Z0-9._-]+$/.test(cleanJobId) || cleanJobId.length > 128) {
             return {
                 status: 400,
-                body: { error: 'Invalid Linklet job ID.' }
+                body: { error: 'Invalid Link Maker job ID.' }
             };
         }
 
@@ -815,7 +836,7 @@ function createLinkletService(options = {}) {
                 status: 429,
                 headers: { 'Retry-After': String(retryAfter) },
                 body: {
-                    error: `Linklet rate-limit cooldown active. Retry in ${retryAfter}s.`,
+                    error: `Link Maker cooldown active. Retry in ${retryAfter}s.`,
                     retryAfterSeconds: retryAfter
                 }
             };
@@ -840,7 +861,10 @@ function createLinkletService(options = {}) {
         } catch (err) {
             return {
                 status: 502,
-                body: { error: 'Failed to poll Linklet job status.', message: err.message }
+                body: {
+                    error: 'Failed to poll Link Maker job status.',
+                    message: sanitizePublicErrorMessage(err && err.message, 'Polling failed')
+                }
             };
         }
 
@@ -852,7 +876,7 @@ function createLinkletService(options = {}) {
                 status: 429,
                 headers: { 'Retry-After': String(retryAfter) },
                 body: {
-                    error: (upstreamData && (upstreamData.error || upstreamData.message)) || 'Linklet rate limit reached while checking job.',
+                    error: sanitizePublicErrorMessage(upstreamData && (upstreamData.error || upstreamData.message), 'Link Maker rate limit reached while checking job.'),
                     retryAfterSeconds: retryAfter
                 }
             };
@@ -862,7 +886,7 @@ function createLinkletService(options = {}) {
             return {
                 status: upstreamRes.status >= 500 ? 502 : upstreamRes.status,
                 body: {
-                    error: (upstreamData && (upstreamData.error || upstreamData.message)) || `Linklet job lookup failed (${upstreamRes.status}).`
+                    error: sanitizePublicErrorMessage(upstreamData && (upstreamData.error || upstreamData.message), `Link Maker job lookup failed (${upstreamRes.status}).`)
                 }
             };
         }
@@ -882,7 +906,7 @@ function createLinkletService(options = {}) {
     }
 
     async function handleHttpRequest(req, res, requestPath) {
-        if (!requestPath.startsWith('/api/linklet')) return false;
+        if (!requestPath.startsWith('/api/link-maker')) return false;
 
         const sendResult = (result) => {
             const headers = {
@@ -894,13 +918,13 @@ function createLinkletService(options = {}) {
             res.end(JSON.stringify(result.body));
         };
 
-        if (requestPath === '/api/linklet/status' && req.method === 'GET') {
+        if (requestPath === '/api/link-maker/status' && req.method === 'GET') {
             const statusPayload = await getStatus(req);
             sendResult({ status: 200, body: statusPayload });
             return true;
         }
 
-        if (requestPath === '/api/linklet/generate') {
+        if (requestPath === '/api/link-maker/generate') {
             if (req.method !== 'POST') {
                 sendResult({ status: 405, body: { error: 'Method not allowed' } });
                 return true;
@@ -937,19 +961,20 @@ function createLinkletService(options = {}) {
             return true;
         }
 
-        if (requestPath.startsWith('/api/linklet/jobs/') && req.method === 'GET') {
-            const jobId = requestPath.slice('/api/linklet/jobs/'.length);
+        if (requestPath.startsWith('/api/link-maker/jobs/') && req.method === 'GET') {
+            const jobId = requestPath.slice('/api/link-maker/jobs/'.length);
             const result = await getJobStatus(req, jobId);
             sendResult(result);
             return true;
         }
 
-        sendResult({ status: 404, body: { error: 'Linklet endpoint not found' } });
+        sendResult({ status: 404, body: { error: 'Link Maker endpoint not found' } });
         return true;
     }
 
     return {
         LINKLET_ALLONE_MAX_TIER,
+        PUBLIC_TIER_INFO,
         LINKLET_PROVIDERS,
         userLimits,
         getStatus,
@@ -963,6 +988,7 @@ function createLinkletService(options = {}) {
 
 module.exports = {
     LINKLET_ALLONE_MAX_TIER,
+    PUBLIC_TIER_INFO,
     LINKLET_PROVIDERS,
     DEFAULT_USER_LIMITS,
     isValidPublicIpv4,
